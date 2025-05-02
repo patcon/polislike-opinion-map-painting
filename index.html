@@ -39,9 +39,9 @@
 
     <script>
       Promise.all([
-        d3.json("data/pca.json"),
-        d3.json("data/pacmap.json"),
-        d3.json("data/localmap.json"),
+        d3.json("data/bg2050/pca.json"),
+        d3.json("data/bg2050/pacmap.json"),
+        d3.json("data/bg2050/localmap.json"),
       ]).then(([X1, X2, X3]) => {
         const N = X1.length;
 
