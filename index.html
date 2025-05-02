@@ -37,6 +37,12 @@
       <!-- swatches inserted below -->
     </div>
 
+    <!-- <label for="selection-mode">Selection mode:</label>
+    <select id="selection-mode">
+      <option value="brush">Rectangle (Brush)</option>
+      <option value="lasso">Freeform (Lasso)</option>
+    </select> -->
+
     <div id="plot-wrapper">
       <svg id="plot1"></svg>
       <svg id="plot2"></svg>
@@ -49,12 +55,27 @@
     ></div>
 
     <script>
+      let X1, X2, X3;
+
+      // let selectionMode = "brush";
+      // document
+      //   .getElementById("selection-mode")
+      //   .addEventListener("change", (e) => {
+      //     selectionMode = e.target.value;
+      //     // Re-render to install the new interaction mode
+      //     renderAllPlots();
+      //   });
+
       let convo_slug = "bg2050";
       Promise.all([
         d3.json(`data/${convo_slug}/pca.json`),
         d3.json(`data/${convo_slug}/pacmap.json`),
         d3.json(`data/${convo_slug}/localmap.json`),
-      ]).then(([X1, X2, X3]) => {
+      ]).then(([_X1, _X2, _X3]) => {
+        X1 = _X1;
+        X2 = _X2;
+        X3 = _X3;
+
         const N = X1.length;
 
         const colorByIndex = Array(N).fill(null);
@@ -131,6 +152,24 @@
           container.innerHTML = entries || "(No selections yet)";
         }
 
+        const lineGenerator = d3.line();
+
+        function pointInPolygon(point, vs) {
+          let x = point[0],
+            y = point[1];
+          let inside = false;
+          for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+            let xi = vs[i][0],
+              yi = vs[i][1];
+            let xj = vs[j][0],
+              yj = vs[j][1];
+            let intersect =
+              yi > y != yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+            if (intersect) inside = !inside;
+          }
+          return inside;
+        }
+
         function renderPlot(svgId, data, title) {
           const svg = d3.select(svgId);
           const scales = getScales(data, width, height);
@@ -159,57 +198,69 @@
             .attr("fill-opacity", 0.3)
             .attr("fill", (_, i) => colorByIndex[i] || "rgba(0,0,0,0.5)");
 
-          // Brush for selection
-          const brush = d3
-            .brush()
-            .extent([
-              [0, 0],
-              [width, height],
-            ])
-            .on("end", (event) => {
-              if (!event.selection) return;
-              const [[x0, y0], [x1, y1]] = event.selection;
-              const selectedColor = document.getElementById("color").value;
+          let coords = [];
 
-              const pointsInBrushBounds = [];
+          function drawPath() {
+            svg.select("#lasso").remove();
+            svg
+              .append("path")
+              .attr("id", "lasso")
+              .style("stroke", "black")
+              .style("stroke-width", 2)
+              .style("fill", "#00000054")
+              .attr("d", lineGenerator(coords));
+          }
 
-              svg.selectAll("circle").each(function (d, i) {
-                const cx = scales.x(d[0]);
-                const cy = scales.y(d[1]);
-                if (x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1) {
-                  pointsInBrushBounds.push(i);
-                }
-              });
+          function dragStart() {
+            coords = [];
+            svg.select("#lasso").remove();
+            svg.append("path").attr("id", "lasso");
+          }
 
-              const additive = isShiftPressed || event.sourceEvent?.metaKey;
+          function dragMove(event) {
+            coords.push([event.x, event.y]);
+            drawPath();
+          }
 
-              // Reset everything if not additive
-              if (!additive) {
-                colorByIndex.fill(null);
-                selectedIndicesGlobal.clear();
-              }
+          function dragEnd(event) {
+            const selectedColor = document.getElementById("color").value;
+            const additive = isShiftPressed || event.sourceEvent?.metaKey;
 
-              // Only update points that are *currently in bounds* of brush
-              pointsInBrushBounds.forEach((i) => {
+            if (!additive) {
+              colorByIndex.fill(null);
+              selectedIndicesGlobal.clear();
+            }
+
+            svg.selectAll("circle").each(function (d, i) {
+              const cx = scales.x(d[0]);
+              const cy = scales.y(d[1]);
+              if (pointInPolygon([cx, cy], coords)) {
                 colorByIndex[i] = selectedColor;
-                selectedIndicesGlobal.add(i); // optional: for visual feedback later
-              });
-
-              svg.select(".brush").call(brush.move, null); // Clear brush
-
-              renderPlot("#plot1", X1, "PCA projection");
-              renderPlot("#plot2", X2, "PaCMAP projection");
-              renderPlot("#plot3", X3, "LocalMAP projection");
-
-              updateLabelCounts();
+                selectedIndicesGlobal.add(i);
+              }
             });
 
-          svg.append("g").call(brush);
+            renderAllPlots();
+
+            updateLabelCounts();
+          }
+
+          const drag = d3
+            .drag()
+            .on("start", dragStart)
+            .on("drag", dragMove)
+            .on("end", dragEnd);
+
+          svg.call(drag);
         }
 
-        renderPlot("#plot1", X1, "PCA projection");
-        renderPlot("#plot2", X2, "PaCMAP projection");
-        renderPlot("#plot3", X3, "LocalMAP projection");
+        function renderAllPlots() {
+          renderPlot("#plot1", X1, "PCA projection");
+          renderPlot("#plot2", X2, "PaCMAP projection");
+          renderPlot("#plot3", X3, "LocalMAP projection");
+        }
+
+        renderAllPlots();
 
         updateLabelCounts();
         renderColorPalette();
