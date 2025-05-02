@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      #plot-wrapper {
+        display: flex;
+        width: 100%;
+        gap: 20px;
+      }
+      svg {
+        border: 1px solid #ccc;
+        flex: 1;
+        height: 450px;
+        width: 100%;
+      }
+    </style>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/d3-lasso@1.0.0/build/d3-lasso.min.js"></script>
+  </head>
+  <body>
+    <label for="color">Choose color: </label>
+    <input type="color" id="color" value="#ff0000" />
+
+    <div id="plot-wrapper">
+      <svg id="plot1"></svg>
+      <svg id="plot2"></svg>
+      <svg id="plot3"></svg>
+    </div>
+
+    <script>
+      const N = 300;
+      const X1 = Array.from({ length: N }, () => [
+        Math.random(),
+        Math.random(),
+      ]);
+      const X2 = Array.from({ length: N }, () => [
+        Math.random(),
+        Math.random(),
+      ]);
+      const X3 = Array.from({ length: N }, () => [
+        Math.random(),
+        Math.random(),
+      ]);
+      const colorByIndex = Array(N).fill(null);
+      let selectedIndicesGlobal = new Set();
+
+      const width = 450,
+        height = 450;
+      let isShiftPressed = false;
+
+      const scales = {
+        x: d3
+          .scaleLinear()
+          .domain([0, 1])
+          .range([40, width - 40]),
+        y: d3
+          .scaleLinear()
+          .domain([0, 1])
+          .range([height - 40, 40]),
+      };
+
+      function renderPlot(svgId, data, otherSvgId) {
+        const svg = d3.select(svgId);
+        const otherSvg = d3.select(otherSvgId);
+
+        svg.selectAll("*").remove(); // Clear
+
+        // Draw points
+        svg
+          .selectAll("circle")
+          .data(data)
+          .enter()
+          .append("circle")
+          .attr("cx", (d) => scales.x(d[0]))
+          .attr("cy", (d) => scales.y(d[1]))
+          .attr("r", 6)
+          .attr("fill", (_, i) => colorByIndex[i] || "rgba(0,0,0,0.5)");
+
+        // Brush for selection
+        const brush = d3
+          .brush()
+          .extent([
+            [0, 0],
+            [width, height],
+          ])
+          .on("end", (event) => {
+            if (!event.selection) return;
+            const [[x0, y0], [x1, y1]] = event.selection;
+            const selectedColor = document.getElementById("color").value;
+
+            const pointsInBrushBounds = [];
+
+            svg.selectAll("circle").each(function (d, i) {
+              const cx = scales.x(d[0]);
+              const cy = scales.y(d[1]);
+              if (x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1) {
+                pointsInBrushBounds.push(i);
+              }
+            });
+
+            const additive = isShiftPressed || event.sourceEvent?.metaKey;
+
+            // Reset everything if not additive
+            if (!additive) {
+              colorByIndex.fill(null);
+              selectedIndicesGlobal.clear();
+            }
+
+            // Only update points that are *currently in bounds* of brush
+            pointsInBrushBounds.forEach((i) => {
+              colorByIndex[i] = selectedColor;
+              selectedIndicesGlobal.add(i); // optional: for visual feedback later
+            });
+
+            svg.select(".brush").call(brush.move, null); // Clear brush
+
+            renderPlot("#plot1", X1, "#plot2");
+            renderPlot("#plot2", X2, "#plot1");
+            renderPlot("#plot3", X3, "#plot1");
+          });
+
+        svg.append("g").call(brush);
+      }
+
+      renderPlot("#plot1", X1, "#plot2");
+      renderPlot("#plot2", X2, "#plot1");
+      renderPlot("#plot3", X3, "#plot1");
+
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Shift") isShiftPressed = true;
+      });
+
+      window.addEventListener("keyup", (e) => {
+        if (e.key === "Shift") isShiftPressed = false;
+      });
+    </script>
+  </body>
+</html>
