@@ -2,7 +2,7 @@
 
 This project explores a data painting interface for exploring various participant "opinion maps" derived from data collected in a wikisurvey system like Polis.
 
-Demo: https://patcon.github.io/d3-painting-polis-like
+Demo: https://patcon.github.io/polislike-opinion-map-painting
 
 | Custom paint full graph | Custom paint area of interest |
 |---|---|
@@ -36,7 +36,7 @@ Demo: https://patcon.github.io/d3-painting-polis-like
 
 ### Explore existing data
 
-1. Open the hosted demo link: https://patcon.github.io/d3-painting-polis-like
+1. Open the hosted demo link: https://patcon.github.io/polislike-opinion-map-painting
 2. Choose a color
 3. Drag selection boxes to highlight participants. Cmd+click for additive select
 4. Change the color. Cmd-drag to paint with multiple colors
@@ -80,5 +80,5 @@ Demo: https://patcon.github.io/d3-painting-polis-like
 
 This project was built quickly with CodeSandbox and ChatGPT.
 
-Code Sandbox IDE: https://codesandbox.io/p/github/patcon/d3-painting-polis-like
+Code Sandbox IDE: https://codesandbox.io/p/github/patcon/polislike-opinion-map-painting
 Code Sandbox Preview: https://cx3p47-5000.csb.app/
