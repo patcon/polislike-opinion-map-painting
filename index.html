@@ -20,6 +20,7 @@
   <body>
     <label for="color">Choose color: </label>
     <input type="color" id="color" value="#ff0000" />
+    <span>(Cmd-click for additive)
 
     <div id="plot-wrapper">
       <svg id="plot1"></svg>
@@ -28,110 +29,116 @@
     </div>
 
     <script>
-      const N = 300;
-      const X1 = Array.from({ length: N }, () => [
-        Math.random(),
-        Math.random(),
-      ]);
-      const X2 = Array.from({ length: N }, () => [
-        Math.random(),
-        Math.random(),
-      ]);
-      const X3 = Array.from({ length: N }, () => [
-        Math.random(),
-        Math.random(),
-      ]);
-      const colorByIndex = Array(N).fill(null);
-      let selectedIndicesGlobal = new Set();
+      Promise.all([
+        d3.json("data/pca.json"),
+        d3.json("data/pacmap.json"),
+        d3.json("data/localmap.json"),
+      ]).then(([X1, X2, X3]) => {
+        console.log(X1);
+        console.log(X2);
+        console.log(X3);
 
-      const width = 450,
-        height = 450;
-      let isShiftPressed = false;
+        const N = X1.length;
 
-      const scales = {
-        x: d3
-          .scaleLinear()
-          .domain([0, 1])
-          .range([40, width - 40]),
-        y: d3
-          .scaleLinear()
-          .domain([0, 1])
-          .range([height - 40, 40]),
-      };
+        const colorByIndex = Array(N).fill(null);
+        let selectedIndicesGlobal = new Set();
 
-      function renderPlot(svgId, data, otherSvgId) {
-        const svg = d3.select(svgId);
-        const otherSvg = d3.select(otherSvgId);
+        const width = 450,
+          height = 450;
+        let isShiftPressed = false;
 
-        svg.selectAll("*").remove(); // Clear
+        function getScales(X, width, height, padding = 40) {
+          const xExtent = d3.extent(X, (d) => d[0]);
+          const yExtent = d3.extent(X, (d) => d[1]);
 
-        // Draw points
-        svg
-          .selectAll("circle")
-          .data(data)
-          .enter()
-          .append("circle")
-          .attr("cx", (d) => scales.x(d[0]))
-          .attr("cy", (d) => scales.y(d[1]))
-          .attr("r", 6)
-          .attr("fill", (_, i) => colorByIndex[i] || "rgba(0,0,0,0.5)");
+          return {
+            x: d3
+              .scaleLinear()
+              .domain(xExtent)
+              .range([padding, width - padding]),
+            y: d3
+              .scaleLinear()
+              .domain(yExtent)
+              .range([height - padding, padding]), // flip Y for SVG coords
+          };
+        }
 
-        // Brush for selection
-        const brush = d3
-          .brush()
-          .extent([
-            [0, 0],
-            [width, height],
-          ])
-          .on("end", (event) => {
-            if (!event.selection) return;
-            const [[x0, y0], [x1, y1]] = event.selection;
-            const selectedColor = document.getElementById("color").value;
+        function renderPlot(svgId, data, otherSvgId) {
+          const svg = d3.select(svgId);
+          const otherSvg = d3.select(otherSvgId);
+          const scales = getScales(data, width, height);
 
-            const pointsInBrushBounds = [];
+          svg.selectAll("*").remove(); // Clear
 
-            svg.selectAll("circle").each(function (d, i) {
-              const cx = scales.x(d[0]);
-              const cy = scales.y(d[1]);
-              if (x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1) {
-                pointsInBrushBounds.push(i);
+          // Draw points
+          svg
+            .selectAll("circle")
+            .data(data)
+            .enter()
+            .append("circle")
+            .attr("cx", (d) => scales.x(d[0]))
+            .attr("cy", (d) => scales.y(d[1]))
+            .attr("r", 5)
+            .attr("fill-opacity", 0.3)
+            .attr("fill", (_, i) => colorByIndex[i] || "rgba(0,0,0,0.5)");
+
+          // Brush for selection
+          const brush = d3
+            .brush()
+            .extent([
+              [0, 0],
+              [width, height],
+            ])
+            .on("end", (event) => {
+              if (!event.selection) return;
+              const [[x0, y0], [x1, y1]] = event.selection;
+              const selectedColor = document.getElementById("color").value;
+
+              const pointsInBrushBounds = [];
+
+              svg.selectAll("circle").each(function (d, i) {
+                const cx = scales.x(d[0]);
+                const cy = scales.y(d[1]);
+                if (x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1) {
+                  pointsInBrushBounds.push(i);
+                }
+              });
+
+              const additive = isShiftPressed || event.sourceEvent?.metaKey;
+
+              // Reset everything if not additive
+              if (!additive) {
+                colorByIndex.fill(null);
+                selectedIndicesGlobal.clear();
               }
+
+              // Only update points that are *currently in bounds* of brush
+              pointsInBrushBounds.forEach((i) => {
+                colorByIndex[i] = selectedColor;
+                selectedIndicesGlobal.add(i); // optional: for visual feedback later
+              });
+
+              svg.select(".brush").call(brush.move, null); // Clear brush
+
+              renderPlot("#plot1", X1, "#plot2");
+              renderPlot("#plot2", X2, "#plot1");
+              renderPlot("#plot3", X3, "#plot1");
             });
 
-            const additive = isShiftPressed || event.sourceEvent?.metaKey;
+          svg.append("g").call(brush);
+        }
 
-            // Reset everything if not additive
-            if (!additive) {
-              colorByIndex.fill(null);
-              selectedIndicesGlobal.clear();
-            }
+        renderPlot("#plot1", X1, "#plot2");
+        renderPlot("#plot2", X2, "#plot1");
+        renderPlot("#plot3", X3, "#plot1");
 
-            // Only update points that are *currently in bounds* of brush
-            pointsInBrushBounds.forEach((i) => {
-              colorByIndex[i] = selectedColor;
-              selectedIndicesGlobal.add(i); // optional: for visual feedback later
-            });
+        window.addEventListener("keydown", (e) => {
+          if (e.key === "Shift") isShiftPressed = true;
+        });
 
-            svg.select(".brush").call(brush.move, null); // Clear brush
-
-            renderPlot("#plot1", X1, "#plot2");
-            renderPlot("#plot2", X2, "#plot1");
-            renderPlot("#plot3", X3, "#plot1");
-          });
-
-        svg.append("g").call(brush);
-      }
-
-      renderPlot("#plot1", X1, "#plot2");
-      renderPlot("#plot2", X2, "#plot1");
-      renderPlot("#plot3", X3, "#plot1");
-
-      window.addEventListener("keydown", (e) => {
-        if (e.key === "Shift") isShiftPressed = true;
-      });
-
-      window.addEventListener("keyup", (e) => {
-        if (e.key === "Shift") isShiftPressed = false;
+        window.addEventListener("keyup", (e) => {
+          if (e.key === "Shift") isShiftPressed = false;
+        });
       });
     </script>
   </body>
