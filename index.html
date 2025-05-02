@@ -20,7 +20,11 @@
   <body>
     <label for="color">Choose color: </label>
     <input type="color" id="color" value="#ff0000" />
-    <span>(Cmd-click for additive)
+    <span>(Cmd-click for additive)</span>
+
+    <div id="color-palette" style="margin-top: 8px">
+      <!-- swatches inserted below -->
+    </div>
 
     <div id="plot-wrapper">
       <svg id="plot1"></svg>
@@ -28,16 +32,17 @@
       <svg id="plot3"></svg>
     </div>
 
+    <div
+      id="label-counts"
+      style="margin-top: 12px; font-family: sans-serif"
+    ></div>
+
     <script>
       Promise.all([
         d3.json("data/pca.json"),
         d3.json("data/pacmap.json"),
         d3.json("data/localmap.json"),
       ]).then(([X1, X2, X3]) => {
-        console.log(X1);
-        console.log(X2);
-        console.log(X3);
-
         const N = X1.length;
 
         const colorByIndex = Array(N).fill(null);
@@ -63,12 +68,72 @@
           };
         }
 
-        function renderPlot(svgId, data, otherSvgId) {
+        const presetColors = [
+          "#ff0000",
+          "#00cc00",
+          "#0066ff",
+          "#ff9900",
+          "#cc00cc",
+        ];
+
+        function renderColorPalette() {
+          const container = document.getElementById("color-palette");
+          container.innerHTML = presetColors
+            .map(
+              (color) => `
+        <span 
+          style="
+            display:inline-block;
+            width:20px; height:20px;
+            background:${color};
+            border:1px solid #888;
+            margin-right:5px;
+            cursor:pointer;
+          "
+          title="${color}"
+          onclick="document.getElementById('color').value = '${color}'"
+        ></span>`
+            )
+            .join("");
+        }
+
+        function updateLabelCounts() {
+          const counts = {};
+          for (const color of colorByIndex) {
+            if (color) {
+              counts[color] = (counts[color] || 0) + 1;
+            }
+          }
+
+          const container = document.getElementById("label-counts");
+          const entries = Object.entries(counts)
+            .map(
+              ([color, count]) =>
+                `<span style="margin-right: 12px;">
+          <span style="display:inline-block; width:14px; height:14px; background:${color}; border:1px solid #aaa; margin-right:5px; vertical-align:middle;"></span>
+          ${count}
+        </span>`
+            )
+            .join("");
+
+          container.innerHTML = entries || "(No selections yet)";
+        }
+
+        function renderPlot(svgId, data, title) {
           const svg = d3.select(svgId);
-          const otherSvg = d3.select(otherSvgId);
           const scales = getScales(data, width, height);
 
           svg.selectAll("*").remove(); // Clear
+
+          // 👉 Add title at the top center
+          svg
+            .append("text")
+            .attr("x", width / 2)
+            .attr("y", 25)
+            .attr("text-anchor", "middle")
+            .attr("font-size", "16px")
+            .attr("font-weight", "bold")
+            .text(title);
 
           // Draw points
           svg
@@ -120,17 +185,22 @@
 
               svg.select(".brush").call(brush.move, null); // Clear brush
 
-              renderPlot("#plot1", X1, "#plot2");
-              renderPlot("#plot2", X2, "#plot1");
-              renderPlot("#plot3", X3, "#plot1");
+              renderPlot("#plot1", X1, "PCA projection");
+              renderPlot("#plot2", X2, "PaCMAP projection");
+              renderPlot("#plot3", X3, "LocalMAP projection");
+
+              updateLabelCounts();
             });
 
           svg.append("g").call(brush);
         }
 
-        renderPlot("#plot1", X1, "#plot2");
-        renderPlot("#plot2", X2, "#plot1");
-        renderPlot("#plot3", X3, "#plot1");
+        renderPlot("#plot1", X1, "PCA projection");
+        renderPlot("#plot2", X2, "PaCMAP projection");
+        renderPlot("#plot3", X3, "LocalMAP projection");
+
+        updateLabelCounts();
+        renderColorPalette();
 
         window.addEventListener("keydown", (e) => {
           if (e.key === "Shift") isShiftPressed = true;
