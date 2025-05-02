@@ -38,10 +38,11 @@
     ></div>
 
     <script>
+      let convo_slug = "jean-lou";
       Promise.all([
-        d3.json("data/bg2050/pca.json"),
-        d3.json("data/bg2050/pacmap.json"),
-        d3.json("data/bg2050/localmap.json"),
+        d3.json(`data/${convo_slug}/pca.json`),
+        d3.json(`data/${convo_slug}/pacmap.json`),
+        d3.json(`data/${convo_slug}/localmap.json`),
       ]).then(([X1, X2, X3]) => {
         const N = X1.length;
 
