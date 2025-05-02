@@ -14,9 +14,23 @@ Demo: https://patcon.github.io/d3-painting-polis-like
     - Not just whole group clusters found via KMeans, but manual exploration of islands of data
 - Build intuition for how different dimensional reduction algorithms surface and hide certain structure in the data
 
-## Features
-- 
-- [ ] Render demo data
+## Roadmap
+- [x] Render demo data
+- [x] Support painting clusters
+- [x] Support painting with multiple colors at once
+- [x] Show counts of participants in each painted cluster
+- [x] Document how to load own data
+- [ ] Add painting or lasso selection UX, to avoid rectangular selection constraint
+- [ ] Add hover "active" effect for participants under mouse to help see shape across projections before selecting
+    - [ ] Improve selection code performance ("painting" experiments are slow)
+- [ ] Allow selection from multiple datasets
+- [ ] Allow loading of own dataset into browser memory of hosted app
+- [ ] Dynamically show representative (differentiating) statements for painted groups.
+- [ ] Dynamically show diverse consensus statements between painted groups.
+- [ ] Add toggle to include unpainted participants as a "rest of world" group, for purpose of above stats
+- [ ] Clean up interface
+- [ ] Add option to view side-by-side vs single large view
+- [ ] Add feature to animate transitions between algo projects in single view mode.
 
 ## Usage
 
