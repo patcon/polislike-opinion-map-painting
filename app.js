@@ -17,10 +17,16 @@ function loadAndRenderData(slug) {
     d3.json(`data/${slug}/pacmap.json`),
     d3.json(`data/${slug}/localmap.json`),
   ]).then(([data1, data2, data3]) => {
+    d3.json(`data/${slug}/statements.json`).then((statements) => {
+      window.commentTexts = statements; // Save globally for now
+    });
     X1 = data1;
     X2 = data2;
     X3 = data3;
 
+    window.commentTexts = null;
+    window.repComments = null;
+    document.getElementById("rep-comments-output").innerHTML = "";
     colorByIndex.length = X1.length;
     colorByIndex.fill(null);
     selectedIndicesGlobal.clear();
@@ -295,3 +301,394 @@ function renderAllPlots() {
 
 // --- Initial Kickoff ---
 loadAndRenderData(convoSlug);
+
+let dbInstance = null;
+
+async function loadVotesDB(slug) {
+  if (dbInstance) return dbInstance;
+
+  const SQL = await initSqlJs({
+    locateFile: (file) =>
+      `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`,
+  });
+
+  const res = await fetch(`data/${slug}/votes.db`);
+  const buffer = await res.arrayBuffer();
+  dbInstance = new SQL.Database(new Uint8Array(buffer));
+  return dbInstance;
+}
+
+// Helper function to check if z-score is significant at 90% confidence
+function zSig90(zVal) {
+  return zVal > 1.2816;
+}
+
+function renderRepCommentsTable(repComments, commentTexts) {
+  const container = document.getElementById("rep-comments-output");
+  container.innerHTML = "";
+
+  Object.entries(repComments).forEach(([label, comments]) => {
+    const groupDiv = document.createElement("div");
+    groupDiv.style.marginBottom = "30px";
+
+    // Section header with colored circle
+    const title = document.createElement("h3");
+    title.style.display = "flex";
+    title.style.alignItems = "center";
+    title.style.gap = "10px";
+
+    const circle = document.createElement("span");
+    circle.style.display = "inline-block";
+    circle.style.width = "16px";
+    circle.style.height = "16px";
+    circle.style.borderRadius = "50%";
+    circle.style.backgroundColor = label;
+    circle.style.border = "1px solid #999";
+
+    const text = document.createElement("span");
+    text.textContent = `Group: ${label}`;
+
+    title.appendChild(circle);
+    title.appendChild(text);
+    groupDiv.appendChild(title);
+
+    const table = document.createElement("table");
+    table.style.borderCollapse = "collapse";
+    table.style.width = "100%";
+
+    const headerRow = document.createElement("tr");
+    ["Comment ID", "Rep Type", "% Support", "Statement"].forEach((h) => {
+      const th = document.createElement("th");
+      th.textContent = h;
+      th.style.borderBottom = "2px solid #ccc";
+      th.style.padding = "6px 10px";
+      th.style.textAlign = "left";
+      headerRow.appendChild(th);
+    });
+    table.appendChild(headerRow);
+
+    comments.forEach((c) => {
+      const tr = document.createElement("tr");
+
+      const repColor =
+        c.repful_for === "agree"
+          ? "green"
+          : c.repful_for === "disagree"
+          ? "red"
+          : "#333";
+
+      const text = commentTexts?.[c.tid]?.txt || "<em>Missing</em>";
+
+      const cells = [
+        c.tid,
+        `<span style="color: ${repColor}; font-weight: bold;">${c.repful_for}</span>`,
+        `${Math.round((c.n_success / c.n_trials) * 100)}%`,
+        text,
+      ];
+
+      cells.forEach((val) => {
+        const td = document.createElement("td");
+        td.innerHTML = val;
+        td.style.padding = "6px 10px";
+        td.style.borderBottom = "1px solid #eee";
+        tr.appendChild(td);
+      });
+
+      table.appendChild(tr);
+    });
+
+    groupDiv.appendChild(table);
+    container.appendChild(groupDiv);
+  });
+}
+
+// Test if two proportions differ significantly
+function twoPropTest(succIn, succOut, popIn, popOut) {
+  const adjustedSuccIn = succIn + 1;
+  const adjustedSuccOut = succOut + 1;
+  const adjustedPopIn = popIn + 1;
+  const adjustedPopOut = popOut + 1;
+
+  const pi1 = adjustedSuccIn / adjustedPopIn;
+  const pi2 = adjustedSuccOut / adjustedPopOut;
+  const piHat =
+    (adjustedSuccIn + adjustedSuccOut) / (adjustedPopIn + adjustedPopOut);
+
+  if (piHat === 1) return 0;
+
+  return (
+    (pi1 - pi2) /
+    Math.sqrt(piHat * (1 - piHat) * (1 / adjustedPopIn + 1 / adjustedPopOut))
+  );
+}
+
+// Helper function to calculate comparative statistics for groups
+function addComparativeStats(inStats, restStats) {
+  // Sum up values across other groups
+  const sumOtherNa = restStats.reduce((sum, g) => sum + g.na, 0);
+  const sumOtherNd = restStats.reduce((sum, g) => sum + g.nd, 0);
+  const sumOtherNs = restStats.reduce((sum, g) => sum + g.ns, 0);
+
+  // Calculate relative agreement and disagreement
+  const ra = inStats.pa / ((1 + sumOtherNa) / (2 + sumOtherNs));
+  const rd = inStats.pd / ((1 + sumOtherNd) / (2 + sumOtherNs));
+
+  // Calculate z-scores for the differences between proportions
+  const rat = twoPropTest(inStats.na, sumOtherNa, inStats.ns, sumOtherNs);
+  const rdt = twoPropTest(inStats.nd, sumOtherNd, inStats.ns, sumOtherNs);
+
+  return {
+    ...inStats,
+    ra,
+    rd,
+    rat,
+    rdt,
+  };
+}
+
+async function getGroupVoteMatrices(db, labelArray) {
+  const groups = {};
+  labelArray.forEach((label, index) => {
+    if (label != null) {
+      if (!groups[label]) groups[label] = [];
+      groups[label].push(index);
+    }
+  });
+
+  const groupVotes = {};
+  for (const [label, indices] of Object.entries(groups)) {
+    const result = db.exec(`
+      SELECT participant_index, comment_id, vote
+      FROM votes
+      WHERE participant_index IN (${indices.join(",")})
+    `);
+
+    const voteMatrix = {};
+    const rows = result[0]?.values || [];
+    rows.forEach(([pid, cid, vote]) => {
+      if (!voteMatrix[pid]) voteMatrix[pid] = {};
+      voteMatrix[pid][cid] = vote;
+    });
+
+    groupVotes[label] = voteMatrix;
+  }
+
+  console.log(groupVotes);
+  return groupVotes;
+}
+
+function passesByTest(commentStats) {
+  return (
+    (zSig90(commentStats.rat) && zSig90(commentStats.pat)) ||
+    (zSig90(commentStats.rdt) && zSig90(commentStats.pdt))
+  );
+}
+
+function beatsBestByTest(commentStats, currentBestZ) {
+  return (
+    currentBestZ === null ||
+    Math.max(commentStats.rat, commentStats.rdt) > currentBestZ
+  );
+}
+
+function beatsBestAgr(commentStats, currentBest) {
+  const { na, nd, ra, rat, pa, pat } = commentStats;
+  if (na === 0 && nd === 0) return false;
+  if (currentBest && currentBest.ra > 1.0) {
+    return (
+      ra * rat * pa * pat >
+      currentBest.ra * currentBest.rat * currentBest.pa * currentBest.pat
+    );
+  }
+  if (currentBest) {
+    return pa * pat > currentBest.pa * currentBest.pat;
+  }
+  return zSig90(pat) || (ra > 1.0 && pa > 0.5);
+}
+
+function finalizeCommentStats(tid, stats) {
+  const { na, nd, ns, pa, pd, pat, pdt, ra, rd, rat, rdt } = stats;
+  const MIN_VOTES = 3;
+  const isAgreeMoreRep = (rat > rdt && na >= MIN_VOTES) || nd < MIN_VOTES;
+  const repful_for = isAgreeMoreRep ? "agree" : "disagree";
+
+  return {
+    tid,
+    n_success: isAgreeMoreRep ? na : nd,
+    n_trials: ns,
+    p_success: isAgreeMoreRep ? pa : pd,
+    p_test: isAgreeMoreRep ? pat : pdt,
+    repness: isAgreeMoreRep ? ra : rd,
+    repness_test: isAgreeMoreRep ? rat : rdt,
+    repful_for,
+  };
+}
+
+function repnessMetric(data) {
+  return data.repness * data.repness_test * data.p_success * data.p_test;
+}
+
+function agreesBeforeDisagrees(comments) {
+  const agrees = comments.filter((c) => c.repful_for === "agree");
+  const disagrees = comments.filter((c) => c.repful_for === "disagree");
+  return [...agrees, ...disagrees];
+}
+
+function selectRepComments(commentStatsWithTid, commentTexts = []) {
+  const result = {};
+
+  if (commentStatsWithTid.length === 0) return {};
+
+  const groupIds = Object.keys(commentStatsWithTid[0][1]);
+
+  groupIds.forEach((gid) => {
+    result[gid] = { best: null, best_agree: null, sufficient: [] };
+  });
+
+  commentStatsWithTid.forEach(([tid, groupsData]) => {
+    const isModerated =
+      commentTexts?.[tid]?.moderated === "-1" ||
+      commentTexts?.[tid]?.moderated === -1;
+    if (isModerated) return;
+
+    Object.entries(groupsData).forEach(([gid, commentStats]) => {
+      const groupResult = result[gid];
+
+      if (passesByTest(commentStats)) {
+        groupResult.sufficient.push(finalizeCommentStats(tid, commentStats));
+      }
+
+      if (
+        beatsBestByTest(commentStats, groupResult.best?.repness_test || null)
+      ) {
+        groupResult.best = finalizeCommentStats(tid, commentStats);
+      }
+
+      if (beatsBestAgr(commentStats, groupResult.best_agree)) {
+        groupResult.best_agree = { ...commentStats, tid };
+      }
+    });
+  });
+
+  const finalResult = {};
+
+  Object.entries(result).forEach(([gid, { best, best_agree, sufficient }]) => {
+    let bestAgreeComment = null;
+    if (best_agree) {
+      bestAgreeComment = finalizeCommentStats(best_agree.tid, best_agree);
+      bestAgreeComment.best_agree = true;
+    }
+
+    let selectedComments = [];
+    if (bestAgreeComment) {
+      selectedComments.push(bestAgreeComment);
+      sufficient = sufficient.filter((c) => c.tid !== bestAgreeComment.tid);
+    }
+
+    const sortedSufficient = sufficient.sort(
+      (a, b) => repnessMetric(b) - repnessMetric(a)
+    );
+
+    selectedComments = [...selectedComments, ...sortedSufficient].slice(0, 20);
+
+    finalResult[gid] = agreesBeforeDisagrees(selectedComments);
+  });
+
+  return finalResult;
+}
+
+// Test if a proportion differs from 0.5
+function propTest(succ, n) {
+  const adjustedSucc = succ + 1;
+  const adjustedN = n + 1;
+  return 2 * Math.sqrt(adjustedN) * (adjustedSucc / adjustedN - 0.5);
+}
+
+function calculateRepresentativeComments(groupVotes, commentTexts) {
+  const allComments = commentTexts
+    ? commentTexts.map((c) => c.id)
+    : Array.from(
+        new Set(
+          Object.values(groupVotes)
+            .flatMap((group) => Object.values(group))
+            .flatMap((votes) => Object.keys(votes).map(Number))
+        )
+      ).sort((a, b) => a - b); // unique sorted comment_ids
+  const allGroups = Object.keys(groupVotes);
+  const commentStatsWithTid = [];
+
+  allComments.forEach((commentId, commentIndex) => {
+    const commentStats = {};
+
+    for (const [groupId, groupMatrix] of Object.entries(groupVotes)) {
+      let agrees = 0,
+        disagrees = 0,
+        passes = 0,
+        seen = 0;
+      for (const voteRow of Object.values(groupMatrix)) {
+        const vote = voteRow[commentIndex];
+        if (vote != null) {
+          seen++;
+          if (vote === 1) agrees++;
+          else if (vote === -1) disagrees++;
+          else passes++;
+        }
+      }
+
+      const pa = (agrees + 1) / (seen + 2);
+      const pd = (disagrees + 1) / (seen + 2);
+      const pat = propTest(agrees, seen);
+      const pdt = propTest(disagrees, seen);
+
+      commentStats[groupId] = {
+        na: agrees,
+        nd: disagrees,
+        ns: seen,
+        pa,
+        pd,
+        pat,
+        pdt,
+      };
+    }
+
+    commentStatsWithTid.push([commentIndex, commentStats]);
+  });
+
+  // Add comparative stats
+  const withComparatives = commentStatsWithTid.map(([tid, stats]) => {
+    const processed = {};
+    for (const [gid, stat] of Object.entries(stats)) {
+      const rest = Object.entries(stats)
+        .filter(([otherGid]) => otherGid !== gid)
+        .map(([, s]) => s);
+      processed[gid] = addComparativeStats(stat, rest);
+    }
+    return [tid, processed];
+  });
+
+  const repCommentMap = selectRepComments(withComparatives, commentTexts);
+
+  return repCommentMap;
+}
+
+async function analyzePaintedClusters(db, colorByIndex, commentTexts) {
+  const groupVotes = await getGroupVoteMatrices(db, colorByIndex);
+  const repComments = calculateRepresentativeComments(groupVotes, commentTexts);
+
+  console.log("Representative Comments:", repComments);
+  return repComments;
+}
+
+document.getElementById("run-analysis").addEventListener("click", async () => {
+  const output = document.getElementById("rep-comments-output");
+  output.innerHTML = `
+  <div class="spinner-container">
+    <div class="spinner"></div>
+    <span>Analyzing groups…</span>
+  </div>
+`;
+  const db = await loadVotesDB(convoSlug);
+  let commentTexts;
+  const rep = await analyzePaintedClusters(db, colorByIndex, commentTexts);
+  renderRepCommentsTable(rep, window.commentTexts);
+});
