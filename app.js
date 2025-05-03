@@ -114,22 +114,30 @@ function updateLabelCounts() {
 function makeLassoDragHandler(svg, data, scales) {
   let coords = [];
 
+  let lassoPath = null;
+
   function drawPath() {
-    svg.select("#lasso").remove();
-    svg
-      .append("path")
-      .attr("id", "lasso")
-      .style("stroke", "black")
-      .style("stroke-width", 2)
-      .style("fill", "#00000054")
-      .attr("d", d3.line()(coords));
+    if (!lassoPath) {
+      lassoPath = svg
+        .append("path")
+        .attr("id", "lasso")
+        .style("stroke", "#666")
+        .style("stroke-width", 1.5)
+        .style("stroke-dasharray", "4,2")
+        .style("stroke-dashoffset", 0)
+        .style("animation", "marching-ants 1s linear infinite")
+        .style("fill", "rgba(0,0,0,0.1)");
+    }
+
+    lassoPath.attr("d", d3.line()(coords));
   }
 
   return d3
     .drag()
     .on("start", () => {
       coords = [];
-      svg.select("#lasso").remove();
+      if (lassoPath) lassoPath.remove();
+      lassoPath = null;
     })
     .on("drag", function (event) {
       coords.push(d3.pointer(event, this));

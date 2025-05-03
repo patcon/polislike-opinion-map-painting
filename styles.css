@@ -10,3 +10,9 @@ svg {
   height: auto;
   width: 100%;
 }
+
+@keyframes marching-ants {
+  to {
+    stroke-dashoffset: 6;
+  }
+}
