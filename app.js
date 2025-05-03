@@ -800,6 +800,16 @@ async function analyzePaintedClusters(db, labelArray, commentTexts) {
   return repComments;
 }
 
+/**
+ * Forces the browser to render pending DOM updates before continuing.
+ * Use this after DOM changes (like showing a spinner) but before heavy work.
+ *
+ * @returns {Promise<void>} Resolves on the next tick, after paint.
+ */
+function preworkRenderPipelinePauseHelper() {
+  return new Promise((r) => setTimeout(r, 0));
+}
+
 async function applyGroupAnalysis() {
   const output = document.getElementById("rep-comments-output");
 
@@ -821,6 +831,10 @@ async function applyGroupAnalysis() {
       <span>Analyzing groups…</span>
     </div>
   `;
+
+  // 🔥 FORCE a DOM paint before continuing with long task
+  await preworkRenderPipelinePauseHelper();
+
   const db = await loadVotesDB(convoSlug);
   let commentTexts;
   const rep = await analyzePaintedClusters(db, labelArray, commentTexts);
