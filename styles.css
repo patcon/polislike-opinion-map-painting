@@ -4,6 +4,14 @@
   gap: 20px;
 }
 
+#plot-wrapper svg {
+  flex: 1;
+  aspect-ratio: 1 / 1;
+  min-height: 200px; /* optional minimum */
+  background-color: #fafafa; /* optional placeholder color */
+  border: 1px solid #ccc;
+}
+
 svg {
   border: 1px solid #ccc;
   flex: 1;

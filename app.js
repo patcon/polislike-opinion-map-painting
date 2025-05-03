@@ -27,6 +27,7 @@ function loadAndRenderData(slug) {
     d3.json(`data/${slug}/pacmap.json`),
     d3.json(`data/${slug}/localmap.json`),
   ]).then(([data1, data2, data3]) => {
+    showPlotLoader();
     d3.json(`data/${slug}/statements.json`).then((statements) => {
       window.commentTexts = statements; // Save globally for now
     });
@@ -44,6 +45,7 @@ function loadAndRenderData(slug) {
     renderAllPlots();
     renderColorPalette();
     updateLabelCounts();
+    hidePlotLoader();
   });
 }
 
@@ -82,6 +84,15 @@ window.addEventListener("resize", () => {
 });
 
 // --- Utility Functions ---
+
+function showPlotLoader() {
+  document.getElementById("plot-loader").style.display = "flex";
+}
+
+function hidePlotLoader() {
+  document.getElementById("plot-loader").style.display = "none";
+}
+
 function labelIndexToLetter(i) {
   return String.fromCharCode("A".charCodeAt(0) + i);
 }
@@ -775,6 +786,9 @@ async function applyGroupAnalysis() {
     return;
   }
 
+  // 👉 SHOW loader before starting analysis, because freezes plots.
+  showPlotLoader();
+
   output.innerHTML = `
     <div class="spinner-container">
       <div class="spinner"></div>
@@ -785,6 +799,9 @@ async function applyGroupAnalysis() {
   let commentTexts;
   const rep = await analyzePaintedClusters(db, labelArray, commentTexts);
   renderRepCommentsTable(rep, window.commentTexts);
+
+  // 👉 HIDE loader after analysis and render complete
+  hidePlotLoader();
 }
 
 document
