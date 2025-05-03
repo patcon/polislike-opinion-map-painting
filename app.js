@@ -284,6 +284,19 @@ function renderPlot(svgId, data, title) {
     hoveredIndices.clear();
     applyHoverStyles();
   });
+
+  svg.on("touchstart", function (event) {
+    console.log("test");
+    if (isDragging) return;
+    const [x, y] = d3.pointers(event, this)[0];
+    hoveredIndices = findIndicesWithinRadius(data, x, y, scales, 12);
+    applyHoverStyles();
+  });
+
+  svg.on("touchend", () => {
+    hoveredIndices.clear();
+    applyHoverStyles();
+  });
 }
 
 function renderAllPlots() {

@@ -9,6 +9,7 @@ svg {
   flex: 1;
   height: auto;
   width: 100%;
+  touch-action: none;
 }
 
 @keyframes marching-ants {
