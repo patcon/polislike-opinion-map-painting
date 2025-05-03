@@ -7,6 +7,6 @@
 svg {
   border: 1px solid #ccc;
   flex: 1;
-  height: 450px;
+  height: auto;
   width: 100%;
 }

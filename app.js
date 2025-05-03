@@ -1,14 +1,14 @@
 // --- Configuration and Shared State ---
 let convoSlug = document.getElementById("dataset")?.value || "bg2050";
-const width = 450,
-  height = 450;
+let width = 0,
+  height = 0;
 const presetColors = ["#ff0000", "#00cc00", "#0066ff", "#ff9900", "#cc00cc"];
 const colorByIndex = [];
 const selectedIndicesGlobal = new Set();
 let isShiftPressed = false;
 let X1, X2, X3;
 
-// --- App Init ---
+// --- Data Loading ---
 function loadAndRenderData(slug) {
   Promise.all([
     d3.json(`data/${slug}/pca.json`),
@@ -29,22 +29,24 @@ function loadAndRenderData(slug) {
   });
 }
 
-loadAndRenderData(convoSlug);
-
-// --- Event Listeners ---
+// --- DOM + Event Binding ---
 document.getElementById("dataset").addEventListener("change", (e) => {
   convoSlug = e.target.value;
   loadAndRenderData(convoSlug);
 });
+
 window.addEventListener("keydown", (e) => {
   if (e.key === "Shift") isShiftPressed = true;
 });
 window.addEventListener("keyup", (e) => {
   if (e.key === "Shift") isShiftPressed = false;
 });
+window.addEventListener("resize", () => {
+  if (X1 && X2 && X3) renderAllPlots();
+});
 
-// --- Helpers ---
-function getScales(X, padding = 40) {
+// --- Utility Functions ---
+function getScales(X, width, height, padding = 40) {
   return {
     x: d3
       .scaleLinear()
@@ -55,6 +57,13 @@ function getScales(X, padding = 40) {
       .domain(d3.extent(X, (d) => d[1]))
       .range([height - padding, padding]),
   };
+}
+
+function updateDimensions() {
+  const container = document.getElementById("plot-wrapper");
+  const containerWidth = container.clientWidth;
+  width = containerWidth / 3 - 20; // subtract gap if needed
+  height = width;
 }
 
 function pointInPolygon([x, y], vs) {
@@ -69,6 +78,39 @@ function pointInPolygon([x, y], vs) {
   return inside;
 }
 
+// --- UI Rendering Functions ---
+function renderColorPalette() {
+  const container = document.getElementById("color-palette");
+  container.innerHTML = presetColors
+    .map(
+      (color) => `
+    <span style="display:inline-block; width:20px; height:20px; background:${color}; border:1px solid #888; margin-right:5px; cursor:pointer;"
+      title="${color}" onclick="document.getElementById('color').value = '${color}'">
+    </span>`
+    )
+    .join("");
+}
+
+function updateLabelCounts() {
+  const counts = {};
+  colorByIndex.forEach((color) => {
+    if (color) counts[color] = (counts[color] || 0) + 1;
+  });
+
+  const container = document.getElementById("label-counts");
+  container.innerHTML =
+    Object.entries(counts)
+      .map(
+        ([color, count]) => `
+    <span style="margin-right: 12px;">
+      <span style="display:inline-block; width:14px; height:14px; background:${color}; border:1px solid #aaa; margin-right:5px; vertical-align:middle;"></span>
+      ${count}
+    </span>`
+      )
+      .join("") || "(No selections yet)";
+}
+
+// --- Plotting Functions ---
 function makeLassoDragHandler(svg, data, scales) {
   let coords = [];
 
@@ -116,41 +158,10 @@ function makeLassoDragHandler(svg, data, scales) {
     });
 }
 
-// --- UI Rendering ---
-function renderColorPalette() {
-  const container = document.getElementById("color-palette");
-  container.innerHTML = presetColors
-    .map(
-      (color) => `
-    <span style="display:inline-block; width:20px; height:20px; background:${color}; border:1px solid #888; margin-right:5px; cursor:pointer;"
-      title="${color}" onclick="document.getElementById('color').value = '${color}'">
-    </span>`
-    )
-    .join("");
-}
-
-function updateLabelCounts() {
-  const counts = {};
-  colorByIndex.forEach((color) => {
-    if (color) counts[color] = (counts[color] || 0) + 1;
-  });
-
-  const container = document.getElementById("label-counts");
-  container.innerHTML =
-    Object.entries(counts)
-      .map(
-        ([color, count]) => `
-    <span style="margin-right: 12px;">
-      <span style="display:inline-block; width:14px; height:14px; background:${color}; border:1px solid #aaa; margin-right:5px; vertical-align:middle;"></span>
-      ${count}
-    </span>`
-      )
-      .join("") || "(No selections yet)";
-}
-
 function renderPlot(svgId, data, title) {
   const svg = d3.select(svgId);
-  const scales = getScales(data);
+  svg.attr("width", width).attr("height", height);
+  const scales = getScales(data, width, height);
   svg.selectAll("*").remove();
 
   svg
@@ -177,7 +188,11 @@ function renderPlot(svgId, data, title) {
 }
 
 function renderAllPlots() {
+  updateDimensions();
   renderPlot("#plot1", X1, "PCA projection");
   renderPlot("#plot2", X2, "PaCMAP projection");
   renderPlot("#plot3", X3, "LocalMAP projection");
 }
+
+// --- Initial Kickoff ---
+loadAndRenderData(convoSlug);
