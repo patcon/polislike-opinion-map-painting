@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Tiled Texture Mask with Point Blob</title>
+    <style>
+      body {
+        background: #eee;
+        padding: 20px;
+      }
+      svg {
+        border: 1px solid #ccc;
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="600" height="400">
+      <defs>
+        <!-- Define tile pattern for background -->
+        <pattern
+          id="waterTile"
+          patternUnits="userSpaceOnUse"
+          width="200"
+          height="140"
+        >
+          <image
+            href="https://i0.wp.com/2minutetabletop.com/wp-content/uploads/2019/04/Ocean-sea-water-tile-texture-map-assets-storm.jpg?fit=1000%2C700&ssl=1"
+            width="200"
+            height="140"
+          />
+        </pattern>
+
+        <pattern
+          id="landTile"
+          patternUnits="userSpaceOnUse"
+          width="100"
+          height="100"
+        >
+          <image
+            href="https://opengameart.org/sites/default/files/tileable-s7002876-sample_1.png"
+            width="100"
+            height="100"
+          />
+        </pattern>
+
+        <!-- Mask definition: circles act as soft land reveal -->
+        <mask id="landMask">
+          <!-- Full mask is hidden -->
+          <rect width="600" height="400" fill="black" />
+
+          <!-- Point cloud reveal (white = visible) -->
+          <!-- Random blob of 100 points -->
+          <g id="maskPoints">
+            <!-- We’ll fill this with script -->
+          </g>
+        </mask>
+      </defs>
+
+      <!-- Background water texture -->
+      <rect width="600" height="400" fill="url(#waterTile)" />
+
+      <!-- Foreground land texture, visible only through the mask -->
+      <rect
+        width="600"
+        height="400"
+        fill="url(#landTile)"
+        mask="url(#landMask)"
+      />
+    </svg>
+
+    <script>
+      // Add a blob of points into the mask
+      const svgNS = "http://www.w3.org/2000/svg";
+      const group = document.getElementById("maskPoints");
+
+      for (let i = 0; i < 250; i++) {
+        const cx = 300 + 100 * (Math.random() - 0.5);
+        const cy = 200 + 100 * (Math.random() - 0.5);
+        const r = 6 + 6 * Math.random();
+        const opacity = 0.3 + 0.7 * Math.random(); // Add softness
+        const circle = document.createElementNS(svgNS, "circle");
+        circle.setAttribute("cx", cx);
+        circle.setAttribute("cy", cy);
+        circle.setAttribute("r", r);
+        circle.setAttribute("fill", "white");
+        circle.setAttribute("fill-opacity", opacity); // This affects mask softness
+        group.appendChild(circle);
+      }
+    </script>
+  </body>
+</html>

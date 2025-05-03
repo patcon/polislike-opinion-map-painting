@@ -236,6 +236,78 @@ function renderColorPalette() {
   highlightSelectedColor(document.getElementById("color").value);
 }
 
+function renderTextureOverlay(svg, data, scales, idSuffix) {
+  svg.select(`#texture-overlay-${idSuffix}`)?.remove();
+  svg.select(`defs`)?.remove(); // Safe to regenerate for each plot
+
+  const defs = svg.append("defs");
+
+  // Patterns (unique IDs)
+  defs
+    .append("pattern")
+    .attr("id", `waterTile-${idSuffix}`)
+    .attr("patternUnits", "userSpaceOnUse")
+    .attr("width", 200)
+    .attr("height", 140)
+    .append("image")
+    .attr(
+      "href",
+      "https://i0.wp.com/2minutetabletop.com/wp-content/uploads/2019/04/Ocean-sea-water-tile-texture-map-assets-storm.jpg?fit=1000%2C700&ssl=1"
+    )
+    .attr("width", 200)
+    .attr("height", 140);
+
+  defs
+    .append("pattern")
+    .attr("id", `landTile-${idSuffix}`)
+    .attr("patternUnits", "userSpaceOnUse")
+    .attr("width", 100)
+    .attr("height", 100)
+    .append("image")
+    .attr(
+      "href",
+      "https://opengameart.org/sites/default/files/tileable-s7002876-sample_1.png"
+    )
+    .attr("width", 100)
+    .attr("height", 100);
+
+  // Mask (unique ID)
+  const maskId = `landMask-${idSuffix}`;
+  const mask = defs.append("mask").attr("id", maskId);
+  mask
+    .append("rect")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("fill", "black");
+
+  mask
+    .selectAll("circle")
+    .data(data)
+    .enter()
+    .append("circle")
+    .attr("cx", (d) => scales.x(d[0]))
+    .attr("cy", (d) => scales.y(d[1]))
+    .attr("r", 5)
+    .attr("fill", "white")
+    .attr("fill-opacity", 0.4);
+
+  // Overlay container with unique ID
+  const overlay = svg.append("g").attr("id", `texture-overlay-${idSuffix}`);
+
+  overlay
+    .append("rect")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("fill", `url(#waterTile-${idSuffix})`);
+
+  overlay
+    .append("rect")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("fill", `url(#landTile-${idSuffix})`)
+    .attr("mask", `url(#${maskId})`);
+}
+
 function highlightSelectedColor(color) {
   document.querySelectorAll(".palette-color").forEach((el) => {
     const isSelected = el.getAttribute("data-color") === color;
@@ -264,7 +336,7 @@ function updateLabelCounts() {
 }
 
 function applyHoverStyles() {
-  d3.selectAll("circle").each(function () {
+  d3.selectAll("circle[data-index]").each(function () {
     const circle = d3.select(this);
     const index = +circle.attr("data-index");
     const rawColor = colorByIndex[index];
@@ -352,6 +424,11 @@ function renderPlot(svgId, data, title) {
   svg.attr("width", width).attr("height", height);
   const scales = getScales(data, width, height);
   svg.selectAll("*").remove();
+
+  // Optional: render texture if toggle is enabled
+  if (document.getElementById("texture-toggle")?.checked) {
+    renderTextureOverlay(svg, data, scales, svgId.replace("#", ""));
+  }
 
   svg
     .append("text")
@@ -851,3 +928,7 @@ async function applyGroupAnalysis() {
 document
   .getElementById("run-analysis")
   .addEventListener("click", applyGroupAnalysis);
+
+document
+  .getElementById("texture-toggle")
+  .addEventListener("change", () => renderAllPlots());
