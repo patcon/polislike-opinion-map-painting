@@ -46,6 +46,11 @@ window.addEventListener("keyup", (e) => {
 window.addEventListener("resize", () => {
   if (X1 && X2 && X3) renderAllPlots();
 });
+// This ensures that when tab is switched via keyboard
+// shortcuts, bool doesn't get "stuck" on
+window.addEventListener("blur", () => {
+  isShiftPressed = false;
+});
 
 // --- Utility Functions ---
 function getScales(X, width, height, padding = 40) {
