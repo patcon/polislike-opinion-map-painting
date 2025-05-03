@@ -2,15 +2,19 @@
 let convoSlug = document.getElementById("dataset")?.value || "bg2050";
 let width = 0,
   height = 0;
-let presetColors = [
-  "#ff0000", // A
-  "#00cc00", // B
-  "#0066ff", // C
-  "#ff9900", // D
-  "#cc00cc", // E
-  "#00cccc", // F
-  "#999900", // G
-  "#ff66cc", // H
+
+// Reference: https://matplotlib.org/stable/users/explain/colors/colormaps.html#qualitative
+const presetColorsTab10 = [
+  "#1f77b4", // (A) muted blue
+  "#ff7f0e", // (B) safety orange
+  "#2ca02c", // (C) cooked asparagus green
+  "#d62728", // (D) brick red
+  "#9467bd", // (E) muted purple
+  "#8c564b", // (F) chestnut brown
+  "#e377c2", // (G) raspberry yogurt pink
+  "#7f7f7f", // (H) middle gray
+  "#bcbd22", // (I) curry yellow-green
+  "#17becf", // (J) blue-teal
 ];
 const colorToLabelIndex = {}; // hex -> int
 const colorByIndex = [];
@@ -73,8 +77,8 @@ document
 document.getElementById("color").addEventListener("input", (e) => {
   const color = e.target.value;
   if (!(color in colorToLabelIndex)) {
-    presetColors.push(color); // Add to end
-    colorToLabelIndex[color] = presetColors.length - 1;
+    presetColorsTab10.push(color); // Add to end
+    colorToLabelIndex[color] = presetColorsTab10.length - 1;
     renderColorPalette(); // Refresh palette
   }
 });
@@ -84,8 +88,8 @@ document.addEventListener("keydown", (e) => {
 
   const index = parseInt(e.key, 10);
 
-  if (!isNaN(index) && index < presetColors.length) {
-    const color = presetColors[index];
+  if (!isNaN(index) && index < presetColorsTab10.length) {
+    const color = presetColorsTab10[index];
     document.getElementById("color").value = color;
     highlightSelectedColor(color); // visually reflect the change
   }
@@ -204,7 +208,7 @@ function renderColorPalette() {
   const container = document.getElementById("color-palette");
   container.innerHTML = "";
 
-  presetColors.forEach((color, i) => {
+  presetColorsTab10.forEach((color, i) => {
     colorToLabelIndex[color] = i; // Assign label
     const letter = labelIndexToLetter(i);
 
