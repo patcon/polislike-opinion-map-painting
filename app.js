@@ -55,9 +55,19 @@ document.getElementById("dataset").addEventListener("change", (e) => {
 document.getElementById("toggle-additive").addEventListener("change", (e) => {
   isAdditiveDefault = e.target.checked;
 });
-document.getElementById("include-unpainted").addEventListener("change", (e) => {
+document.getElementById("include-unpainted").addEventListener("change", () => {
   updateLabelCounts();
+  if (document.getElementById("auto-analyze-checkbox").checked) {
+    applyGroupAnalysis();
+  }
 });
+document
+  .getElementById("auto-analyze-checkbox")
+  .addEventListener("change", (e) => {
+    if (e.target.checked) {
+      applyGroupAnalysis(); // run once when enabling auto
+    }
+  });
 document.getElementById("color").addEventListener("input", (e) => {
   const color = e.target.value;
   if (!(color in colorToLabelIndex)) {
@@ -194,7 +204,7 @@ function renderColorPalette() {
 
 function updateLabelCounts() {
   const counts = {};
-  const labelArray = getLabelArrayWithOptionalUnpainted();
+  const labelArray = getLabelArrayWithOptionalUngrouped();
   labelArray.forEach((color) => {
     if (color) counts[color] = (counts[color] || 0) + 1;
   });
@@ -286,6 +296,13 @@ function makeLassoDragHandler(svg, data, scales) {
       isDragging = false;
       renderAllPlots();
       updateLabelCounts();
+
+      const autoAnalyze = document.getElementById(
+        "auto-analyze-checkbox"
+      )?.checked;
+      if (autoAnalyze) {
+        applyGroupAnalysis();
+      }
     });
 }
 
@@ -720,7 +737,7 @@ function calculateRepresentativeComments(groupVotes, commentTexts) {
   return repCommentMap;
 }
 
-function getLabelArrayWithOptionalUnpainted() {
+function getLabelArrayWithOptionalUngrouped() {
   const includeUnpainted = document.getElementById("include-unpainted").checked;
   const labels = [];
 
@@ -746,17 +763,30 @@ async function analyzePaintedClusters(db, labelArray, commentTexts) {
   return repComments;
 }
 
-document.getElementById("run-analysis").addEventListener("click", async () => {
+async function applyGroupAnalysis() {
   const output = document.getElementById("rep-comments-output");
+
+  const labelArray = getLabelArrayWithOptionalUngrouped(); // same as "unpainted"
+
+  // Count distinct labels, excluding nulls
+  const uniqueLabels = new Set(labelArray.filter((x) => x !== null));
+  if (uniqueLabels.size < 2) {
+    output.innerHTML = `<p style="color: #c00; font-weight: bold;">Need at least two groups to analyze.</p>`;
+    return;
+  }
+
   output.innerHTML = `
-  <div class="spinner-container">
-    <div class="spinner"></div>
-    <span>Analyzing groups…</span>
-  </div>
-`;
+    <div class="spinner-container">
+      <div class="spinner"></div>
+      <span>Analyzing groups…</span>
+    </div>
+  `;
   const db = await loadVotesDB(convoSlug);
   let commentTexts;
-  const labelArray = getLabelArrayWithOptionalUnpainted();
   const rep = await analyzePaintedClusters(db, labelArray, commentTexts);
   renderRepCommentsTable(rep, window.commentTexts);
-});
+}
+
+document
+  .getElementById("run-analysis")
+  .addEventListener("click", applyGroupAnalysis);

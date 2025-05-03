@@ -22,7 +22,7 @@
     <input type="color" id="color" value="#ff0000" />
     <label>
       <input type="checkbox" id="toggle-additive" />
-      Additive select by default
+      Additive painting by default
     </label>
     <span>(Otherwise, cmd-click for additive)</span>
 
@@ -41,15 +41,46 @@
       <svg id="plot3"></svg>
     </div>
 
+    <div
+      style="
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-top: 12px;
+        font-family: sans-serif;
+      "
+    >
+      <label style="display: flex; align-items: center; gap: 6px">
+        <input type="checkbox" id="include-unpainted" />
+        Include unpainted points as group
+      </label>
+      <div id="label-counts"></div>
+    </div>
+    <button id="run-analysis">Run Group Analysis</button>
     <label>
-      <input type="checkbox" id="include-unpainted" />
-      Include unpainted points as group
+      <input type="checkbox" id="auto-analyze-checkbox" checked />
+      Auto-analyze on selection
     </label>
     <div
-      id="label-counts"
-      style="margin-top: 12px; font-family: sans-serif"
-    ></div>
-    <button id="run-analysis">Run Group Analysis</button>
+      id="rep-warning"
+      style="
+        margin-top: 20px;
+        background: #fff8e1;
+        border: 1px solid #f1c40f;
+        padding: 10px;
+        font-family: sans-serif;
+      "
+    >
+      ⚠️ <strong>Note:</strong> Representative group statement calculations are
+      <em>broken</em> and don't give a clear story right now. See
+      <a
+        href="https://gist.github.com/patcon/0fe7e07ff9dae3a01b2ad49798d98306"
+        target="_blank"
+        >this data science analysis notebook</a
+      >
+      for a working (but non-dynamic) example of representative statements found
+      for BG2050.
+    </div>
     <div
       id="rep-comments-output"
       style="margin-top: 30px; font-family: sans-serif"
