@@ -127,7 +127,7 @@ function updateLabelCounts() {
       .join("") || "(No selections yet)";
 }
 
-function applyHoverStyles() {
+function applyHoverStyles1() {
   d3.selectAll("circle").each(function () {
     const circle = d3.select(this);
     const index = +circle.attr("data-index");
@@ -137,6 +137,25 @@ function applyHoverStyles() {
       circle.attr("r", 5).attr("fill-opacity", 0.3);
     }
   });
+}
+
+function applyHoverStyles2() {
+  d3.selectAll("circle").each(function () {
+    const circle = d3.select(this);
+    const index = +circle.attr("data-index");
+    if (index === hoveredIndex) {
+      circle
+        .attr("filter", "brightness(1.5)")
+        .attr("fill-opacity", 0.9)
+        .raise();
+    } else {
+      circle.attr("filter", null).attr("fill-opacity", 0.3);
+    }
+  });
+}
+
+function applyHoverStyles() {
+  applyHoverStyles2();
 }
 
 // --- Plotting Functions ---
