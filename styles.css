@@ -1,0 +1,12 @@
+#plot-wrapper {
+  display: flex;
+  width: 100%;
+  gap: 20px;
+}
+
+svg {
+  border: 1px solid #ccc;
+  flex: 1;
+  height: 450px;
+  width: 100%;
+}
