@@ -82,12 +82,12 @@ document.addEventListener("keydown", (e) => {
   // Only trigger on number keys 0–9 and when not typing into an input field
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
 
-  const key = e.key;
-  const index = parseInt(key, 10);
+  const index = parseInt(e.key, 10);
 
   if (!isNaN(index) && index < presetColors.length) {
     const color = presetColors[index];
     document.getElementById("color").value = color;
+    highlightSelectedColor(color); // visually reflect the change
   }
 });
 
@@ -209,6 +209,8 @@ function renderColorPalette() {
     const letter = labelIndexToLetter(i);
 
     const span = document.createElement("span");
+    span.classList.add("palette-color");
+    span.setAttribute("data-color", color); // Needed for selection logic
     span.style = `
       display:inline-block; width:24px; height:24px;
       background:${color}; border:1px solid #888;
@@ -217,11 +219,23 @@ function renderColorPalette() {
     `;
     span.title = `${letter} (${color})`;
     span.textContent = letter;
+
     span.onclick = () => {
       document.getElementById("color").value = color;
+      highlightSelectedColor(color);
     };
 
     container.appendChild(span);
+  });
+
+  // Re-apply highlight after re-render
+  highlightSelectedColor(document.getElementById("color").value);
+}
+
+function highlightSelectedColor(color) {
+  document.querySelectorAll(".palette-color").forEach((el) => {
+    const isSelected = el.getAttribute("data-color") === color;
+    el.style.outline = isSelected ? "3px solid black" : "none";
   });
 }
 
