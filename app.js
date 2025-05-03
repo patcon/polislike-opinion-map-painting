@@ -78,6 +78,18 @@ document.getElementById("color").addEventListener("input", (e) => {
     renderColorPalette(); // Refresh palette
   }
 });
+document.addEventListener("keydown", (e) => {
+  // Only trigger on number keys 0–9 and when not typing into an input field
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+  const key = e.key;
+  const index = parseInt(key, 10);
+
+  if (!isNaN(index) && index < presetColors.length) {
+    const color = presetColors[index];
+    document.getElementById("color").value = color;
+  }
+});
 
 window.addEventListener("resize", () => {
   if (X1 && X2 && X3) renderAllPlots();
