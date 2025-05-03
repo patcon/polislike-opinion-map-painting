@@ -6,6 +6,8 @@ const presetColors = ["#ff0000", "#00cc00", "#0066ff", "#ff9900", "#cc00cc"];
 const colorByIndex = [];
 const selectedIndicesGlobal = new Set();
 let isShiftPressed = false;
+let isDragging = false;
+let hoveredIndex = null;
 let X1, X2, X3;
 
 // --- Data Loading ---
@@ -78,6 +80,21 @@ function pointInPolygon([x, y], vs) {
   return inside;
 }
 
+function findClosestPoint(data, mouseX, mouseY, scales, radius = 10) {
+  let minDist = Infinity;
+  let closest = null;
+  data.forEach((d, i) => {
+    const dx = scales.x(d[0]) - mouseX;
+    const dy = scales.y(d[1]) - mouseY;
+    const dist = Math.hypot(dx, dy);
+    if (dist < radius && dist < minDist) {
+      minDist = dist;
+      closest = { d, i };
+    }
+  });
+  return closest;
+}
+
 // --- UI Rendering Functions ---
 function renderColorPalette() {
   const container = document.getElementById("color-palette");
@@ -110,10 +127,21 @@ function updateLabelCounts() {
       .join("") || "(No selections yet)";
 }
 
+function applyHoverStyles() {
+  d3.selectAll("circle").each(function () {
+    const circle = d3.select(this);
+    const index = +circle.attr("data-index");
+    if (index === hoveredIndex) {
+      circle.attr("r", 6).attr("fill-opacity", 0.7);
+    } else {
+      circle.attr("r", 5).attr("fill-opacity", 0.3);
+    }
+  });
+}
+
 // --- Plotting Functions ---
 function makeLassoDragHandler(svg, data, scales) {
   let coords = [];
-
   let lassoPath = null;
 
   function drawPath() {
@@ -128,13 +156,13 @@ function makeLassoDragHandler(svg, data, scales) {
         .style("animation", "marching-ants 1s linear infinite")
         .style("fill", "rgba(0,0,0,0.1)");
     }
-
     lassoPath.attr("d", d3.line()(coords));
   }
 
   return d3
     .drag()
     .on("start", () => {
+      isDragging = true;
       coords = [];
       if (lassoPath) lassoPath.remove();
       lassoPath = null;
@@ -161,6 +189,7 @@ function makeLassoDragHandler(svg, data, scales) {
         }
       });
 
+      isDragging = false;
       renderAllPlots();
       updateLabelCounts();
     });
@@ -190,9 +219,23 @@ function renderPlot(svgId, data, title) {
     .attr("cy", ({ d }) => scales.y(d[1]))
     .attr("r", 5)
     .attr("fill-opacity", 0.3)
-    .attr("fill", ({ i }) => colorByIndex[i] || "rgba(0,0,0,0.5)");
+    .attr("fill", ({ i }) => colorByIndex[i] || "rgba(0,0,0,0.5)")
+    .attr("data-index", ({ i }) => i);
 
   svg.call(makeLassoDragHandler(svg, data, scales));
+
+  svg.on("mousemove", function (event) {
+    if (isDragging) return;
+    const [x, y] = d3.pointer(event, this);
+    const closest = findClosestPoint(data, x, y, scales);
+    hoveredIndex = closest?.i ?? null;
+    applyHoverStyles();
+  });
+
+  svg.on("mouseleave", () => {
+    hoveredIndex = null;
+    applyHoverStyles();
+  });
 }
 
 function renderAllPlots() {
