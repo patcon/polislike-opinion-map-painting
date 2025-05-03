@@ -5,7 +5,7 @@ let width = 0,
 const presetColors = ["#ff0000", "#00cc00", "#0066ff", "#ff9900", "#cc00cc"];
 const colorByIndex = [];
 const selectedIndicesGlobal = new Set();
-let isShiftPressed = false;
+let isAdditiveDefault = false;
 let isDragging = false;
 let hoveredIndices = new Set();
 let X1, X2, X3;
@@ -36,20 +36,12 @@ document.getElementById("dataset").addEventListener("change", (e) => {
   convoSlug = e.target.value;
   loadAndRenderData(convoSlug);
 });
+document.getElementById("toggle-additive").addEventListener("change", (e) => {
+  isAdditiveDefault = e.target.checked;
+});
 
-window.addEventListener("keydown", (e) => {
-  if (e.key === "Shift") isShiftPressed = true;
-});
-window.addEventListener("keyup", (e) => {
-  if (e.key === "Shift") isShiftPressed = false;
-});
 window.addEventListener("resize", () => {
   if (X1 && X2 && X3) renderAllPlots();
-});
-// This ensures that when tab is switched via keyboard
-// shortcuts, bool doesn't get "stuck" on
-window.addEventListener("blur", () => {
-  isShiftPressed = false;
 });
 
 // --- Utility Functions ---
@@ -268,7 +260,11 @@ function makeLassoDragHandler(svg, data, scales) {
     })
     .on("end", function (event) {
       const selectedColor = document.getElementById("color").value;
-      const additive = isShiftPressed || event.sourceEvent?.metaKey;
+      const sourceEvent = event.sourceEvent;
+      const modifierHeld =
+        sourceEvent &&
+        (sourceEvent.shiftKey || sourceEvent.metaKey || sourceEvent.ctrlKey);
+      const additive = isAdditiveDefault || modifierHeld;
 
       if (!additive) {
         colorByIndex.fill(null);
