@@ -95,6 +95,76 @@ function findClosestPoint(data, mouseX, mouseY, scales, radius = 10) {
   return closest;
 }
 
+function adjustColorForHover1(hex, factor = 0.25) {
+  if (!hex.startsWith("#") || (hex.length !== 7 && hex.length !== 4))
+    return hex;
+  let r, g, b;
+  if (hex.length === 7) {
+    r = parseInt(hex.slice(1, 3), 16);
+    g = parseInt(hex.slice(3, 5), 16);
+    b = parseInt(hex.slice(5, 7), 16);
+  } else {
+    r = parseInt(hex[1] + hex[1], 16);
+    g = parseInt(hex[2] + hex[2], 16);
+    b = parseInt(hex[3] + hex[3], 16);
+  }
+  const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+  const adjust = brightness > 128 ? -1 : 1;
+  r = Math.min(255, Math.max(0, r + adjust * factor * 255));
+  g = Math.min(255, Math.max(0, g + adjust * factor * 255));
+  b = Math.min(255, Math.max(0, b + adjust * factor * 255));
+  return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+}
+
+function adjustColorForHover2(hex, factor = 0.2) {
+  if (!hex.startsWith("#")) return hex;
+
+  const toHSL = (r, g, b) => {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    const max = Math.max(r, g, b),
+      min = Math.min(r, g, b);
+    let h,
+      s,
+      l = (max + min) / 2;
+    if (max === min) {
+      h = s = 0;
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r:
+          h = (g - b) / d + (g < b ? 6 : 0);
+          break;
+        case g:
+          h = (b - r) / d + 2;
+          break;
+        case b:
+          h = (r - g) / d + 4;
+          break;
+      }
+      h /= 6;
+    }
+    return {
+      h: Math.round(h * 360),
+      s: Math.round(s * 100),
+      l: Math.round(l * 100),
+    };
+  };
+
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const { h, s, l } = toHSL(r, g, b);
+
+  const lightness = Math.max(
+    0,
+    Math.min(100, l + (l > 50 ? -1 : 1) * factor * 100)
+  );
+  return `hsl(${h}, ${s}%, ${lightness}%)`;
+}
+
 // --- UI Rendering Functions ---
 function renderColorPalette() {
   const container = document.getElementById("color-palette");
@@ -154,8 +224,39 @@ function applyHoverStyles2() {
   });
 }
 
+function applyHoverStyles3() {
+  d3.selectAll("circle").each(function () {
+    const circle = d3.select(this);
+    const index = +circle.attr("data-index");
+    const baseColor = colorByIndex[index] || "rgba(0,0,0,0.5)";
+    if (index === hoveredIndex) {
+      const hoverColor = adjustColorForHover2(baseColor);
+      circle.attr("fill", hoverColor).attr("fill-opacity", 0.9).raise();
+    } else {
+      circle.attr("fill", baseColor).attr("fill-opacity", 0.3);
+    }
+  });
+}
+
+function applyHoverStyles4() {
+  d3.selectAll("circle").each(function () {
+    const circle = d3.select(this);
+    const index = +circle.attr("data-index");
+    const rawColor = colorByIndex[index];
+    const baseColor = rawColor || "#7f7f7f"; // mid gray for unpainted
+    if (index === hoveredIndex) {
+      const hoverColor = adjustColorForHover1(baseColor);
+      circle.attr("fill", hoverColor).attr("fill-opacity", 0.9).raise();
+    } else {
+      circle
+        .attr("fill", rawColor || "rgba(0,0,0,0.5)")
+        .attr("fill-opacity", 0.3);
+    }
+  });
+}
+
 function applyHoverStyles() {
-  applyHoverStyles2();
+  applyHoverStyles4();
 }
 
 // --- Plotting Functions ---
