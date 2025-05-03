@@ -45,6 +45,9 @@ document.getElementById("dataset").addEventListener("change", (e) => {
 document.getElementById("toggle-additive").addEventListener("change", (e) => {
   isAdditiveDefault = e.target.checked;
 });
+document.getElementById("include-unpainted").addEventListener("change", (e) => {
+  updateLabelCounts();
+});
 
 window.addEventListener("resize", () => {
   if (X1 && X2 && X3) renderAllPlots();
@@ -156,7 +159,8 @@ function renderColorPalette() {
 
 function updateLabelCounts() {
   const counts = {};
-  colorByIndex.forEach((color) => {
+  const labelArray = getLabelArrayWithOptionalUnpainted();
+  labelArray.forEach((color) => {
     if (color) counts[color] = (counts[color] || 0) + 1;
   });
 
@@ -671,8 +675,26 @@ function calculateRepresentativeComments(groupVotes, commentTexts) {
   return repCommentMap;
 }
 
-async function analyzePaintedClusters(db, colorByIndex, commentTexts) {
-  const groupVotes = await getGroupVoteMatrices(db, colorByIndex);
+function getLabelArrayWithOptionalUnpainted() {
+  const includeUnpainted = document.getElementById("include-unpainted").checked;
+  const labels = [];
+
+  for (let i = 0; i < colorByIndex.length; i++) {
+    const label = colorByIndex[i];
+    if (label) {
+      labels.push(label);
+    } else if (includeUnpainted) {
+      labels.push("black"); // Treat unpainted points as a group
+    } else {
+      labels.push(null); // Exclude from analysis
+    }
+  }
+
+  return labels;
+}
+
+async function analyzePaintedClusters(db, labelArray, commentTexts) {
+  const groupVotes = await getGroupVoteMatrices(db, labelArray);
   const repComments = calculateRepresentativeComments(groupVotes, commentTexts);
 
   console.log("Representative Comments:", repComments);
@@ -689,6 +711,7 @@ document.getElementById("run-analysis").addEventListener("click", async () => {
 `;
   const db = await loadVotesDB(convoSlug);
   let commentTexts;
-  const rep = await analyzePaintedClusters(db, colorByIndex, commentTexts);
+  const labelArray = getLabelArrayWithOptionalUnpainted();
+  const rep = await analyzePaintedClusters(db, labelArray, commentTexts);
   renderRepCommentsTable(rep, window.commentTexts);
 });
