@@ -1,5 +1,5 @@
 // --- Configuration and Shared State ---
-const convoSlug = "bg2050";
+let convoSlug = document.getElementById("dataset")?.value || "bg2050";
 const width = 450,
   height = 450;
 const presetColors = ["#ff0000", "#00cc00", "#0066ff", "#ff9900", "#cc00cc"];
@@ -9,24 +9,33 @@ let isShiftPressed = false;
 let X1, X2, X3;
 
 // --- App Init ---
-Promise.all([
-  d3.json(`data/${convoSlug}/pca.json`),
-  d3.json(`data/${convoSlug}/pacmap.json`),
-  d3.json(`data/${convoSlug}/localmap.json`),
-]).then(([data1, data2, data3]) => {
-  X1 = data1;
-  X2 = data2;
-  X3 = data3;
+function loadAndRenderData(slug) {
+  Promise.all([
+    d3.json(`data/${slug}/pca.json`),
+    d3.json(`data/${slug}/pacmap.json`),
+    d3.json(`data/${slug}/localmap.json`),
+  ]).then(([data1, data2, data3]) => {
+    X1 = data1;
+    X2 = data2;
+    X3 = data3;
 
-  colorByIndex.length = X1.length;
-  colorByIndex.fill(null);
+    colorByIndex.length = X1.length;
+    colorByIndex.fill(null);
+    selectedIndicesGlobal.clear();
 
-  renderAllPlots();
-  renderColorPalette();
-  updateLabelCounts();
-});
+    renderAllPlots();
+    renderColorPalette();
+    updateLabelCounts();
+  });
+}
+
+loadAndRenderData(convoSlug);
 
 // --- Event Listeners ---
+document.getElementById("dataset").addEventListener("change", (e) => {
+  convoSlug = e.target.value;
+  loadAndRenderData(convoSlug);
+});
 window.addEventListener("keydown", (e) => {
   if (e.key === "Shift") isShiftPressed = true;
 });
