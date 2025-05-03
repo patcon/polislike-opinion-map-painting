@@ -7,7 +7,7 @@ const colorByIndex = [];
 const selectedIndicesGlobal = new Set();
 let isShiftPressed = false;
 let isDragging = false;
-let hoveredIndex = null;
+let hoveredIndices = new Set();
 let X1, X2, X3;
 
 // --- Data Loading ---
@@ -64,7 +64,7 @@ function getScales(X, width, height, padding = 40) {
 function updateDimensions() {
   const container = document.getElementById("plot-wrapper");
   const containerWidth = container.clientWidth;
-  width = containerWidth / 3 - 20; // subtract gap if needed
+  width = containerWidth / 3 - 20;
   height = width;
 }
 
@@ -80,19 +80,16 @@ function pointInPolygon([x, y], vs) {
   return inside;
 }
 
-function findClosestPoint(data, mouseX, mouseY, scales, radius = 10) {
-  let minDist = Infinity;
-  let closest = null;
+function findIndicesWithinRadius(data, mouseX, mouseY, scales, radius = 10) {
+  const indices = new Set();
   data.forEach((d, i) => {
     const dx = scales.x(d[0]) - mouseX;
     const dy = scales.y(d[1]) - mouseY;
-    const dist = Math.hypot(dx, dy);
-    if (dist < radius && dist < minDist) {
-      minDist = dist;
-      closest = { d, i };
+    if (Math.hypot(dx, dy) < radius) {
+      indices.add(i);
     }
   });
-  return closest;
+  return indices;
 }
 
 function adjustColorForHover1(hex, factor = 0.25) {
@@ -118,7 +115,6 @@ function adjustColorForHover1(hex, factor = 0.25) {
 
 function adjustColorForHover2(hex, factor = 0.2) {
   if (!hex.startsWith("#")) return hex;
-
   const toHSL = (r, g, b) => {
     r /= 255;
     g /= 255;
@@ -152,12 +148,10 @@ function adjustColorForHover2(hex, factor = 0.2) {
       l: Math.round(l * 100),
     };
   };
-
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   const { h, s, l } = toHSL(r, g, b);
-
   const lightness = Math.max(
     0,
     Math.min(100, l + (l > 50 ? -1 : 1) * factor * 100)
@@ -201,10 +195,15 @@ function applyHoverStyles1() {
   d3.selectAll("circle").each(function () {
     const circle = d3.select(this);
     const index = +circle.attr("data-index");
-    if (index === hoveredIndex) {
-      circle.attr("r", 6).attr("fill-opacity", 0.7);
+    const rawColor = colorByIndex[index];
+    const baseColor = rawColor || "#7f7f7f";
+    if (hoveredIndices.has(index)) {
+      const hoverColor = adjustColorForHover1(baseColor);
+      circle.attr("fill", hoverColor).attr("fill-opacity", 0.3).raise();
     } else {
-      circle.attr("r", 5).attr("fill-opacity", 0.3);
+      circle
+        .attr("fill", rawColor || "rgba(0,0,0,0.5)")
+        .attr("fill-opacity", 0.3);
     }
   });
 }
@@ -213,40 +212,11 @@ function applyHoverStyles2() {
   d3.selectAll("circle").each(function () {
     const circle = d3.select(this);
     const index = +circle.attr("data-index");
-    if (index === hoveredIndex) {
-      circle
-        .attr("filter", "brightness(1.5)")
-        .attr("fill-opacity", 0.9)
-        .raise();
-    } else {
-      circle.attr("filter", null).attr("fill-opacity", 0.3);
-    }
-  });
-}
-
-function applyHoverStyles3() {
-  d3.selectAll("circle").each(function () {
-    const circle = d3.select(this);
-    const index = +circle.attr("data-index");
-    const baseColor = colorByIndex[index] || "rgba(0,0,0,0.5)";
-    if (index === hoveredIndex) {
-      const hoverColor = adjustColorForHover2(baseColor);
-      circle.attr("fill", hoverColor).attr("fill-opacity", 0.9).raise();
-    } else {
-      circle.attr("fill", baseColor).attr("fill-opacity", 0.3);
-    }
-  });
-}
-
-function applyHoverStyles4() {
-  d3.selectAll("circle").each(function () {
-    const circle = d3.select(this);
-    const index = +circle.attr("data-index");
     const rawColor = colorByIndex[index];
-    const baseColor = rawColor || "#7f7f7f"; // mid gray for unpainted
-    if (index === hoveredIndex) {
-      const hoverColor = adjustColorForHover1(baseColor);
-      circle.attr("fill", hoverColor).attr("fill-opacity", 0.9).raise();
+    const baseColor = rawColor || "#7f7f7f";
+    if (hoveredIndices.has(index)) {
+      const hoverColor = adjustColorForHover2(baseColor);
+      circle.attr("fill", hoverColor).attr("fill-opacity", 0.3).raise();
     } else {
       circle
         .attr("fill", rawColor || "rgba(0,0,0,0.5)")
@@ -256,7 +226,7 @@ function applyHoverStyles4() {
 }
 
 function applyHoverStyles() {
-  applyHoverStyles4();
+  applyHoverStyles2(); // Change to applyHoverStyles2() to try the HSL version
 }
 
 // --- Plotting Functions ---
@@ -347,13 +317,12 @@ function renderPlot(svgId, data, title) {
   svg.on("mousemove", function (event) {
     if (isDragging) return;
     const [x, y] = d3.pointer(event, this);
-    const closest = findClosestPoint(data, x, y, scales);
-    hoveredIndex = closest?.i ?? null;
+    hoveredIndices = findIndicesWithinRadius(data, x, y, scales, 12);
     applyHoverStyles();
   });
 
   svg.on("mouseleave", () => {
-    hoveredIndex = null;
+    hoveredIndices.clear();
     applyHoverStyles();
   });
 }
