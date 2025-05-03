@@ -14,9 +14,8 @@
     </style>
   </head>
   <body>
-    <svg width="600" height="400">
+    <svg id="viz" width="600" height="400">
       <defs>
-        <!-- Define tile pattern for background -->
         <pattern
           id="waterTile"
           patternUnits="userSpaceOnUse"
@@ -43,49 +42,102 @@
           />
         </pattern>
 
-        <!-- Mask definition: circles act as soft land reveal -->
-        <mask id="landMask">
-          <!-- Full mask is hidden -->
-          <rect width="600" height="400" fill="black" />
+        <filter id="glowFilter" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
 
-          <!-- Point cloud reveal (white = visible) -->
-          <!-- Random blob of 100 points -->
-          <g id="maskPoints">
-            <!-- We’ll fill this with script -->
-          </g>
+        <mask id="landMask">
+          <rect width="600" height="400" fill="black" />
+          <g id="maskPoints"></g>
         </mask>
       </defs>
 
-      <!-- Background water texture -->
       <rect width="600" height="400" fill="url(#waterTile)" />
-
-      <!-- Foreground land texture, visible only through the mask -->
       <rect
         width="600"
         height="400"
         fill="url(#landTile)"
         mask="url(#landMask)"
       />
+      <g
+        id="hoverOverlay"
+        style="mix-blend-mode: screen; pointer-events: none"
+      ></g>
     </svg>
 
     <script>
-      // Add a blob of points into the mask
+      const hoverEffect = "glow"; // glow or lighten
       const svgNS = "http://www.w3.org/2000/svg";
       const group = document.getElementById("maskPoints");
 
+      const circles = [];
+
+      // Create a blob of semi-transparent circles
       for (let i = 0; i < 250; i++) {
         const cx = 300 + 100 * (Math.random() - 0.5);
         const cy = 200 + 100 * (Math.random() - 0.5);
         const r = 6 + 6 * Math.random();
-        const opacity = 0.3 + 0.7 * Math.random(); // Add softness
+        const baseOpacity = 0.3 + 0.4 * Math.random();
+
         const circle = document.createElementNS(svgNS, "circle");
         circle.setAttribute("cx", cx);
         circle.setAttribute("cy", cy);
         circle.setAttribute("r", r);
         circle.setAttribute("fill", "white");
-        circle.setAttribute("fill-opacity", opacity); // This affects mask softness
+        circle.setAttribute("fill-opacity", baseOpacity);
+
+        // Save for later
+        circles.push({ el: circle, cx, cy, baseOpacity });
         group.appendChild(circle);
       }
+
+      const hoverOverlay = document.getElementById("hoverOverlay");
+
+      // Make texture circles
+      circles.forEach(({ cx, cy }) => {
+        const overlayCircle = document.createElementNS(svgNS, "circle");
+        overlayCircle.setAttribute("cx", cx);
+        overlayCircle.setAttribute("cy", cy);
+        overlayCircle.setAttribute("r", 0);
+        // overlayCircle.setAttribute("fill", "white");
+        // overlayCircle.setAttribute("fill-opacity", 0);
+        overlayCircle.setAttribute("fill", "#ff7f0e");
+        overlayCircle.setAttribute("fill-opacity", 0.5);
+        hoverOverlay.appendChild(overlayCircle);
+      });
+
+      const svg = document.getElementById("viz");
+
+      svg.addEventListener("mousemove", (e) => {
+        const pt = svg.createSVGPoint();
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+        const cursor = pt.matrixTransform(svg.getScreenCTM().inverse());
+
+        const hoverRadius = 30;
+
+        [...hoverOverlay.children].forEach((el, i) => {
+          const { cx, cy } = circles[i];
+          const dist = Math.hypot(cx - cursor.x, cy - cursor.y);
+          if (dist < hoverRadius) {
+            el.setAttribute("r", 12);
+            el.setAttribute("fill-opacity", 0.5);
+          } else {
+            el.setAttribute("r", 0);
+            el.setAttribute("fill-opacity", 0);
+          }
+        });
+      });
+
+      svg.addEventListener("mouseleave", () => {
+        circles.forEach(({ el, baseOpacity }) => {
+          el.setAttribute("fill-opacity", baseOpacity);
+        });
+      });
     </script>
   </body>
 </html>
