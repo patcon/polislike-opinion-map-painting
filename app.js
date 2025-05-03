@@ -2,7 +2,17 @@
 let convoSlug = document.getElementById("dataset")?.value || "bg2050";
 let width = 0,
   height = 0;
-const presetColors = ["#ff0000", "#00cc00", "#0066ff", "#ff9900", "#cc00cc"];
+let presetColors = [
+  "#ff0000", // A
+  "#00cc00", // B
+  "#0066ff", // C
+  "#ff9900", // D
+  "#cc00cc", // E
+  "#00cccc", // F
+  "#999900", // G
+  "#ff66cc", // H
+];
+const colorToLabelIndex = {}; // hex -> int
 const colorByIndex = [];
 const selectedIndicesGlobal = new Set();
 let isAdditiveDefault = false;
@@ -48,12 +58,24 @@ document.getElementById("toggle-additive").addEventListener("change", (e) => {
 document.getElementById("include-unpainted").addEventListener("change", (e) => {
   updateLabelCounts();
 });
+document.getElementById("color").addEventListener("input", (e) => {
+  const color = e.target.value;
+  if (!(color in colorToLabelIndex)) {
+    presetColors.push(color); // Add to end
+    colorToLabelIndex[color] = presetColors.length - 1;
+    renderColorPalette(); // Refresh palette
+  }
+});
 
 window.addEventListener("resize", () => {
   if (X1 && X2 && X3) renderAllPlots();
 });
 
 // --- Utility Functions ---
+function labelIndexToLetter(i) {
+  return String.fromCharCode("A".charCodeAt(0) + i);
+}
+
 function getScales(X, width, height, padding = 40) {
   return {
     x: d3
@@ -147,14 +169,27 @@ function adjustColorForHover(hex, factor = 0.2) {
 // --- UI Rendering Functions ---
 function renderColorPalette() {
   const container = document.getElementById("color-palette");
-  container.innerHTML = presetColors
-    .map(
-      (color) => `
-    <span style="display:inline-block; width:20px; height:20px; background:${color}; border:1px solid #888; margin-right:5px; cursor:pointer;"
-      title="${color}" onclick="document.getElementById('color').value = '${color}'">
-    </span>`
-    )
-    .join("");
+  container.innerHTML = "";
+
+  presetColors.forEach((color, i) => {
+    colorToLabelIndex[color] = i; // Assign label
+    const letter = labelIndexToLetter(i);
+
+    const span = document.createElement("span");
+    span.style = `
+      display:inline-block; width:24px; height:24px;
+      background:${color}; border:1px solid #888;
+      margin-right:5px; cursor:pointer; text-align:center;
+      line-height:24px; font-size:12px; color:white; font-family:sans-serif;
+    `;
+    span.title = `${letter} (${color})`;
+    span.textContent = letter;
+    span.onclick = () => {
+      document.getElementById("color").value = color;
+    };
+
+    container.appendChild(span);
+  });
 }
 
 function updateLabelCounts() {
@@ -331,7 +366,7 @@ function renderRepCommentsTable(repComments, commentTexts) {
   const container = document.getElementById("rep-comments-output");
   container.innerHTML = "";
 
-  Object.entries(repComments).forEach(([label, comments]) => {
+  Object.entries(repComments).forEach(([labelColor, comments]) => {
     const groupDiv = document.createElement("div");
     groupDiv.style.marginBottom = "30px";
 
@@ -346,11 +381,21 @@ function renderRepCommentsTable(repComments, commentTexts) {
     circle.style.width = "16px";
     circle.style.height = "16px";
     circle.style.borderRadius = "50%";
-    circle.style.backgroundColor = label;
+    circle.style.backgroundColor = labelColor;
     circle.style.border = "1px solid #999";
 
+    const labelIndex = colorToLabelIndex[labelColor];
+    const letter =
+      labelIndex !== undefined ? labelIndexToLetter(labelIndex) : "?";
+
+    const groupSize = selectedIndicesGlobal
+      ? Array.from(selectedIndicesGlobal).filter(
+          (i) => colorByIndex[i] === labelColor
+        ).length
+      : comments.length; // fallback if needed
+
     const text = document.createElement("span");
-    text.textContent = `Group: ${label}`;
+    text.textContent = `Group ${letter} (${groupSize} participants)`;
 
     title.appendChild(circle);
     title.appendChild(text);
