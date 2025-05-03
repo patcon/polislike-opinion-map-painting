@@ -87,5 +87,53 @@
     ></div>
 
     <script src="app.js"></script>
+    <script>
+      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+      if (isMobile && !sessionStorage.getItem("mobileWarningDismissed")) {
+        const dialog = document.createElement("div");
+        dialog.style.cssText = `
+          position: fixed;
+          top: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          max-width: 400px;
+          background: #fff8e1;
+          border: 1px solid #f1c40f;
+          border-radius: 8px;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+          padding: 16px 20px 12px;
+          font-family: sans-serif;
+          z-index: 10000;
+        `;
+
+        const msg = document.createElement("div");
+        msg.innerHTML = `
+          <strong>⚠️ Painting not yet supported on mobile.</strong><br>
+          Please use a desktop browser to assign group labels.
+        `;
+
+        const closeBtn = document.createElement("button");
+        closeBtn.textContent = "✖";
+        closeBtn.style.cssText = `
+          position: absolute;
+          top: 6px;
+          right: 10px;
+          background: none;
+          border: none;
+          font-size: 16px;
+          cursor: pointer;
+          color: #888;
+        `;
+        closeBtn.onclick = () => {
+          dialog.remove();
+          sessionStorage.setItem("mobileWarningDismissed", "1");
+        };
+
+        dialog.appendChild(closeBtn);
+        dialog.appendChild(msg);
+        document.body.appendChild(dialog);
+      }
+    </script>
   </body>
 </html>
