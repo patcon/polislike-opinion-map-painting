@@ -20,17 +20,20 @@ Demo: https://patcon.github.io/polislike-opinion-map-painting
 - [x] Support painting with multiple colors at once
 - [x] Show counts of participants in each painted cluster
 - [x] Document how to load own data
-- [ ] Add painting or lasso selection UX, to avoid rectangular selection constraint
-- [ ] Add hover "active" effect for participants under mouse to help see shape across projections before selecting
-    - [ ] Improve selection code performance ("painting" experiments are slow)
-- [ ] Allow selection from multiple datasets
+- [x] Add lasso selection UX, to avoid rectangular selection constraint
+- [x] Add hover "active" effect for participants under mouse to help see shape across projections before selecting
+    - [x] Improve selection code performance ("painting" experiments are slow)
+- [x] Allow selection from multiple datasets
 - [ ] Allow loading of own dataset into browser memory of hosted app
-- [ ] Dynamically show representative (differentiating) statements for painted groups.
+- [x] Dynamically show representative (differentiating) statements for painted groups.
+    - [ ] fix bug in code
+    - [ ] extract [`osccai-simulation`](https://github.com/raykyri/osccai-simulation/blob/main/src/utils/repness.ts) statistical functions into library
 - [ ] Dynamically show diverse consensus statements between painted groups.
-- [ ] Add toggle to include unpainted participants as a "rest of world" group, for purpose of above stats
+- [x] Add toggle to include unpainted participants as a "rest of world" group, for purpose of above stats
 - [ ] Clean up interface
 - [ ] Add option to view side-by-side vs single large view
 - [ ] Add feature to animate transitions between algo projects in single view mode.
+- [ ] Add true "paint" style selection.
 
 ## Usage
 
