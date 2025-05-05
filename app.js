@@ -571,6 +571,32 @@ function renderPlot(svgId, data, title) {
   const scales = getScales(data, width, height);
   svg.selectAll("*").remove();
 
+  // Add light origin axes at x=0 and y=0 (if within domain)
+  const [xMin, xMax] = d3.extent(data, d => d[0]);
+  const [yMin, yMax] = d3.extent(data, d => d[1]);
+
+  if (xMin < 0 && xMax > 0) {
+    svg.append("line")
+      .attr("x1", scales.x(0))
+      .attr("x2", scales.x(0))
+      .attr("y1", 0)
+      .attr("y2", height)
+      .attr("stroke", "#ccc")
+      .attr("stroke-width", 1)
+      .attr("stroke-dasharray", "2,2");
+  }
+
+  if (yMin < 0 && yMax > 0) {
+    svg.append("line")
+      .attr("x1", 0)
+      .attr("x2", width)
+      .attr("y1", scales.y(0))
+      .attr("y2", scales.y(0))
+      .attr("stroke", "#ccc")
+      .attr("stroke-width", 1)
+      .attr("stroke-dasharray", "2,2");
+  }
+
   svg
     .append("text")
     .attr("x", width / 2)
