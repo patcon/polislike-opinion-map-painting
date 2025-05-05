@@ -31,13 +31,19 @@ function loadAndRenderData(slug) {
     d3.json(`data/${slug}/pacmap.json`),
     d3.json(`data/${slug}/localmap.json`),
   ]).then(([data1, data2, data3]) => {
+    window.participants = data1.map(([tid]) => tid);
     showPlotLoader();
+    // Copied directly from Polis /api/v3/comments endpoint
+    // Example: https://pol.is/api/v3/comments?conversation_id=xxxxxxxxx&moderation=true&include_voting_patterns=true
     d3.json(`data/${slug}/statements.json`).then((statements) => {
       window.commentTexts = statements; // Save globally for now
+      window.commentTextMap = Object.fromEntries(
+        statements.map((c) => [c.tid, c])
+      );
     });
-    X1 = data1;
-    X2 = data2;
-    X3 = data3;
+    X1 = data1.map(([, coords]) => coords);
+    X2 = data2.map(([, coords]) => coords);
+    X3 = data3.map(([, coords]) => coords);
 
     window.commentTexts = null;
     window.repComments = null;
@@ -347,6 +353,29 @@ function makeLassoDragHandler(svg, data, scales) {
     });
 }
 
+function getParticipantVoteSummary(participantId) {
+  if (!window.dbInstance || !window.commentTexts) return "(data not loaded)";
+
+  const result = window.dbInstance.exec(`
+    SELECT comment_id, vote
+    FROM votes
+    WHERE participant_id = '${participantId}'
+  `);
+
+  const rows = result[0]?.values || [];
+  return rows
+    .map(([cid, vote]) => {
+      let label;
+      if (vote === 1) label = "agree";
+      else if (vote === -1) label = "disagree";
+      else label = "pass";
+
+      const text = window.commentTexts?.[cid]?.txt || "<missing>";
+      return `#${cid} - ${label}: ${text}`;
+    })
+    .join("\n");
+}
+
 function renderPlot(svgId, data, title) {
   const svg = d3.select(svgId);
   svg.attr("width", width).attr("height", height);
@@ -372,7 +401,19 @@ function renderPlot(svgId, data, title) {
     .attr("r", 5)
     .attr("fill-opacity", 0.3)
     .attr("fill", ({ i }) => colorByIndex[i] || "rgba(0,0,0,0.5)")
-    .attr("data-index", ({ i }) => i);
+    .attr("data-index", ({ i }) => i)
+    // Show user vote history in console (for debug)
+    .on("mouseover", function (event, d) {
+      const i = d.i;
+      this.hoverTimeout = setTimeout(() => {
+        const pid = window.participants?.[i] || `#${i}`;
+        console.log(`Participant ID: ${pid}`);
+        console.log(getParticipantVoteSummary(pid));
+      }, 100);
+    })
+    .on("mouseout", function () {
+      clearTimeout(this.hoverTimeout);
+    });
 
   svg.call(makeLassoDragHandler(svg, data, scales));
 
@@ -402,7 +443,7 @@ loadAndRenderData(convoSlug);
 let dbInstance = null;
 
 async function loadVotesDB(slug) {
-  if (dbInstance) return dbInstance;
+  if (window.dbInstance) return window.dbInstance;
 
   const SQL = await initSqlJs({
     locateFile: (file) =>
@@ -411,8 +452,10 @@ async function loadVotesDB(slug) {
 
   const res = await fetch(`data/${slug}/votes.db`);
   const buffer = await res.arrayBuffer();
-  dbInstance = new SQL.Database(new Uint8Array(buffer));
-  return dbInstance;
+  const db = new SQL.Database(new Uint8Array(buffer));
+
+  window.dbInstance = db; // ✅ this was missing!
+  return db;
 }
 
 // Helper function to check if z-score is significant at 90% confidence
@@ -420,93 +463,114 @@ function zSig90(zVal) {
   return zVal > 1.2816;
 }
 
-function renderRepCommentsTable(repComments, commentTexts) {
+function renderRepCommentsTable(repComments) {
   const container = document.getElementById("rep-comments-output");
   container.innerHTML = "";
 
-  Object.entries(repComments).forEach(([labelColor, comments]) => {
-    const groupDiv = document.createElement("div");
-    groupDiv.style.marginBottom = "30px";
+  Object.entries(repComments)
+    .sort(([a], [b]) => {
+      // Sort by group letter.
+      // Anything without a label goes to the end.
+      const indexA = colorToLabelIndex[a] ?? Infinity;
+      const indexB = colorToLabelIndex[b] ?? Infinity;
+      return indexA - indexB;
+    })
+    .forEach(([labelColor, comments]) => {
+      const groupDiv = document.createElement("div");
+      groupDiv.style.marginBottom = "30px";
 
-    // Section header with colored circle
-    const title = document.createElement("h3");
-    title.style.display = "flex";
-    title.style.alignItems = "center";
-    title.style.gap = "10px";
+      // Section header with colored circle
+      const title = document.createElement("h3");
+      title.style.display = "flex";
+      title.style.alignItems = "center";
+      title.style.gap = "10px";
 
-    const circle = document.createElement("span");
-    circle.style.display = "inline-block";
-    circle.style.width = "16px";
-    circle.style.height = "16px";
-    circle.style.borderRadius = "50%";
-    circle.style.backgroundColor = labelColor;
-    circle.style.border = "1px solid #999";
+      const circle = document.createElement("span");
+      circle.style.display = "inline-block";
+      circle.style.width = "16px";
+      circle.style.height = "16px";
+      circle.style.borderRadius = "50%";
+      circle.style.backgroundColor = labelColor;
+      circle.style.border = "1px solid #999";
 
-    const labelIndex = colorToLabelIndex[labelColor];
-    const letter =
-      labelIndex !== undefined ? labelIndexToLetter(labelIndex) : "?";
+      const UNGROUPED_LABEL = "Ungrouped";
 
-    const groupSize = selectedIndicesGlobal
-      ? Array.from(selectedIndicesGlobal).filter(
-          (i) => colorByIndex[i] === labelColor
-        ).length
-      : comments.length; // fallback if needed
+      const labelIndex = colorToLabelIndex[labelColor];
+      const letter =
+        labelIndex !== undefined
+          ? labelIndexToLetter(labelIndex)
+          : UNGROUPED_LABEL;
 
-    const text = document.createElement("span");
-    text.textContent = `Group ${letter} (${groupSize} participants)`;
+      const groupSize = getLabelArrayWithOptionalUngrouped().filter(
+        (label) => label === labelColor
+      ).length;
 
-    title.appendChild(circle);
-    title.appendChild(text);
-    groupDiv.appendChild(title);
+      const text = document.createElement("span");
+      text.textContent = `Group ${letter} (${groupSize} participants)`;
 
-    const table = document.createElement("table");
-    table.style.borderCollapse = "collapse";
-    table.style.width = "100%";
+      title.appendChild(circle);
+      title.appendChild(text);
+      groupDiv.appendChild(title);
 
-    const headerRow = document.createElement("tr");
-    ["Comment ID", "Rep Type", "% Support", "Statement"].forEach((h) => {
-      const th = document.createElement("th");
-      th.textContent = h;
-      th.style.borderBottom = "2px solid #ccc";
-      th.style.padding = "6px 10px";
-      th.style.textAlign = "left";
-      headerRow.appendChild(th);
-    });
-    table.appendChild(headerRow);
+      const table = document.createElement("table");
+      table.style.borderCollapse = "collapse";
+      table.style.width = "100%";
 
-    comments.forEach((c) => {
-      const tr = document.createElement("tr");
-
-      const repColor =
-        c.repful_for === "agree"
-          ? "green"
-          : c.repful_for === "disagree"
-          ? "red"
-          : "#333";
-
-      const text = commentTexts?.[c.tid]?.txt || "<em>Missing</em>";
-
-      const cells = [
-        c.tid,
-        `<span style="color: ${repColor}; font-weight: bold;">${c.repful_for}</span>`,
-        `${Math.round((c.n_success / c.n_trials) * 100)}%`,
-        text,
-      ];
-
-      cells.forEach((val) => {
-        const td = document.createElement("td");
-        td.innerHTML = val;
-        td.style.padding = "6px 10px";
-        td.style.borderBottom = "1px solid #eee";
-        tr.appendChild(td);
+      const headerRow = document.createElement("tr");
+      ["Comment ID", "Rep Type", "% Support", "Statement"].forEach((h) => {
+        const th = document.createElement("th");
+        th.textContent = h;
+        th.style.borderBottom = "2px solid #ccc";
+        th.style.padding = "6px 10px";
+        th.style.textAlign = "left";
+        headerRow.appendChild(th);
       });
+      table.appendChild(headerRow);
 
-      table.appendChild(tr);
+      comments.forEach((c) => {
+        const tr = document.createElement("tr");
+        const repColor =
+          c.repful_for === "agree"
+            ? "green"
+            : c.repful_for === "disagree"
+            ? "red"
+            : "#333";
+
+        const match = window.commentTextMap?.[c.tid];
+        const commentText = match?.txt || "<em>Missing</em>";
+
+        const n_agree = c.repful_for === "agree" ? c.n_success : "?";
+        const n_disagree = c.repful_for === "disagree" ? c.n_success : "?";
+        const n_pass =
+          c.n_trials -
+          (c.repful_for === "agree" || c.repful_for === "disagree"
+            ? c.n_success
+            : 0);
+
+        const metaLine = `<div style="font-size: 0.85em; color: #666; margin-top: 4px;">
+          Agree: ${n_agree}, Disagree: ${n_disagree}, Pass: ${n_pass}, Total: ${c.n_trials}
+        </div>`;
+
+        const cells = [
+          c.tid,
+          `<span style="color: ${repColor}; font-weight: bold;">${c.repful_for}</span>`,
+          `${Math.round((c.n_success / c.n_trials) * 100)}%`,
+          `<div>${commentText}</div>${metaLine}`,
+        ];
+
+        cells.forEach((val) => {
+          const td = document.createElement("td");
+          td.innerHTML = val;
+          td.style.padding = "6px 10px";
+          td.style.borderBottom = "1px solid #eee";
+          tr.appendChild(td);
+        });
+
+        table.appendChild(tr);
+      });
+      groupDiv.appendChild(table);
+      container.appendChild(groupDiv);
     });
-
-    groupDiv.appendChild(table);
-    container.appendChild(groupDiv);
-  });
 }
 
 // Test if two proportions differ significantly
@@ -557,17 +621,20 @@ async function getGroupVoteMatrices(db, labelArray) {
   const groups = {};
   labelArray.forEach((label, index) => {
     if (label != null) {
-      if (!groups[label]) groups[label] = [];
-      groups[label].push(index);
+      const pid = window.participants?.[index];
+      if (pid !== undefined) {
+        if (!groups[label]) groups[label] = [];
+        groups[label].push(pid);
+      }
     }
   });
 
   const groupVotes = {};
   for (const [label, indices] of Object.entries(groups)) {
     const result = db.exec(`
-      SELECT participant_index, comment_id, vote
+      SELECT participant_id, comment_id, vote
       FROM votes
-      WHERE participant_index IN (${indices.join(",")})
+      WHERE participant_id IN (${indices.join(",")})
     `);
 
     const voteMatrix = {};
@@ -641,7 +708,7 @@ function agreesBeforeDisagrees(comments) {
   return [...agrees, ...disagrees];
 }
 
-function selectRepComments(commentStatsWithTid, commentTexts = []) {
+function selectRepComments(commentStatsWithTid) {
   const result = {};
 
   if (commentStatsWithTid.length === 0) return {};
@@ -653,9 +720,10 @@ function selectRepComments(commentStatsWithTid, commentTexts = []) {
   });
 
   commentStatsWithTid.forEach(([tid, groupsData]) => {
-    const isModerated =
-      commentTexts?.[tid]?.moderated === "-1" ||
-      commentTexts?.[tid]?.moderated === -1;
+    const comment = window.commentTextMap?.[tid];
+    // TODO: Get this working for strict moderation (-1 or 0)
+    // This doesn't work in upstream Polis either, so has feature parity rn.
+    const isModerated = comment?.mod === "-1" || comment?.mod === -1;
     if (isModerated) return;
 
     Object.entries(groupsData).forEach(([gid, commentStats]) => {
@@ -758,7 +826,7 @@ function calculateRepresentativeComments(groupVotes, commentTexts) {
       };
     }
 
-    commentStatsWithTid.push([commentIndex, commentStats]);
+    commentStatsWithTid.push([commentId, commentStats]);
   });
 
   // Add comparative stats
