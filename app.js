@@ -1,5 +1,6 @@
 // --- Configuration and Shared State ---
-let convoSlug = document.getElementById("dataset")?.value || "bg2050";
+let convoSlug = loadState("dataset", "bg2050");
+document.getElementById("dataset").value = convoSlug;
 let width = 0,
   height = 0;
 
@@ -65,11 +66,25 @@ function loadAndRenderData(slug) {
   });
 }
 
-function applySharedState({ dataset, labels }) {
+function applySharedState({
+  dataset,
+  labels,
+  flipX: fx = false,
+  flipY: fy = false,
+}) {
   convoSlug = dataset;
   document.getElementById("dataset").value = dataset;
-  loadAndRenderData(dataset).then(() => {
-    // Wait until colorByIndex is reset and data is loaded
+  saveState("dataset", dataset);
+
+  // ✅ Set and persist flip states
+  flipX = fx;
+  flipY = fy;
+  document.getElementById("flip-x-checkbox").checked = fx;
+  document.getElementById("flip-y-checkbox").checked = fy;
+  saveState("flipX", fx);
+  saveState("flipY", fy);
+
+  return loadAndRenderData(dataset).then(() => {
     colorByIndex.length = labels.length;
     for (let i = 0; i < labels.length; i++) {
       colorByIndex[i] = labels[i];
@@ -79,7 +94,6 @@ function applySharedState({ dataset, labels }) {
     updateLabelCounts();
   });
 }
-
 // Restore session state
 document.getElementById("dataset").value = loadState("dataset", "bg2050");
 document.getElementById("toggle-additive").checked = loadState(
@@ -96,6 +110,8 @@ document.getElementById("auto-analyze-checkbox").checked = loadState(
 );
 document.getElementById("flip-x-checkbox").checked = loadState("flipX", false);
 document.getElementById("flip-y-checkbox").checked = loadState("flipY", false);
+flipX = document.getElementById("flip-x-checkbox").checked;
+flipY = document.getElementById("flip-y-checkbox").checked;
 
 // --- DOM + Event Binding ---
 document.getElementById("share-button").addEventListener("click", () => {
@@ -180,7 +196,12 @@ window.addEventListener("resize", () => {
 function encodeShareState() {
   const dataset = convoSlug;
   const labels = colorByIndex.map((label) => label || null);
-  const payload = { dataset, labels };
+  const payload = {
+    dataset,
+    labels,
+    flipX,
+    flipY,
+  };
   const json = JSON.stringify(payload);
   return btoa(json); // base64 encode
 }
