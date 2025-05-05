@@ -1,0 +1,10 @@
+[project]
+name = "polislike-opinion-map-painting"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pacmap>=0.8.0",
+    "red-dwarf>=0.3.0",
+]
