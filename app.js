@@ -68,7 +68,7 @@ function loadAndRenderData(slug) {
 
 function applySharedState({
   dataset,
-  labels,
+  labelIndices,
   flipX: fx = false,
   flipY: fy = false,
 }) {
@@ -76,7 +76,7 @@ function applySharedState({
   document.getElementById("dataset").value = dataset;
   saveState("dataset", dataset);
 
-  // ✅ Set and persist flip states
+  // Flip state
   flipX = fx;
   flipY = fy;
   document.getElementById("flip-x-checkbox").checked = fx;
@@ -85,15 +85,21 @@ function applySharedState({
   saveState("flipY", fy);
 
   return loadAndRenderData(dataset).then(() => {
-    colorByIndex.length = labels.length;
-    for (let i = 0; i < labels.length; i++) {
-      colorByIndex[i] = labels[i];
-      if (labels[i]) selectedIndicesGlobal.add(i);
+    colorByIndex.length = labelIndices.length;
+    selectedIndicesGlobal.clear();
+    for (let i = 0; i < labelIndices.length; i++) {
+      const idx = labelIndices[i];
+      if (idx != null) {
+        const color = presetColorsTab10[idx];
+        colorByIndex[i] = color;
+        selectedIndicesGlobal.add(i);
+      }
     }
     renderAllPlots();
     updateLabelCounts();
   });
 }
+
 // Restore session state
 document.getElementById("dataset").value = loadState("dataset", "bg2050");
 document.getElementById("toggle-additive").checked = loadState(
@@ -195,22 +201,37 @@ window.addEventListener("resize", () => {
 
 function encodeShareState() {
   const dataset = convoSlug;
-  const labels = colorByIndex.map((label) => label || null);
+  const labelIndices = colorByIndex.map((c) =>
+    c == null ? null : colorToLabelIndex[c]
+  );
   const payload = {
     dataset,
-    labels,
+    labelIndices,
     flipX,
     flipY,
   };
-  const json = JSON.stringify(payload);
-  return btoa(json); // base64 encode
+  return btoa(JSON.stringify(payload));
 }
 
 function decodeShareState(base64) {
   try {
     const json = atob(base64);
-    const { dataset, labels } = JSON.parse(json);
-    return { dataset, labels };
+    const parsed = JSON.parse(json);
+
+    // Backward compatibility: if old `labels` format is used
+    if (parsed.labels) {
+      const labelIndices = parsed.labels.map((color) =>
+        color == null ? null : colorToLabelIndex[color]
+      );
+      parsed.labelIndices = labelIndices;
+    }
+
+    return {
+      dataset: parsed.dataset,
+      labelIndices: parsed.labelIndices || [],
+      flipX: parsed.flipX || false,
+      flipY: parsed.flipY || false,
+    };
   } catch (e) {
     console.warn("Invalid share state", e);
     return null;
