@@ -273,8 +273,15 @@ function updateLabelCounts() {
   });
 
   const container = document.getElementById("label-counts");
+
+  const ordered = Object.entries(counts).sort(([colorA], [colorB]) => {
+    const iA = colorToLabelIndex[colorA] ?? 999;
+    const iB = colorToLabelIndex[colorB] ?? 999;
+    return iA - iB;
+  });
+
   container.innerHTML =
-    Object.entries(counts)
+    ordered
       .map(
         ([color, count]) => `
     <span style="margin-right: 12px;">
