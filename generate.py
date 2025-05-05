@@ -84,7 +84,9 @@ def main():
         raise ValueError("You must pass one of --convo-id, --report-id, or --import-dir")
 
     # Load data
+    print(f"📦 Loading Polis data...")
     if args.import_dir:
+        print(f"🔍 Loading from directory: {args.import_dir}")
         loader = Loader(filepaths=[
             os.path.join(args.import_dir, "comments.json"),
             os.path.join(args.import_dir, "votes.json"),
@@ -92,12 +94,14 @@ def main():
             os.path.join(args.import_dir, "conversation.json"),
         ])
     elif args.report_id:
+        print(f"🔍 Loading via report ID: {args.report_id}")
         loader = Loader(polis_id=args.report_id, data_source="csv_export")
         loader.load_api_data_report()
         loader.conversation_id = loader.report_data["conversation_id"]
         loader.load_api_data_math()
         loader.load_api_data_conversation()
     else:
+        print(f"🔍 Loading via conversation ID: {args.convo_id}")
         loader = Loader(polis_id=args.convo_id)
 
     slug = args.slug or loader.conversation_id
