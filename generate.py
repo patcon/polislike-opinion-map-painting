@@ -140,7 +140,7 @@ def main():
     projections = {}
     for name in ["PCA", "PaCMAP", "LocalMAP"]:
         print(f"🔄 Running projection: {name}")
-        X = run_projection(name, filtered_vote_matrix.values, seed=42, raw_vote_matrix=raw_vote_matrix)
+        X = run_projection(name, filtered_vote_matrix.values, seed=607642, raw_vote_matrix=raw_vote_matrix)
         X_filtered = X[cluster_mask]
 
         # Get participant_ids matching filtered projection
