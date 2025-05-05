@@ -38,11 +38,17 @@ function loadAndRenderData(slug) {
       window.participants = data1.map(([tid]) => tid);
       showPlotLoader();
 
-      d3.json(`data/${slug}/statements.json`).then((statements) => {
+      d3.json(`data/${slug}/statements.json`).then((rawStatements) => {
+        const statements = rawStatements.map((s) => ({
+          tid: s.tid ?? s.statement_id,
+          pid: s.pid ?? s.participant_id,
+          mod: s.mod ?? s.moderated,
+          txt: s.txt ?? s.text ?? "<missing>", // optional: fallback for text
+          ...s, // keep any other keys
+        }));
+
         window.commentTexts = statements;
-        window.commentTextMap = Object.fromEntries(
-          statements.map((c) => [c.tid, c])
-        );
+        window.commentTextMap = Object.fromEntries(statements.map((c) => [c.tid, c]));
       });
 
       X1 = data1.map(([, coords]) => coords);
