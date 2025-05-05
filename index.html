@@ -49,6 +49,32 @@
     </label>
 
     <div
+      id="share-controls"
+      style="
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+        font-family: sans-serif;
+      "
+    >
+      <button id="share-button" style="padding: 4px 10px">
+        Share painted labels
+      </button>
+      <input
+        id="share-url"
+        readonly
+        style="
+          flex: 1;
+          font-size: 12px;
+          padding: 4px 6px;
+          border: 1px solid #ccc;
+        "
+        placeholder="Shareable link will appear here"
+      />
+    </div>
+
+    <div
       id="plot-loader"
       style="
         display: none;

@@ -28,36 +28,55 @@ let X1, X2, X3;
 
 // --- Data Loading ---
 function loadAndRenderData(slug) {
-  Promise.all([
-    d3.json(`data/${slug}/pca.json`),
-    d3.json(`data/${slug}/pacmap.json`),
-    d3.json(`data/${slug}/localmap.json`),
-  ]).then(([data1, data2, data3]) => {
-    window.participants = data1.map(([tid]) => tid);
-    showPlotLoader();
-    // Copied directly from Polis /api/v3/comments endpoint
-    // Example: https://pol.is/api/v3/comments?conversation_id=xxxxxxxxx&moderation=true&include_voting_patterns=true
-    d3.json(`data/${slug}/statements.json`).then((statements) => {
-      window.commentTexts = statements; // Save globally for now
-      window.commentTextMap = Object.fromEntries(
-        statements.map((c) => [c.tid, c])
-      );
+  return new Promise((resolve) => {
+    Promise.all([
+      d3.json(`data/${slug}/pca.json`),
+      d3.json(`data/${slug}/pacmap.json`),
+      d3.json(`data/${slug}/localmap.json`),
+    ]).then(([data1, data2, data3]) => {
+      window.participants = data1.map(([tid]) => tid);
+      showPlotLoader();
+
+      d3.json(`data/${slug}/statements.json`).then((statements) => {
+        window.commentTexts = statements;
+        window.commentTextMap = Object.fromEntries(
+          statements.map((c) => [c.tid, c])
+        );
+      });
+
+      X1 = data1.map(([, coords]) => coords);
+      X2 = data2.map(([, coords]) => coords);
+      X3 = data3.map(([, coords]) => coords);
+
+      window.commentTexts = null;
+      window.repComments = null;
+      document.getElementById("rep-comments-output").innerHTML = "";
+      colorByIndex.length = X1.length;
+      colorByIndex.fill(null);
+      selectedIndicesGlobal.clear();
+
+      renderAllPlots();
+      renderColorPalette();
+      updateLabelCounts();
+      hidePlotLoader();
+
+      resolve(); // ✅ Important
     });
-    X1 = data1.map(([, coords]) => coords);
-    X2 = data2.map(([, coords]) => coords);
-    X3 = data3.map(([, coords]) => coords);
+  });
+}
 
-    window.commentTexts = null;
-    window.repComments = null;
-    document.getElementById("rep-comments-output").innerHTML = "";
-    colorByIndex.length = X1.length;
-    colorByIndex.fill(null);
-    selectedIndicesGlobal.clear();
-
+function applySharedState({ dataset, labels }) {
+  convoSlug = dataset;
+  document.getElementById("dataset").value = dataset;
+  loadAndRenderData(dataset).then(() => {
+    // Wait until colorByIndex is reset and data is loaded
+    colorByIndex.length = labels.length;
+    for (let i = 0; i < labels.length; i++) {
+      colorByIndex[i] = labels[i];
+      if (labels[i]) selectedIndicesGlobal.add(i);
+    }
     renderAllPlots();
-    renderColorPalette();
     updateLabelCounts();
-    hidePlotLoader();
   });
 }
 
@@ -79,6 +98,15 @@ document.getElementById("flip-x-checkbox").checked = loadState("flipX", false);
 document.getElementById("flip-y-checkbox").checked = loadState("flipY", false);
 
 // --- DOM + Event Binding ---
+document.getElementById("share-button").addEventListener("click", () => {
+  const encoded = encodeShareState();
+  const url = `${location.origin}${location.pathname}#${encoded}`;
+  const input = document.getElementById("share-url");
+  input.value = url;
+  input.select();
+  document.execCommand("copy");
+});
+
 document.getElementById("dataset").addEventListener("change", (e) => {
   const selectedDataset = e.target.value;
   convoSlug = selectedDataset;
@@ -148,6 +176,25 @@ window.addEventListener("resize", () => {
 });
 
 // --- Utility Functions ---
+
+function encodeShareState() {
+  const dataset = convoSlug;
+  const labels = colorByIndex.map((label) => label || null);
+  const payload = { dataset, labels };
+  const json = JSON.stringify(payload);
+  return btoa(json); // base64 encode
+}
+
+function decodeShareState(base64) {
+  try {
+    const json = atob(base64);
+    const { dataset, labels } = JSON.parse(json);
+    return { dataset, labels };
+  } catch (e) {
+    console.warn("Invalid share state", e);
+    return null;
+  }
+}
 
 function saveState(key, value) {
   sessionStorage.setItem(key, JSON.stringify(value));
@@ -502,7 +549,19 @@ function renderAllPlots() {
 }
 
 // --- Initial Kickoff ---
-loadAndRenderData(convoSlug);
+window.addEventListener("DOMContentLoaded", () => {
+  const hash = location.hash.slice(1);
+  if (hash) {
+    const shared = decodeShareState(hash);
+    if (shared) {
+      applySharedState(shared);
+      return; // ✅ Don't run normal startup; already handled
+    }
+  }
+
+  // Only run if no shared state
+  loadAndRenderData(convoSlug);
+});
 
 let dbInstance = null;
 
