@@ -93,6 +93,7 @@ def main():
             os.path.join(args.import_dir, "math-pca2.json"),
             os.path.join(args.import_dir, "conversation.json"),
         ])
+        loader.conversation_id = loader.conversation_data["conversation_id"]
     elif args.report_id:
         print(f"🔍 Loading via report ID: {args.report_id}")
         loader = Loader(polis_id=args.report_id, data_source="csv_export")
@@ -108,6 +109,13 @@ def main():
     outdir = Path("data") / slug
     outdir.mkdir(parents=True, exist_ok=True)
     print(f"📁 Output directory: {outdir}")
+
+    # Dump raw input files for reuse
+    if not args.import_dir:
+        dump_dir = Path(".dumps") / slug
+        dump_dir.mkdir(parents=True, exist_ok=True)
+        print(f"🧾 Dumping raw Polis data to {dump_dir}")
+        loader.dump_data(output_dir=str(dump_dir))
 
     # Process votes
     _, _, mod_out_statement_ids, _ = process_statements(loader.comments_data)
