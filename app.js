@@ -22,6 +22,8 @@ const selectedIndicesGlobal = new Set();
 let isAdditiveDefault = false;
 let isDragging = false;
 let hoveredIndices = new Set();
+let flipX = false;
+let flipY = false;
 let X1, X2, X3;
 
 // --- Data Loading ---
@@ -73,6 +75,14 @@ document.getElementById("include-unpainted").addEventListener("change", () => {
     applyGroupAnalysis();
   }
 });
+document.getElementById("flip-x-checkbox").addEventListener("change", (e) => {
+  flipX = e.target.checked;
+  renderAllPlots();
+});
+document.getElementById("flip-y-checkbox").addEventListener("change", (e) => {
+  flipY = e.target.checked;
+  renderAllPlots();
+});
 document
   .getElementById("auto-analyze-checkbox")
   .addEventListener("change", (e) => {
@@ -120,14 +130,20 @@ function labelIndexToLetter(i) {
 }
 
 function getScales(X, width, height, padding = 40) {
+  const xExtent = d3.extent(X, (d) => d[0]);
+  const yExtent = d3.extent(X, (d) => d[1]);
+
+  if (flipX) xExtent.reverse();
+  if (flipY) yExtent.reverse();
+
   return {
     x: d3
       .scaleLinear()
-      .domain(d3.extent(X, (d) => d[0]))
+      .domain(xExtent)
       .range([padding, width - padding]),
     y: d3
       .scaleLinear()
-      .domain(d3.extent(X, (d) => d[1]))
+      .domain(yExtent)
       .range([height - padding, padding]),
   };
 }
