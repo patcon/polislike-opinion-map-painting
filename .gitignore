@@ -1,1 +1,4 @@
 node_modules
+
+# Cache file for red-dwarf data loader
+test_cache.sqlite
