@@ -102,10 +102,7 @@ function applySharedState({
 
 // Restore session state
 document.getElementById("dataset").value = loadState("dataset", "bg2050");
-document.getElementById("toggle-additive").checked = loadState(
-  "additive",
-  false
-);
+document.getElementById("toggle-additive").checked = isAdditiveDefault;
 document.getElementById("include-unpainted").checked = loadState(
   "includeUnpainted",
   false
