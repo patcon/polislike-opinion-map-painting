@@ -61,43 +61,75 @@ function loadAndRenderData(slug) {
   });
 }
 
+// Restore session state
+document.getElementById("dataset").value = loadState("dataset", "bg2050");
+document.getElementById("toggle-additive").checked = loadState(
+  "additive",
+  false
+);
+document.getElementById("include-unpainted").checked = loadState(
+  "includeUnpainted",
+  false
+);
+document.getElementById("auto-analyze-checkbox").checked = loadState(
+  "autoAnalyze",
+  true
+);
+document.getElementById("flip-x-checkbox").checked = loadState("flipX", false);
+document.getElementById("flip-y-checkbox").checked = loadState("flipY", false);
+
 // --- DOM + Event Binding ---
 document.getElementById("dataset").addEventListener("change", (e) => {
-  convoSlug = e.target.value;
-  loadAndRenderData(convoSlug);
+  const selectedDataset = e.target.value;
+  convoSlug = selectedDataset;
+  saveState("dataset", selectedDataset);
+  loadAndRenderData(selectedDataset);
 });
+
 document.getElementById("toggle-additive").addEventListener("change", (e) => {
-  isAdditiveDefault = e.target.checked;
+  const isAdditive = e.target.checked;
+  isAdditiveDefault = isAdditive;
+  saveState("additive", isAdditive);
 });
-document.getElementById("include-unpainted").addEventListener("change", () => {
+
+document.getElementById("include-unpainted").addEventListener("change", (e) => {
+  const includeUnpainted = e.target.checked;
+  saveState("includeUnpainted", includeUnpainted);
   updateLabelCounts();
   if (document.getElementById("auto-analyze-checkbox").checked) {
     applyGroupAnalysis();
   }
 });
+
 document.getElementById("flip-x-checkbox").addEventListener("change", (e) => {
   flipX = e.target.checked;
+  saveState("flipX", flipX);
   renderAllPlots();
 });
+
 document.getElementById("flip-y-checkbox").addEventListener("change", (e) => {
   flipY = e.target.checked;
+  saveState("flipY", flipY);
   renderAllPlots();
 });
+
 document
   .getElementById("auto-analyze-checkbox")
   .addEventListener("change", (e) => {
-    if (e.target.checked) {
-      applyGroupAnalysis(); // run once when enabling auto
-    }
+    const isEnabled = e.target.checked;
+    saveState("autoAnalyze", isEnabled);
+    if (isEnabled) applyGroupAnalysis();
   });
+
 document.getElementById("color").addEventListener("input", (e) => {
-  const color = e.target.value;
-  if (!(color in colorToLabelIndex)) {
-    presetColorsTab10.push(color); // Add to end
-    colorToLabelIndex[color] = presetColorsTab10.length - 1;
+  const selectedColor = e.target.value;
+  if (!(selectedColor in colorToLabelIndex)) {
+    presetColorsTab10.push(selectedColor); // Add to end
+    colorToLabelIndex[selectedColor] = presetColorsTab10.length - 1;
     renderColorPalette(); // Refresh palette
   }
 });
+
 document.addEventListener("keydown", (e) => {
   // Only trigger on number keys 0–9 and when not typing into an input field
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
@@ -117,6 +149,15 @@ window.addEventListener("resize", () => {
 
 // --- Utility Functions ---
 
+function saveState(key, value) {
+  sessionStorage.setItem(key, JSON.stringify(value));
+}
+
+function loadState(key, defaultValue) {
+  const saved = sessionStorage.getItem(key);
+  return saved !== null ? JSON.parse(saved) : defaultValue;
+}
+
 function showPlotLoader() {
   document.getElementById("plot-loader").style.display = "flex";
 }
@@ -133,17 +174,17 @@ function getScales(X, width, height, padding = 40) {
   const xExtent = d3.extent(X, (d) => d[0]);
   const yExtent = d3.extent(X, (d) => d[1]);
 
-  if (flipX) xExtent.reverse();
-  if (flipY) yExtent.reverse();
+  const xDomain = flipX ? [...xExtent].reverse() : xExtent;
+  const yDomain = flipY ? [...yExtent].reverse() : yExtent;
 
   return {
     x: d3
       .scaleLinear()
-      .domain(xExtent)
+      .domain(xDomain)
       .range([padding, width - padding]),
     y: d3
       .scaleLinear()
-      .domain(yExtent)
+      .domain(yDomain)
       .range([height - padding, padding]),
   };
 }
