@@ -153,7 +153,28 @@ def main():
     safe_ids = [pid for pid in clustered_pids if pid in raw_vote_matrix.index]
     save_votes_db(raw_vote_matrix, safe_ids, outdir / "votes.db")
 
-    print(f"Done! Files written to {outdir}")
+    # --- Generate or preserve meta.json ---
+    meta_path = outdir / "meta.json"
+    if meta_path.exists():
+        print("📄 meta.json already exists — preserving it")
+    else:
+        print("📝 Creating meta.json")
+        meta = {
+            "conversation_url": f"https://pol.is/{loader.conversation_id}",
+            "report_url": None,
+            "about_url": None
+        }
+
+        if hasattr(loader, "report_data") and "report_url" in loader.report_data:
+            meta["report_url"] = loader.report_data["report_url"]
+        elif args.report_id:
+            meta["report_url"] = f"https://pol.is/report/{args.report_id}"
+
+        with open(meta_path, "w") as f:
+            json.dump(meta, f, indent=2)
+        print("✅ Saved meta.json")
+
+        print(f"Done! Files written to {outdir}")
 
 if __name__ == "__main__":
     print("🚀 Starting Red-Dwarf report generator")
