@@ -24,9 +24,12 @@
       <input type="checkbox" id="toggle-additive" />
       Additive painting by default
     </label>
-    <span>(Otherwise, cmd-click for additive)</span>
+    <small style="color: #555">(Otherwise, Cmd-click for additive)</small>
 
-    <div id="color-palette" style="margin-top: 8px"></div>
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div id="color-palette"></div>
+      <small style="color: #555"> Press keys 0–9 to select colors </small>
+    </div>
 
     <label for="dataset">Dataset:</label>
     <select id="dataset">
