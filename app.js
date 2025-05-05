@@ -34,9 +34,12 @@ function loadAndRenderData(slug) {
       d3.json(`data/${slug}/pca.json`),
       d3.json(`data/${slug}/pacmap.json`),
       d3.json(`data/${slug}/localmap.json`),
-    ]).then(([data1, data2, data3]) => {
+      d3.json(`data/${slug}/meta.json`).catch(() => null),
+    ]).then(([data1, data2, data3, meta]) => {
       window.participants = data1.map(([tid]) => tid);
+      window.meta = meta;
       showPlotLoader();
+      renderMetaInfo(meta);
 
       d3.json(`data/${slug}/statements.json`).then((rawStatements) => {
         const statements = rawStatements.map((s) => ({
@@ -389,6 +392,36 @@ function renderColorPalette() {
 
   // Re-apply highlight after re-render
   highlightSelectedColor(document.getElementById("color").value);
+}
+
+function renderMetaInfo(meta) {
+  const container = document.getElementById("meta-info");
+
+  if (!meta) meta = {};
+
+  const items = [
+    {
+      label: "About:",
+      url: meta.about_url,
+    },
+    {
+      label: "Conversation:",
+      url: meta.conversation_url,
+    },
+    {
+      label: "Report:",
+      url: meta.report_url,
+    },
+  ];
+
+  container.innerHTML = items
+    .map(({ label, url }) => {
+      const content = url
+        ? `<a href="${url}" target="_blank" style="color: #0066cc;">link</a>`
+        : `<span style="color: #999;">n/a</span>`;
+      return `<span>${label} ${content}</span>`;
+    })
+    .join(" &nbsp; | &nbsp; ");
 }
 
 function highlightSelectedColor(color) {
