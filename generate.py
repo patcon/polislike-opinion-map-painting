@@ -32,6 +32,7 @@ def parse_args():
     parser.add_argument("--convo-id", help="Polis conversation ID", default=None)
     parser.add_argument("--import-dir", help="Directory with previously downloaded data", default=None)
     parser.add_argument("--slug", help="Optional directory name override")
+    parser.add_argument("--polis-base-url", default="https://pol.is", help="Base URL for Polis API (default: https://pol.is)")
     return parser.parse_args()
 
 # --- Projection Helpers ---
@@ -85,6 +86,7 @@ def main():
 
     # Load data
     print(f"📦 Loading Polis data...")
+    base_url = args.polis_base_url
     if args.import_dir:
         print(f"🔍 Loading from directory: {args.import_dir}")
         loader = Loader(filepaths=[
@@ -95,15 +97,15 @@ def main():
         ])
         loader.conversation_id = loader.conversation_data["conversation_id"]
     elif args.report_id:
-        print(f"🔍 Loading via report ID: {args.report_id}")
-        loader = Loader(polis_id=args.report_id, data_source="csv_export")
+        print(f"🔍 Loading via report ID: {args.polis_base_url.rstrip('/')}/report/{args.report_id}")
+        loader = Loader(polis_instance_url=base_url, polis_id=args.report_id, data_source="csv_export")
         loader.load_api_data_report()
         loader.conversation_id = loader.report_data["conversation_id"]
         loader.load_api_data_math()
         loader.load_api_data_conversation()
     else:
-        print(f"🔍 Loading via conversation ID: {args.convo_id}")
-        loader = Loader(polis_id=args.convo_id)
+        print(f"🔍 Loading via conversation ID: {args.polis_base_url.rstrip('/')}/{args.convo_id}")
+        loader = Loader(polis_instance_url=base_url, polis_id=args.convo_id)
 
     slug = args.slug or loader.conversation_id
     outdir = Path("data") / slug
@@ -160,15 +162,15 @@ def main():
     else:
         print("📝 Creating meta.json")
         meta = {
-            "conversation_url": f"https://pol.is/{loader.conversation_id}",
+            "about_url": None,
+            "conversation_url": f"{args.polis_base_url.rstrip('/')}/{loader.conversation_id}",
             "report_url": None,
-            "about_url": None
         }
 
         if hasattr(loader, "report_data") and "report_url" in loader.report_data:
             meta["report_url"] = loader.report_data["report_url"]
         elif args.report_id:
-            meta["report_url"] = f"https://pol.is/report/{args.report_id}"
+            meta["report_url"] = f"{args.polis_base_url.rstrip('/')}/report/{args.report_id}"
 
         with open(meta_path, "w") as f:
             json.dump(meta, f, indent=2)
