@@ -122,6 +122,7 @@ document.getElementById("auto-analyze-checkbox").checked = loadState(
   "autoAnalyze",
   true
 );
+document.getElementById("include-moderated-checkbox").checked = loadState("includeModerated", false);
 document.getElementById("flip-x-checkbox").checked = loadState("flipX", false);
 document.getElementById("flip-y-checkbox").checked = loadState("flipY", false);
 flipX = document.getElementById("flip-x-checkbox").checked;
@@ -178,6 +179,10 @@ document
     saveState("autoAnalyze", isEnabled);
     if (isEnabled) applyGroupAnalysis();
   });
+
+document.getElementById("include-moderated-checkbox").addEventListener("change", (e) => {
+  saveState("includeModerated", e.target.checked);
+});
 
 document.getElementById("color").addEventListener("input", (e) => {
   const selectedColor = e.target.value;
@@ -1064,6 +1069,7 @@ function agreesBeforeDisagrees(comments) {
 
 function selectRepComments(commentStatsWithTid) {
   const result = {};
+  const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
 
   if (commentStatsWithTid.length === 0) return {};
 
@@ -1078,7 +1084,7 @@ function selectRepComments(commentStatsWithTid) {
     // TODO: Get this working for strict moderation (-1 or 0)
     // This doesn't work in upstream Polis either, so has feature parity rn.
     const isModerated = comment?.mod === "-1" || comment?.mod === -1;
-    if (isModerated) return;
+    if (isModerated && !includeModerated) return;
 
     Object.entries(groupsData).forEach(([gid, commentStats]) => {
       const groupResult = result[gid];
