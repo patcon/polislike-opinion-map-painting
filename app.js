@@ -766,16 +766,8 @@ function renderRepCommentsTable(repComments) {
         const match = window.commentTextMap?.[c.tid];
         const commentText = match?.txt || "<em>Missing</em>";
 
-        const n_agree = c.repful_for === "agree" ? c.n_success : "?";
-        const n_disagree = c.repful_for === "disagree" ? c.n_success : "?";
-        const n_pass =
-          c.n_trials -
-          (c.repful_for === "agree" || c.repful_for === "disagree"
-            ? c.n_success
-            : 0);
-
         const metaLine = `<div style="font-size: 0.85em; color: #666; margin-top: 4px;">
-          Agree: ${n_agree}, Disagree: ${n_disagree}, Pass: ${n_pass}, Total: ${c.n_trials}
+          Agree: ${c.n_agree}, Disagree: ${c.n_disagree}, Pass: ${c.n_pass}, Total: ${c.n_trials}
         </div>`;
 
         const cells = [
@@ -915,6 +907,9 @@ function finalizeCommentStats(tid, stats) {
 
   return {
     tid,
+    n_agree: na,
+    n_disagree: nd,
+    n_pass: ns - na - nd,
     n_success: isAgreeMoreRep ? na : nd,
     n_trials: ns,
     p_success: isAgreeMoreRep ? pa : pd,
