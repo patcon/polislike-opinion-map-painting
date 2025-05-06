@@ -12,7 +12,7 @@
   border: 1px solid #ccc;
 }
 
-svg {
+#plot-wrapper svg {
   border: 1px solid #ccc;
   flex: 1;
   height: auto;

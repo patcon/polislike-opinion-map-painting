@@ -394,6 +394,102 @@ function renderColorPalette() {
   highlightSelectedColor(document.getElementById("color").value);
 }
 
+function createCompactBarChart({ voteCounts, nMembers, voteColors }) {
+  const container = document.createElement("div");
+  container.style.display = "inline-block";
+  container.style.verticalAlign = "middle";
+  container.style.marginLeft = "10px";
+
+  let w = 100;
+  let agrees = 0;
+  let disagrees = 0;
+  let sawTheComment = 0;
+  let missingCounts = false;
+
+  if (typeof voteCounts !== "undefined") {
+    agrees = voteCounts.A ?? 0;
+    disagrees = voteCounts.D ?? 0;
+    sawTheComment = voteCounts.S ?? 0;
+  } else {
+    missingCounts = true;
+  }
+
+  let passes = sawTheComment - (agrees + disagrees);
+
+  const agree = (agrees / nMembers) * w;
+  const disagree = (disagrees / nMembers) * w;
+  const pass = (passes / nMembers) * w;
+
+  const agreeSaw = (agrees / sawTheComment) * w || 0;
+  const disagreeSaw = (disagrees / sawTheComment) * w || 0;
+  const passSaw = (passes / sawTheComment) * w || 0;
+
+  const agreeString = `${agreeSaw.toFixed(0)}%`;
+  const disagreeString = `${disagreeSaw.toFixed(0)}%`;
+  const passString = `${passSaw.toFixed(0)}%`;
+
+  container.title = `${agreeString} Agreed\n${disagreeString} Disagreed\n${passString} Passed\n${sawTheComment} Respondents`;
+
+  // SVG Bar Chart
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("width", w + 1);
+  svg.setAttribute("height", 10);
+  svg.style.marginBottom = "2px";
+
+  const outerRect = document.createElementNS(svgNS, "rect");
+  outerRect.setAttribute("x", 0.5);
+  outerRect.setAttribute("width", w + 0.5);
+  outerRect.setAttribute("height", 10);
+  outerRect.setAttribute("fill", "white");
+  outerRect.setAttribute("stroke", "rgb(180,180,180)");
+  svg.appendChild(outerRect);
+
+  const passRect = document.createElementNS(svgNS, "rect");
+  passRect.setAttribute("x", 0.5 + agree + disagree);
+  passRect.setAttribute("width", pass);
+  passRect.setAttribute("y", 0.5);
+  passRect.setAttribute("height", 9);
+  passRect.setAttribute("fill", voteColors.pass);
+  svg.appendChild(passRect);
+
+  const agreeRect = document.createElementNS(svgNS, "rect");
+  agreeRect.setAttribute("x", 0.5);
+  agreeRect.setAttribute("width", agree);
+  agreeRect.setAttribute("y", 0.5);
+  agreeRect.setAttribute("height", 9);
+  agreeRect.setAttribute("fill", voteColors.agree);
+  svg.appendChild(agreeRect);
+
+  const disagreeRect = document.createElementNS(svgNS, "rect");
+  disagreeRect.setAttribute("x", 0.5 + agree);
+  disagreeRect.setAttribute("width", disagree);
+  disagreeRect.setAttribute("y", 0.5);
+  disagreeRect.setAttribute("height", 9);
+  disagreeRect.setAttribute("fill", voteColors.disagree);
+  svg.appendChild(disagreeRect);
+
+  container.appendChild(svg);
+
+  // Label section
+  const label = document.createElement("div");
+  label.style.fontSize = "12px";
+
+  if (missingCounts) {
+    label.innerHTML = `<span style="color: grey; margin-right: 4px;">Missing vote counts</span>`;
+  } else {
+    label.innerHTML = `
+      <span style="color: ${voteColors.agree}; margin-right: 6px;">${agreeString}</span>
+      <span style="color: ${voteColors.disagree}; margin-right: 6px;">${disagreeString}</span>
+      <span style="color: #999; margin-right: 6px;">${passString}</span>
+      <span style="color: grey;">(${sawTheComment})</span>
+    `;
+  }
+
+  container.appendChild(label);
+  return container;
+}
+
 function renderMetaInfo(meta) {
   const container = document.getElementById("meta-info");
 
@@ -744,7 +840,7 @@ function renderRepCommentsTable(repComments) {
       table.style.width = "100%";
 
       const headerRow = document.createElement("tr");
-      ["Comment ID", "Rep Type", "% Support", "Statement"].forEach((h) => {
+      ["Comment ID", "Rep Type", "% Support", "", "Statement"].forEach((h) => {
         const th = document.createElement("th");
         th.textContent = h;
         th.style.borderBottom = "2px solid #ccc";
@@ -770,20 +866,54 @@ function renderRepCommentsTable(repComments) {
           Agree: ${c.n_agree}, Disagree: ${c.n_disagree}, Pass: ${c.n_pass}, Total: ${c.n_trials}
         </div>`;
 
-        const cells = [
-          c.tid,
-          `<span style="color: ${repColor}; font-weight: bold;">${c.repful_for}</span>`,
-          `${Math.round((c.n_success / c.n_trials) * 100)}%`,
-          `<div>${commentText}</div>${metaLine}`,
-        ];
-
-        cells.forEach((val) => {
-          const td = document.createElement("td");
-          td.innerHTML = val;
-          td.style.padding = "6px 10px";
-          td.style.borderBottom = "1px solid #eee";
-          tr.appendChild(td);
+        const barChart = createCompactBarChart({
+          voteCounts: {
+            A: c.n_agree,
+            D: c.n_disagree,
+            S: c.n_trials,
+          },
+          nMembers: groupSize, // or total participants in this group
+          voteColors: {
+            agree: "rgb(46, 204, 113)",
+            disagree: "rgb(231, 76, 60)",
+            pass: "rgb(230,230,230)"
+          }
         });
+
+        // Comment ID
+        const tdId = document.createElement("td");
+        tdId.textContent = c.tid;
+        tdId.style.padding = "6px 10px";
+        tdId.style.borderBottom = "1px solid #eee";
+        tr.appendChild(tdId);
+
+        // Rep Type
+        const tdRep = document.createElement("td");
+        tdRep.innerHTML = `<span style="color: ${repColor}; font-weight: bold;">${c.repful_for}</span>`;
+        tdRep.style.padding = "6px 10px";
+        tdRep.style.borderBottom = "1px solid #eee";
+        tr.appendChild(tdRep);
+
+        // % Support
+        const tdPct = document.createElement("td");
+        tdPct.textContent = `${Math.round((c.n_success / c.n_trials) * 100)}%`;
+        tdPct.style.padding = "6px 10px";
+        tdPct.style.borderBottom = "1px solid #eee";
+        tr.appendChild(tdPct);
+
+        // ⬅️ NEW: Bar chart column
+        const tdChart = document.createElement("td");
+        tdChart.style.padding = "6px 10px";
+        tdChart.style.borderBottom = "1px solid #eee";
+        tdChart.appendChild(barChart);
+        tr.appendChild(tdChart);
+
+        // Statement + meta
+        const tdStatement = document.createElement("td");
+        tdStatement.innerHTML = `<div class="comment-text">${commentText}</div>${metaLine}`;
+        tdStatement.style.padding = "6px 10px";
+        tdStatement.style.borderBottom = "1px solid #eee";
+        tr.appendChild(tdStatement);
 
         table.appendChild(tr);
       });
