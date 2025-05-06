@@ -1,12 +1,4 @@
 // --- Configuration and Shared State ---
-function getQueryParam(name) {
-  const params = new URLSearchParams(window.location.search);
-  return params.get(name);
-}
-
-const urlDataset = getQueryParam("dataset");
-let convoSlug = urlDataset || loadState("dataset", "bg2050");
-document.getElementById("dataset").value = convoSlug;
 let width = 0,
   height = 0;
 
@@ -117,8 +109,15 @@ function applySharedState({
   });
 }
 
+function getQueryParam(name) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name);
+}
+
 // Restore session state
-document.getElementById("dataset").value = loadState("dataset", "bg2050");
+const urlDataset = getQueryParam("dataset");
+let convoSlug = urlDataset || loadState("dataset", "bg2050");
+document.getElementById("dataset").value = convoSlug;
 document.getElementById("toggle-additive").checked = isAdditiveDefault;
 document.getElementById("include-unpainted").checked = loadState(
   "includeUnpainted",
