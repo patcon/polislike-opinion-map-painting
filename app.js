@@ -29,6 +29,8 @@ let X1, X2, X3;
 
 // --- Data Loading ---
 function loadAndRenderData(slug) {
+  // Force reloading of votes.db on dataset switch
+  window.dbInstance = null;
   return new Promise((resolve) => {
     Promise.all([
       d3.json(`data/${slug}/pca.json`),
