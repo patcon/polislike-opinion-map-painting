@@ -1,5 +1,11 @@
 // --- Configuration and Shared State ---
-let convoSlug = loadState("dataset", "bg2050");
+function getQueryParam(name) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name);
+}
+
+const urlDataset = getQueryParam("dataset");
+let convoSlug = urlDataset || loadState("dataset", "bg2050");
 document.getElementById("dataset").value = convoSlug;
 let width = 0,
   height = 0;
