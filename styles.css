@@ -25,6 +25,13 @@
   }
 }
 
+.moderated-note {
+  color: #b00;
+  font-style: italic;
+  font-size: 0.9em;
+  margin-left: 8px;
+}
+
 .spinner {
   border: 4px solid #eee;
   border-top: 4px solid #888;
