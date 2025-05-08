@@ -771,6 +771,34 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  fetch("datasets.json")
+    .then((res) => res.json())
+    .then((datasets) => {
+      const select = document.getElementById("dataset");
+      const current = convoSlug;
+
+      datasets.forEach(({ slug, label }) => {
+        const option = document.createElement("option");
+        option.value = slug;
+        option.textContent = label;
+        if (slug === current) option.selected = true;
+        select.appendChild(option);
+      });
+
+      // fallback if current is invalid
+      if (!datasets.find(d => d.slug === current)) {
+        convoSlug = datasets[0]?.slug;
+        saveState("dataset", convoSlug);
+        loadAndRenderData(convoSlug);
+      } else {
+        loadAndRenderData(convoSlug);
+      }
+    })
+    .catch((err) => {
+      console.error("Failed to load dataset list:", err);
+      loadAndRenderData(convoSlug); // fallback in case JSON fails
+    });
+
   // Only run if no shared state
   loadAndRenderData(convoSlug);
 });
