@@ -725,12 +725,14 @@ source = { virtual = "." }
 dependencies = [
     { name = "pacmap" },
     { name = "red-dwarf" },
+    { name = "requests" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "pacmap", specifier = ">=0.8.0" },
     { name = "red-dwarf", specifier = ">=0.3.0" },
+    { name = "requests", specifier = ">=2.32.3" },
 ]
 
 [[package]]

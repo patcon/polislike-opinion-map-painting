@@ -24,6 +24,7 @@ from reddwarf.sklearn.transformers import SparsityAwareScaler
 from pacmap import PaCMAP, LocalMAP
 import numpy as np
 import requests
+import os
 
 # --- CLI Handling ---
 def parse_args():
@@ -33,6 +34,7 @@ def parse_args():
     parser.add_argument("--import-dir", help="Directory with previously downloaded data", default=None)
     parser.add_argument("--slug", help="Optional directory name override")
     parser.add_argument("--polis-base-url", default="https://pol.is", help="Base URL for Polis API (default: https://pol.is)")
+    parser.add_argument("--ca-bundle", help="Path to custom CA bundle for HTTPS verification")
     return parser.parse_args()
 
 # --- Projection Helpers ---
@@ -83,6 +85,10 @@ def main():
     args = parse_args()
     if not (args.convo_id or args.report_id or args.import_dir):
         raise ValueError("You must pass one of --convo-id, --report-id, or --import-dir")
+
+    if args.ca_bundle:
+        os.environ["REQUESTS_CA_BUNDLE"] = os.path.abspath(args.ca_bundle)
+        print(f"🔐 Using custom CA bundle: {os.environ['REQUESTS_CA_BUNDLE']}")
 
     # Load data
     print(f"📦 Loading Polis data...")
@@ -177,6 +183,31 @@ def main():
         print("✅ Saved meta.json")
 
         print(f"Done! Files written to {outdir}")
+
+        datasets_path = Path("datasets.json")
+
+        # Load existing or create new list
+        if datasets_path.exists():
+            with open(datasets_path, "r") as f:
+                datasets = json.load(f)
+        else:
+            datasets = []
+
+        # Only add if slug is not already listed
+        existing_slugs = {entry["slug"] for entry in datasets}
+        if slug not in existing_slugs:
+            # Auto-generate label from slug: title case + space-separated
+            label = slug.replace("-", " ").title()
+            new_entry = {"slug": slug, "label": label}
+            datasets.append(new_entry)
+            print(f"➕ Added new dataset entry: {new_entry}")
+        else:
+            print(f"✅ Dataset entry for slug '{slug}' already exists in datasets.json")
+
+        # Save back
+        with open(datasets_path, "w") as f:
+            json.dump(datasets, f, indent=2)
+            print("📘 Updated datasets.json")
 
 if __name__ == "__main__":
     print("🚀 Starting Red-Dwarf report generator")
