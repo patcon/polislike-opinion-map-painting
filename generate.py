@@ -22,6 +22,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.decomposition import PCA
 from reddwarf.sklearn.transformers import SparsityAwareScaler
 from pacmap import PaCMAP, LocalMAP
+from urllib.parse import urlparse
 import numpy as np
 import requests
 import os
@@ -29,6 +30,7 @@ import os
 # --- CLI Handling ---
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--url", help="Full Polis URL to a conversation or report")
     parser.add_argument("--report-id", help="Polis report ID", default=None)
     parser.add_argument("--convo-id", help="Polis conversation ID", default=None)
     parser.add_argument("--import-dir", help="Directory with previously downloaded data", default=None)
@@ -36,6 +38,24 @@ def parse_args():
     parser.add_argument("--polis-base-url", default="https://pol.is", help="Base URL for Polis API (default: https://pol.is)")
     parser.add_argument("--ca-bundle", help="Path to custom CA bundle for HTTPS verification")
     return parser.parse_args()
+
+def parse_url_metadata(url: str):
+    parsed = urlparse(url)
+    path_parts = parsed.path.strip("/").split("/")
+
+    if not path_parts:
+        raise ValueError(f"URL path is empty: {url}")
+
+    # Last part is always the ID
+    maybe_id = path_parts[-1]
+    base_url = f"{parsed.scheme}://{parsed.netloc}"
+
+    if maybe_id.startswith("r"):
+        return {"base_url": base_url, "report_id": maybe_id}
+    elif maybe_id[0].isdigit():
+        return {"base_url": base_url, "convo_id": maybe_id}
+    else:
+        raise ValueError(f"Could not detect ID type in URL: {url}")
 
 # --- Projection Helpers ---
 def run_projection(name, data, seed, raw_vote_matrix):
@@ -83,6 +103,15 @@ def save_votes_db(raw_vote_matrix, participant_ids, outpath):
 # --- Main Logic ---
 def main():
     args = parse_args()
+
+    # Infer from --url if provided
+    if args.url:
+        print(f"🌐 Parsing metadata from URL: {args.url}")
+        parsed = parse_url_metadata(args.url)
+        args.polis_base_url = parsed["base_url"]
+        args.report_id = parsed.get("report_id")
+        args.convo_id = parsed.get("convo_id")
+
     if not (args.convo_id or args.report_id or args.import_dir):
         raise ValueError("You must pass one of --convo-id, --report-id, or --import-dir")
 

@@ -65,22 +65,37 @@ Demo of label painting import: [`https://patcon.github.io/polislike-opinion-map-
 
 1. Run these commands:
     ```sh
+    # 1. Install python dependencies
     uv sync
-    uv run python generate.py --report-id r7cwmiaxczyj8te9rzdmx --slug demdis-eu-9usurb2mmh
+
+    # 2. Generate dataset from report URL (faster, recommended)
+    uv run python generate.py --url https://pol.is/report/r7cwmiaxczyj8te9rzdmx --slug demdis-eu-9usurb2mmh
+
+    # Alternatively...
+
+    # Directory "slug" named from detected conversation ID: data/9usurb2mmh/
+    uv run python generate.py --url https://pol.is/report/r7cwmiaxczyj8te9rzdmx
+
+    # Import from conversation URL (slower)
+    uv run python generate.py --url https://pol.is/9usurb2mmh --slug demdis-eu-9usurb2mmh
+
+    # Import from another Polis deployment
+    uv run python generate.py --url https://polis.tw/report/r7xrbjj7brcxmcfmeun2u --slug vtaiwan
     ```
-2. An entry will be automatically added to `datasets.json`.
+2. An entry will be automatically added to `datasets.json`. (Edit "label" as desired.)
 3. Run in terminal: `python -m http.server 8000`
 4. Open `https://localhost:8000` (may need to open you browser's Developer Tools to force cache clearing)
 
-You can find an exploratory data science notebook here: https://gist.github.com/patcon/0fe7e07ff9dae3a01b2ad49798d98306
 
 Other CLI features:
 - custom Polis base urls
 - custom SSL certs
-- dump raw data in directory
-- load raw data from directory
+- dump downloaded data in directory
+- load downloaded data from directory
 
 See all options by running `uv run python generate --help`
+
+You can find an exploratory data science notebook here: https://gist.github.com/patcon/0fe7e07ff9dae3a01b2ad49798d98306
 
 ## CodeSandbox
 
