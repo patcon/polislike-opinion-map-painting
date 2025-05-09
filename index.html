@@ -1,229 +1,237 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
-    <meta content="utf-8" http-equiv="encoding">
+<html lang="en">
 
-    <!-- Open Graph -->
-    <meta property="og:title" content="Polis-Like Opinion Landscape Painter" />
-    <meta property="og:description" content="Explore consensus and disagreement visually using opinion map painting." />
-    <meta property="og:image" content="https://patcon.github.io/polislike-opinion-map-painting/assets/cover.jpg" />
-    <meta property="og:url" content="https://patcon.github.io/polislike-opinion-map-painting/" />
-    <meta property="og:type" content="website" />
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+  <meta content="utf-8" http-equiv="encoding">
 
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Polis-Like Opinion Landscape Painter" />
-    <meta name="twitter:description" content="Explore consensus and disagreement visually using opinion map painting." />
-    <meta name="twitter:image" content="https://patcon.github.io/polislike-opinion-map-painting/assets/cover.jpg" />
+  <!-- Open Graph -->
+  <meta property="og:title" content="Polis-Like Opinion Landscape Painter" />
+  <meta property="og:description" content="Explore consensus and disagreement visually using opinion map painting." />
+  <meta property="og:image" content="https://patcon.github.io/polislike-opinion-map-painting/assets/cover.jpg" />
+  <meta property="og:url" content="https://patcon.github.io/polislike-opinion-map-painting/" />
+  <meta property="og:type" content="website" />
 
-    <link rel="stylesheet" href="styles.css" />
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css"
-    />
-  </head>
-  <body>
-    <a
-      class="github-fork-ribbon"
-      href="https://github.com/patcon/polislike-opinion-map-painting"
-      data-ribbon="Fork me on GitHub"
-      title="Fork me on GitHub"
-      >Fork me on GitHub</a
-    >
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Polis-Like Opinion Landscape Painter" />
+  <meta name="twitter:description" content="Explore consensus and disagreement visually using opinion map painting." />
+  <meta name="twitter:image" content="https://patcon.github.io/polislike-opinion-map-painting/assets/cover.jpg" />
 
-    <label for="color">Custom color: </label>
-    <input type="color" id="color" value="#1f77b4" />
-    <label>
-      <input type="checkbox" id="toggle-additive" />
-      Additive painting by default
-    </label>
-    <small style="color: #555">(Otherwise, Cmd-click for additive)</small>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            }
+          }
+        }
+      }
+    }
+  </script>
 
-    <div style="display: flex; align-items: center; gap: 12px">
-      <div id="color-palette"></div>
-      <small style="color: #555"> Press keys 0–9 to select colors </small>
+  <!-- Custom styles that need to be preserved -->
+  <style>
+    @keyframes marching-ants {
+      to {
+        stroke-dashoffset: 6;
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+
+  <!-- External libraries -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css" />
+</head>
+
+<body class="bg-gray-50 text-gray-800 p-4 md:p-6 max-w-7xl mx-auto">
+  <a class="github-fork-ribbon" href="https://github.com/patcon/polislike-opinion-map-painting"
+    data-ribbon="Fork me on GitHub" title="Fork me on GitHub">Fork me on GitHub</a>
+
+  <header class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">Opinion Landscape Painter</h1>
+    <p class="text-gray-600">Explore consensus and disagreement visually using opinion map painting.</p>
+  </header>
+
+  <div class="bg-white rounded-lg shadow-md p-4 md:p-6 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+      <!-- Color selection -->
+      <div class="flex items-center space-x-2">
+        <label for="color" class="font-medium">Custom color:</label>
+        <input type="color" id="color" value="#1f77b4" class="h-8 w-12 rounded border border-gray-300 cursor-pointer" />
+      </div>
+
+      <!-- Additive painting toggle -->
+      <div class="flex items-center space-x-2">
+        <label class="flex items-center space-x-2 cursor-pointer">
+          <input type="checkbox" id="toggle-additive" class="rounded text-primary-600 focus:ring-primary-500" />
+          <span>Additive painting by default</span>
+        </label>
+        <small class="text-gray-500">(Otherwise, Cmd-click for additive)</small>
+      </div>
+
+      <!-- Dataset selection -->
+      <div class="flex items-center space-x-2">
+        <label for="dataset" class="font-medium">Dataset:</label>
+        <select id="dataset"
+          class="rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50 py-1 px-2 bg-white"></select>
+      </div>
     </div>
 
-    <label for="dataset">Dataset:</label>
-    <select id="dataset"></select>
+    <!-- Color palette -->
+    <div class="mb-4">
+      <div id="color-palette" class="flex flex-wrap gap-2 mb-2"></div>
+      <small class="text-gray-500">Press keys 0–9 to select colors</small>
+    </div>
 
-    <label>
-      <input type="checkbox" id="flip-x-checkbox" />
-      Flip X axis
-    </label>
-    <label>
-      <input type="checkbox" id="flip-y-checkbox" />
-      Flip Y axis
-    </label>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+      <!-- Axis flipping -->
+      <div class="flex items-center space-x-4">
+        <label class="flex items-center space-x-2 cursor-pointer">
+          <input type="checkbox" id="flip-x-checkbox" class="rounded text-primary-600 focus:ring-primary-500" />
+          <span>Flip X axis</span>
+        </label>
+        <label class="flex items-center space-x-2 cursor-pointer">
+          <input type="checkbox" id="flip-y-checkbox" class="rounded text-primary-600 focus:ring-primary-500" />
+          <span>Flip Y axis</span>
+        </label>
+      </div>
 
-    <label for="opacity-slider">
-      Opacity:
-      <input type="range" id="opacity-slider" min="0" max="1" step="0.05" value="0.3" />
-      <span id="opacity-value">0.3</span>
-    </label>
+      <!-- Opacity slider -->
+      <div class="flex items-center space-x-2">
+        <label for="opacity-slider" class="font-medium">Opacity:</label>
+        <input type="range" id="opacity-slider" min="0" max="1" step="0.05" value="0.3"
+          class="w-32 accent-primary-600" />
+        <span id="opacity-value" class="text-sm">0.3</span>
+      </div>
+    </div>
 
-    <div id="meta-info" style="margin-top: 6px; font-size: 0.85em; color: #555;"></div>
+    <!-- Meta info -->
+    <div id="meta-info" class="text-sm text-gray-500 mt-2"></div>
 
-    <div
-      id="share-controls"
-      style="
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-top: 10px;
-        font-family: sans-serif;
-      "
-    >
-      <button id="share-button" style="padding: 4px 10px">
+    <!-- Share controls -->
+    <div class="flex flex-wrap items-center gap-3 mt-4">
+      <button id="share-button"
+        class="bg-primary-600 hover:bg-primary-700 text-white py-1.5 px-4 rounded-md text-sm transition-colors">
         Share painted labels
       </button>
-      <input
-        id="share-url"
-        readonly
-        style="
-          flex: 1;
-          font-size: 12px;
-          padding: 4px 6px;
-          border: 1px solid #ccc;
-        "
-        placeholder="Shareable link will appear here"
-      />
+      <input id="share-url" readonly
+        class="flex-1 min-w-[200px] text-sm py-1.5 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+        placeholder="Shareable link will appear here" />
+    </div>
+  </div>
+
+  <!-- Plot container -->
+  <div class="relative mb-6">
+    <!-- Loading overlay -->
+    <div id="plot-loader"
+      class="hidden absolute inset-0 bg-white bg-opacity-60 z-50 flex items-center justify-center font-bold text-gray-700">
+      <div class="flex items-center space-x-3">
+        <div class="w-6 h-6 border-3 border-gray-300 border-t-gray-700 rounded-full animate-spin"></div>
+        <span>Updating…</span>
+      </div>
     </div>
 
-    <div
-      id="plot-loader"
-      style="
-        display: none;
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(255, 255, 255, 0.6);
-        z-index: 999;
-        pointer-events: all;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: sans-serif;
-        font-size: 16px;
-        font-weight: bold;
-        color: #333;
-      "
-    >
-      <div
-        class="spinner"
-        style="
-          width: 24px;
-          height: 24px;
-          border: 3px solid #ccc;
-          border-top-color: #333;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin-right: 12px;
-        "
-      ></div>
-      Updating…
+    <!-- Plots -->
+    <div id="plot-wrapper" class="flex flex-col md:flex-row w-full gap-5">
+      <svg id="plot1" class="flex-1 aspect-square min-h-[200px] bg-gray-50 border border-gray-300 rounded-md"></svg>
+      <svg id="plot2" class="flex-1 aspect-square min-h-[200px] bg-gray-50 border border-gray-300 rounded-md"></svg>
+      <svg id="plot3" class="flex-1 aspect-square min-h-[200px] bg-gray-50 border border-gray-300 rounded-md"></svg>
     </div>
-    <div id="plot-wrapper">
-      <svg id="plot1"></svg>
-      <svg id="plot2"></svg>
-      <svg id="plot3"></svg>
-    </div>
+  </div>
 
-    <div
-      style="
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        margin-top: 12px;
-        font-family: sans-serif;
-      "
-    >
-      <label style="display: flex; align-items: center; gap: 6px">
-        <input type="checkbox" id="include-unpainted" />
-        Include unpainted points as group
+  <!-- Analysis controls -->
+  <div class="bg-white rounded-lg shadow-md p-4 md:p-6 mb-6">
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-3 mb-4">
+      <label class="flex items-center space-x-2 cursor-pointer">
+        <input type="checkbox" id="include-unpainted" class="rounded text-primary-600 focus:ring-primary-500" />
+        <span>Include unpainted points as group</span>
       </label>
-      <div id="label-counts"></div>
+      <div id="label-counts" class="text-sm font-medium"></div>
     </div>
-    <button id="run-analysis">Run Group Analysis</button>
-    <label>
-      <input type="checkbox" id="auto-analyze-checkbox" checked />
-      Auto-analyze on selection
-    </label>
-    <label>
-      <input type="checkbox" id="include-moderated-checkbox" />
-      Include moderated comments
-    </label>
-    <div
-      id="rep-warning"
-      style="
-        margin-top: 20px;
-        background: #fff8e1;
-        border: 1px solid #f1c40f;
-        padding: 10px;
-        font-family: sans-serif;
-      "
-    >
-      ⚠️ <strong>Note:</strong> Representative group statement calculations used beyond PCA
-      <em>experimental</em> and may create phantom artifacts. This is an area of ongoing research.
+
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+      <button id="run-analysis"
+        class="bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-md transition-colors">
+        Run Group Analysis
+      </button>
+      <label class="flex items-center space-x-2 cursor-pointer">
+        <input type="checkbox" id="auto-analyze-checkbox" checked
+          class="rounded text-primary-600 focus:ring-primary-500" />
+        <span>Auto-analyze on selection</span>
+      </label>
+      <label class="flex items-center space-x-2 cursor-pointer">
+        <input type="checkbox" id="include-moderated-checkbox"
+          class="rounded text-primary-600 focus:ring-primary-500" />
+        <span>Include moderated comments</span>
+      </label>
     </div>
-    <div
-      id="rep-comments-output"
-      style="margin-top: 30px; font-family: sans-serif"
-    ></div>
+  </div>
 
-    <script src="app.js"></script>
-    <script>
-      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  <!-- Warning message -->
+  <div class="bg-amber-50 border border-amber-300 rounded-md p-4 mb-6">
+    <p class="flex items-start">
+      <span class="mr-2">⚠️</span>
+      <span>
+        <strong>Note:</strong> Representative group statement calculations used beyond PCA
+        <em>experimental</em> and may create phantom artifacts. This is an area of ongoing research.
+      </span>
+    </p>
+  </div>
 
-      if (isMobile && !sessionStorage.getItem("mobileWarningDismissed")) {
-        const dialog = document.createElement("div");
-        dialog.style.cssText = `
-          position: fixed;
-          top: 20px;
-          left: 50%;
-          transform: translateX(-50%);
-          max-width: 400px;
-          background: #fff8e1;
-          border: 1px solid #f1c40f;
-          border-radius: 8px;
-          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-          padding: 16px 20px 12px;
-          font-family: sans-serif;
-          z-index: 10000;
-        `;
+  <!-- Results output -->
+  <div id="rep-comments-output" class="mt-6"></div>
 
-        const msg = document.createElement("div");
-        msg.innerHTML = `
+  <script src="app.js"></script>
+  <script>
+    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+    if (isMobile && !sessionStorage.getItem("mobileWarningDismissed")) {
+      const dialog = document.createElement("div");
+      dialog.className = "fixed top-5 left-1/2 transform -translate-x-1/2 max-w-md bg-amber-50 border border-amber-300 rounded-lg shadow-lg p-4 z-50 font-sans";
+
+      const msg = document.createElement("div");
+      msg.innerHTML = `
           <strong>⚠️ Painting not yet supported on mobile.</strong><br>
           Please use a desktop browser to assign group labels.
         `;
 
-        const closeBtn = document.createElement("button");
-        closeBtn.textContent = "✖";
-        closeBtn.style.cssText = `
-          position: absolute;
-          top: 6px;
-          right: 10px;
-          background: none;
-          border: none;
-          font-size: 16px;
-          cursor: pointer;
-          color: #888;
-        `;
-        closeBtn.onclick = () => {
-          dialog.remove();
-          sessionStorage.setItem("mobileWarningDismissed", "1");
-        };
+      const closeBtn = document.createElement("button");
+      closeBtn.textContent = "✖";
+      closeBtn.className = "absolute top-2 right-3 bg-transparent border-none text-gray-500 hover:text-gray-700 cursor-pointer";
+      closeBtn.onclick = () => {
+        dialog.remove();
+        sessionStorage.setItem("mobileWarningDismissed", "1");
+      };
 
-        dialog.appendChild(closeBtn);
-        dialog.appendChild(msg);
-        document.body.appendChild(dialog);
-      }
-    </script>
-  </body>
+      dialog.appendChild(closeBtn);
+      dialog.appendChild(msg);
+      document.body.appendChild(dialog);
+    }
+  </script>
+</body>
+
 </html>
