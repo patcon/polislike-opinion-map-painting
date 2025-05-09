@@ -24,6 +24,7 @@ let hoveredIndices = new Set();
 let flipX = false;
 let flipY = false;
 let X1, X2, X3;
+let dotOpacity = 0.3;
 
 // --- Data Loading ---
 function loadAndRenderData(slug) {
@@ -213,6 +214,14 @@ document.addEventListener("keydown", (e) => {
 
 window.addEventListener("resize", () => {
   if (X1 && X2 && X3) renderAllPlots();
+});
+
+const slider = document.getElementById("opacity-slider");
+const valueLabel = document.getElementById("opacity-value");
+slider.addEventListener("input", () => {
+  dotOpacity = parseFloat(slider.value);
+  valueLabel.textContent = dotOpacity;
+  renderAllPlots(); // Reapply to all plots
 });
 
 // --- Utility Functions ---
@@ -578,7 +587,7 @@ function applyHoverStyles() {
     } else {
       circle
         .attr("fill", rawColor || "rgba(0,0,0,0.5)")
-        .attr("fill-opacity", 0.3);
+        .attr("fill-opacity", dotOpacity);
     }
   });
 }
@@ -722,7 +731,7 @@ function renderPlot(svgId, data, title) {
     .attr("cx", ({ d }) => scales.x(d[0]))
     .attr("cy", ({ d }) => scales.y(d[1]))
     .attr("r", 5)
-    .attr("fill-opacity", 0.3)
+    .attr("fill-opacity", dotOpacity)
     .attr("fill", ({ i }) => colorByIndex[i] || "rgba(0,0,0,0.5)")
     .attr("data-index", ({ i }) => i)
     // Show user vote history in console (for debug)
