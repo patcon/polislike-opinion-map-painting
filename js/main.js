@@ -1476,44 +1476,66 @@ function renderRepCommentsTable(repComments) {
         const commentId = c.tid;
         const groupVoteData = {};
 
-        // Get raw vote data from the stored group votes
-        if (AppState.data.groupVotes) {
-          allGroupColors.forEach(color => {
-            // Default values
-            groupVoteData[color] = {
-              agrees: 0,
-              disagrees: 0,
-              passes: 0,
-              total: 0
-            };
+        // First, use the current comment's data for the current group
+        // This ensures consistency with the statement summary
+        groupVoteData[labelColor] = {
+          agrees: c.n_agree,
+          disagrees: c.n_disagree,
+          passes: c.n_pass,
+          total: c.n_trials
+        };
 
-            // Get the group's vote matrix
-            const groupMatrix = AppState.data.groupVotes[color];
-            if (groupMatrix) {
-              // Count votes for this comment across all participants in the group
-              let agrees = 0, disagrees = 0, passes = 0, total = 0;
+        // For other groups, try to find the comment in their representative comments first
+        allGroupColors.forEach(color => {
+          if (color === labelColor) return; // Skip current group, already handled
 
-              Object.values(groupMatrix).forEach(participantVotes => {
-                const vote = participantVotes[commentId];
-                if (vote !== undefined) {
-                  total++;
-                  if (vote === 1) agrees++;
-                  else if (vote === -1) disagrees++;
-                  else passes++;
-                }
-              });
+          // Default values
+          groupVoteData[color] = {
+            agrees: 0,
+            disagrees: 0,
+            passes: 0,
+            total: 0
+          };
 
-              if (total > 0) {
-                groupVoteData[color] = {
-                  agrees,
-                  disagrees,
-                  passes,
-                  total
-                };
-              }
+          // First try to find this comment in the other group's representative comments
+          if (repComments[color]) {
+            const groupComment = repComments[color].find(gc => gc.tid === commentId);
+            if (groupComment) {
+              groupVoteData[color] = {
+                agrees: groupComment.n_agree,
+                disagrees: groupComment.n_disagree,
+                passes: groupComment.n_pass,
+                total: groupComment.n_trials
+              };
+              return; // Found in rep comments, no need to calculate from raw data
             }
-          });
-        }
+          }
+
+          // If not found in rep comments, calculate from raw vote data
+          if (AppState.data.groupVotes && AppState.data.groupVotes[color]) {
+            const groupMatrix = AppState.data.groupVotes[color];
+            let agrees = 0, disagrees = 0, passes = 0, total = 0;
+
+            Object.values(groupMatrix).forEach(participantVotes => {
+              const vote = participantVotes[commentId];
+              if (vote !== undefined) {
+                total++;
+                if (vote === 1) agrees++;
+                else if (vote === -1) disagrees++;
+                else passes++;
+              }
+            });
+
+            if (total > 0) {
+              groupVoteData[color] = {
+                agrees,
+                disagrees,
+                passes,
+                total
+              };
+            }
+          }
+        });
 
         // Create a bar chart for each group
         allGroupColors.forEach(color => {
