@@ -15,6 +15,8 @@
 const Config = {
   // Default dot opacity
   dotOpacity: 0.3,
+  // Default dot size
+  dotSize: 3,
 
   // Reference: https://matplotlib.org/stable/users/explain/colors/colormaps.html#qualitative
   colors: {
@@ -77,7 +79,8 @@ const AppState = {
   ui: {
     isDragging: false,
     hoveredIndices: new Set(),
-    dotOpacity: Config.dotOpacity
+    dotOpacity: Config.dotOpacity,
+    dotSize: Config.dotSize
   },
 
   // Selection state
@@ -110,6 +113,7 @@ const AppState = {
     this.preferences.flipX = loadState("flipX", false);
     this.preferences.flipY = loadState("flipY", false);
     this.ui.dotOpacity = Config.dotOpacity;
+    this.ui.dotSize = Config.dotSize;
   },
 
   /**
@@ -138,6 +142,7 @@ const AppState = {
 let width = 0, height = 0;
 let X1, X2, X3;
 let dotOpacity = AppState.ui.dotOpacity;
+let dotSize = AppState.ui.dotSize;
 let isDragging = false;
 let hoveredIndices = new Set();
 let flipX = false, flipY = false;
@@ -306,6 +311,12 @@ function initializeUI() {
   document.getElementById("flip-x-checkbox").checked = AppState.preferences.flipX;
   document.getElementById("flip-y-checkbox").checked = AppState.preferences.flipY;
 
+  // Initialize sliders
+  document.getElementById("opacity-slider").value = AppState.ui.dotOpacity;
+  document.getElementById("opacity-value").textContent = AppState.ui.dotOpacity;
+  document.getElementById("dot-size-slider").value = AppState.ui.dotSize;
+  document.getElementById("dot-size-value").textContent = AppState.ui.dotSize;
+
   // Update global variables for backward compatibility
   flipX = AppState.preferences.flipX;
   flipY = AppState.preferences.flipY;
@@ -414,12 +425,23 @@ function setupEventListeners() {
   });
 
   // Opacity slider
-  const slider = document.getElementById("opacity-slider");
-  const valueLabel = document.getElementById("opacity-value");
-  slider.addEventListener("input", () => {
-    AppState.ui.dotOpacity = parseFloat(slider.value);
+  const opacitySlider = document.getElementById("opacity-slider");
+  const opacityValueLabel = document.getElementById("opacity-value");
+  opacitySlider.addEventListener("input", () => {
+    AppState.ui.dotOpacity = parseFloat(opacitySlider.value);
     dotOpacity = AppState.ui.dotOpacity; // Update global for backward compatibility
-    valueLabel.textContent = AppState.ui.dotOpacity;
+    opacityValueLabel.textContent = AppState.ui.dotOpacity;
+    renderAllPlots(); // Reapply to all plots
+  });
+
+  // Dot size slider
+  const dotSizeSlider = document.getElementById("dot-size-slider");
+  const dotSizeValueLabel = document.getElementById("dot-size-value");
+  dotSizeSlider.addEventListener("input", () => {
+    AppState.ui.dotSize = parseFloat(dotSizeSlider.value);
+    dotSize = AppState.ui.dotSize; // Update global for backward compatibility
+    dotSizeValueLabel.textContent = AppState.ui.dotSize;
+    saveState("dotSize", AppState.ui.dotSize);
     renderAllPlots(); // Reapply to all plots
   });
 
@@ -527,12 +549,14 @@ function pointInPolygon([x, y], vs) {
   return inside;
 }
 
-function findIndicesWithinRadius(data, mouseX, mouseY, scales, radius = 10) {
+function findIndicesWithinRadius(data, mouseX, mouseY, scales, radius = null) {
+  // Use the current dot size for hover detection if no radius is specified
+  const hoverRadius = radius || Math.max(dotSize + 5, 10);
   const indices = new Set();
   data.forEach((d, i) => {
     const dx = scales.x(d[0]) - mouseX;
     const dy = scales.y(d[1]) - mouseY;
-    if (Math.hypot(dx, dy) < radius) {
+    if (Math.hypot(dx, dy) < hoverRadius) {
       indices.add(i);
     }
   });
@@ -939,7 +963,7 @@ function renderPlot(svgId, data, title) {
     .append("circle")
     .attr("cx", ({ d }) => scales.x(d[0]))
     .attr("cy", ({ d }) => scales.y(d[1]))
-    .attr("r", 5)
+    .attr("r", dotSize)
     .attr("fill-opacity", dotOpacity)
     .attr("fill", ({ i }) => colorByIndex[i] || "rgba(0,0,0,0.5)")
     .attr("data-index", ({ i }) => i)
@@ -961,7 +985,7 @@ function renderPlot(svgId, data, title) {
   svg.on("mousemove", function (event) {
     if (isDragging) return;
     const [x, y] = d3.pointer(event, this);
-    hoveredIndices = findIndicesWithinRadius(data, x, y, scales, 12);
+    hoveredIndices = findIndicesWithinRadius(data, x, y, scales);
     // Update AppState as well for the refactored code
     AppState.ui.hoveredIndices = new Set(hoveredIndices);
     applyHoverStyles();
