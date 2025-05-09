@@ -1460,29 +1460,44 @@ function renderRepCommentsTable(repComments) {
         const commentId = c.tid;
         const groupVoteData = {};
 
-        // Collect vote data for all groups for this comment
-        allGroupColors.forEach(color => {
-          // Default values
-          groupVoteData[color] = {
-            agrees: 0,
-            disagrees: 0,
-            passes: 0,
-            total: 0
-          };
+        // Get raw vote data from the stored group votes
+        if (AppState.data.groupVotes) {
+          allGroupColors.forEach(color => {
+            // Default values
+            groupVoteData[color] = {
+              agrees: 0,
+              disagrees: 0,
+              passes: 0,
+              total: 0
+            };
 
-          // Try to find this comment's data in repComments for each group
-          if (repComments[color]) {
-            const groupComment = repComments[color].find(gc => gc.tid === commentId);
-            if (groupComment) {
-              groupVoteData[color] = {
-                agrees: groupComment.n_agree,
-                disagrees: groupComment.n_disagree,
-                passes: groupComment.n_pass,
-                total: groupComment.n_trials
-              };
+            // Get the group's vote matrix
+            const groupMatrix = AppState.data.groupVotes[color];
+            if (groupMatrix) {
+              // Count votes for this comment across all participants in the group
+              let agrees = 0, disagrees = 0, passes = 0, total = 0;
+
+              Object.values(groupMatrix).forEach(participantVotes => {
+                const vote = participantVotes[commentId];
+                if (vote !== undefined) {
+                  total++;
+                  if (vote === 1) agrees++;
+                  else if (vote === -1) disagrees++;
+                  else passes++;
+                }
+              });
+
+              if (total > 0) {
+                groupVoteData[color] = {
+                  agrees,
+                  disagrees,
+                  passes,
+                  total
+                };
+              }
             }
-          }
-        });
+          });
+        }
 
         // Create a bar chart for each group
         allGroupColors.forEach(color => {
@@ -1853,6 +1868,9 @@ async function analyzePaintedClusters(db, labelArray, commentTexts) {
   const groupVotes = await getGroupVoteMatrices(db, labelArray);
   const repComments = calculateRepresentativeComments(groupVotes, commentTexts);
 
+  // Store the raw group votes data for use in the comparison view
+  AppState.data.groupVotes = groupVotes;
+
   console.log("Representative Comments:", repComments);
   return repComments;
 }
@@ -1895,7 +1913,7 @@ async function applyGroupAnalysis() {
   const db = await loadVotesDB(AppState.preferences.convoSlug);
   let commentTexts;
   const rep = await analyzePaintedClusters(db, labelArray, commentTexts);
-  renderRepCommentsTable(rep, window.commentTexts);
+  renderRepCommentsTable(rep);
 
   // 👉 HIDE loader after analysis and render complete
   hidePlotLoader();
