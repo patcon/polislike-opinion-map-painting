@@ -1095,7 +1095,7 @@ async function loadVotesDB(slug) {
       `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`,
   });
 
-  const res = await fetch(`data/${slug}/votes.db`);
+  const res = await fetch(`data/datasets/${slug}/votes.db`);
   const buffer = await res.arrayBuffer();
   const db = new SQL.Database(new Uint8Array(buffer));
 
