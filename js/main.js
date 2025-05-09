@@ -674,7 +674,7 @@ function renderColorPalette() {
       display:inline-block; width:24px; height:24px;
       background:${color}; border:1px solid #888;
       margin-right:5px; cursor:pointer; text-align:center;
-      line-height:24px; font-size:12px; color:white; font-family:sans-serif;
+      line-height:22px; font-size:12px; color:white; font-family:sans-serif;
       border-radius:50%; /* Make it circular */
     `;
     span.title = `${letter} (${color})`;
