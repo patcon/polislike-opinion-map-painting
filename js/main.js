@@ -449,10 +449,28 @@ function setupEventListeners() {
   });
 
   // Scale opacity with vote count checkbox
-  document.getElementById("scale-opacity-checkbox").addEventListener("change", (e) => {
+  document.getElementById("scale-opacity-checkbox").addEventListener("change", async (e) => {
     AppState.preferences.scaleOpacityWithVotes = e.target.checked;
     saveState("scaleOpacityWithVotes", AppState.preferences.scaleOpacityWithVotes);
-    renderAllPlots(); // Reapply to all plots
+
+    // Show loading spinner before rerendering
+    showPlotLoader();
+
+    // Use setTimeout to ensure the spinner is shown before the potentially blocking operations
+    setTimeout(async () => {
+      try {
+        // If opacity scaling is enabled, ensure the database is loaded
+        if (AppState.preferences.scaleOpacityWithVotes && !window.dbInstance) {
+          await loadVotesDB(AppState.preferences.convoSlug);
+        }
+
+        // Rerender all plots
+        renderAllPlots();
+      } finally {
+        // Always hide the loader when done
+        hidePlotLoader();
+      }
+    }, 10);
   });
 
   // Run analysis button
