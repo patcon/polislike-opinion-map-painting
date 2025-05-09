@@ -291,6 +291,11 @@ function applySharedState({
 
     renderAllPlots();
     updateLabelCounts();
+
+    // If auto-analyze is enabled and we have painted groups, run analysis automatically
+    if (document.getElementById("auto-analyze-checkbox").checked && AppState.selection.selectedIndices.size > 0) {
+      applyGroupAnalysis();
+    }
   });
 }
 
