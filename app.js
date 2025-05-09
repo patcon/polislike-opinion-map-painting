@@ -962,11 +962,15 @@ function renderPlot(svgId, data, title) {
     if (isDragging) return;
     const [x, y] = d3.pointer(event, this);
     hoveredIndices = findIndicesWithinRadius(data, x, y, scales, 12);
+    // Update AppState as well for the refactored code
+    AppState.ui.hoveredIndices = new Set(hoveredIndices);
     applyHoverStyles();
   });
 
   svg.on("mouseleave", () => {
     hoveredIndices.clear();
+    // Update AppState as well for the refactored code
+    AppState.ui.hoveredIndices.clear();
     applyHoverStyles();
   });
 }
