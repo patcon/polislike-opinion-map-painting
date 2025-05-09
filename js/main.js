@@ -691,7 +691,7 @@ function renderColorPalette() {
   highlightSelectedColor(document.getElementById("color").value);
 }
 
-function createCompactBarChart({ voteCounts, nMembers, voteColors }) {
+function createCompactBarChart({ voteCounts, nMembers, voteColors, boldLargest = true }) {
   const container = document.createElement("div");
   container.style.display = "inline-block";
   container.style.verticalAlign = "middle";
@@ -717,13 +717,13 @@ function createCompactBarChart({ voteCounts, nMembers, voteColors }) {
   const disagree = (disagrees / nMembers) * w;
   const pass = (passes / nMembers) * w;
 
-  const agreeSaw = (agrees / sawTheComment) * w || 0;
-  const disagreeSaw = (disagrees / sawTheComment) * w || 0;
-  const passSaw = (passes / sawTheComment) * w || 0;
+  const agreeSaw = (agrees / sawTheComment) * 100 || 0;
+  const disagreeSaw = (disagrees / sawTheComment) * 100 || 0;
+  const passSaw = (passes / sawTheComment) * 100 || 0;
 
-  const agreeString = `${agreeSaw.toFixed(0)}%`;
-  const disagreeString = `${disagreeSaw.toFixed(0)}%`;
-  const passString = `${passSaw.toFixed(0)}%`;
+  const agreeString = `${Math.round(agreeSaw)}%`;
+  const disagreeString = `${Math.round(disagreeSaw)}%`;
+  const passString = `${Math.round(passSaw)}%`;
 
   container.title = `${agreeString} Agreed\n${disagreeString} Disagreed\n${passString} Passed\n${sawTheComment} Respondents`;
 
@@ -775,10 +775,26 @@ function createCompactBarChart({ voteCounts, nMembers, voteColors }) {
   if (missingCounts) {
     label.innerHTML = `<span style="color: grey; margin-right: 4px;">Missing vote counts</span>`;
   } else {
+    // Determine which value is largest
+    let largestValue = Math.max(agreeSaw, disagreeSaw, passSaw);
+    let agreeStyle = "";
+    let disagreeStyle = "";
+    let passStyle = "";
+
+    if (boldLargest && sawTheComment > 0) {
+      if (largestValue === agreeSaw && agrees > 0) {
+        agreeStyle = "font-weight: bold;";
+      } else if (largestValue === disagreeSaw && disagrees > 0) {
+        disagreeStyle = "font-weight: bold;";
+      } else if (largestValue === passSaw && passes > 0) {
+        passStyle = "font-weight: bold;";
+      }
+    }
+
     label.innerHTML = `
-      <span style="color: ${voteColors.agree}; margin-right: 6px;">${agreeString}</span>
-      <span style="color: ${voteColors.disagree}; margin-right: 6px;">${disagreeString}</span>
-      <span style="color: #999; margin-right: 6px;">${passString}</span>
+      <span style="color: ${voteColors.agree}; margin-right: 6px; ${agreeStyle}">${agreeString}</span>
+      <span style="color: ${voteColors.disagree}; margin-right: 6px; ${disagreeStyle}">${disagreeString}</span>
+      <span style="color: #999; margin-right: 6px; ${passStyle}">${passString}</span>
       <span style="color: grey;">(${sawTheComment})</span>
     `;
   }
