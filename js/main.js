@@ -1184,19 +1184,19 @@ function initializeApp() {
   // Set up event listeners
   setupEventListeners();
 
-  // Check for shared state in URL hash
-  const hash = location.hash.slice(1);
-  if (hash) {
-    const shared = decodeShareState(hash);
-    if (shared) {
-      applySharedState(shared);
-      return; // ✅ Don't run normal startup; already handled
-    }
-  }
-
-  // Load dataset list and initialize
+  // First load the dataset list to ensure dropdown is populated
   loadDatasetList()
     .then(() => {
+      // Check for shared state in URL hash
+      const hash = location.hash.slice(1);
+      if (hash) {
+        const shared = decodeShareState(hash);
+        if (shared) {
+          applySharedState(shared);
+          return; // ✅ Don't run normal startup; already handled
+        }
+      }
+
       // Only run if no shared state
       loadAndRenderData(AppState.preferences.convoSlug);
     });
