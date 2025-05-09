@@ -98,7 +98,7 @@ const AppState = {
     flipX: false,
     flipY: false,
     scaleOpacityWithVotes: false,
-    showGroupComparison: false
+    showGroupComparison: true
   },
 
   /**
@@ -116,7 +116,7 @@ const AppState = {
     this.preferences.flipX = loadState("flipX", false);
     this.preferences.flipY = loadState("flipY", false);
     this.preferences.scaleOpacityWithVotes = loadState("scaleOpacityWithVotes", false);
-    this.preferences.showGroupComparison = loadState("showGroupComparison", false);
+    this.preferences.showGroupComparison = loadState("showGroupComparison", true);
     this.ui.dotOpacity = Config.dotOpacity;
     this.ui.dotSize = Config.dotSize;
   },
