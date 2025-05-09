@@ -80,7 +80,8 @@ const AppState = {
     isDragging: false,
     hoveredIndices: new Set(),
     dotOpacity: Config.dotOpacity,
-    dotSize: Config.dotSize
+    dotSize: Config.dotSize,
+    opacityFactorCache: {} // Cache for opacity scale factors
   },
 
   // Selection state
@@ -135,6 +136,7 @@ const AppState = {
     this.data.dbInstance = null;
     this.data.commentTexts = null;
     this.data.repComments = null;
+    this.ui.opacityFactorCache = {}; // Clear opacity cache when changing datasets
     document.getElementById("rep-comments-output").innerHTML = "";
   }
 };
@@ -849,9 +851,24 @@ function applyHoverStyles() {
       const hoverColor = adjustColorForHover(baseColor);
       circle.attr("fill", hoverColor).attr("fill-opacity", 0.3).raise();
     } else {
-      // Don't modify opacity here, it's handled by updateOpacityBasedOnVotes
+      // Set the fill color
       circle.attr("fill", rawColor || "rgba(0,0,0,0.5)");
-      // We don't set fill-opacity here as it would override the scaled opacity
+
+      // Restore the scaled opacity if opacity scaling is enabled
+      if (AppState.preferences.scaleOpacityWithVotes) {
+        // Get the stored scaled opacity from the data attribute
+        const scaledOpacity = circle.attr("data-scaled-opacity");
+        if (scaledOpacity) {
+          circle.attr("fill-opacity", scaledOpacity);
+        } else {
+          // If no stored value, calculate from cache
+          const factor = AppState.ui.opacityFactorCache[index] || 1;
+          circle.attr("fill-opacity", dotOpacity * factor);
+        }
+      } else {
+        // Use default opacity if scaling is disabled
+        circle.attr("fill-opacity", dotOpacity);
+      }
     }
   });
 }
@@ -1084,6 +1101,8 @@ function renderPlot(svgId, data, title) {
  */
 async function updateOpacityBasedOnVotes() {
   if (!AppState.preferences.scaleOpacityWithVotes) {
+    // Clear cache when disabled
+    AppState.ui.opacityFactorCache = {};
     return;
   }
 
@@ -1097,13 +1116,17 @@ async function updateOpacityBasedOnVotes() {
     }
   }
 
-  // Calculate opacity for each participant
+  // Calculate opacity for each participant and cache the results
   const opacityFactors = {};
 
   for (let i = 0; i < window.participants?.length || 0; i++) {
     const pid = window.participants[i];
     if (pid) {
-      opacityFactors[i] = await calculateOpacityScaleFactor(pid);
+      // Use cached value if available, otherwise calculate
+      if (AppState.ui.opacityFactorCache[i] === undefined) {
+        AppState.ui.opacityFactorCache[i] = await calculateOpacityScaleFactor(pid);
+      }
+      opacityFactors[i] = AppState.ui.opacityFactorCache[i];
     }
   }
 
@@ -1118,7 +1141,13 @@ async function updateOpacityBasedOnVotes() {
     }
 
     const factor = opacityFactors[index] || 1;
-    circle.attr("fill-opacity", dotOpacity * factor);
+    const scaledOpacity = dotOpacity * factor;
+
+    // Store the scaled opacity as a data attribute for hover handling
+    circle.attr("data-scaled-opacity", scaledOpacity);
+
+    // Apply the scaled opacity
+    circle.attr("fill-opacity", scaledOpacity);
   });
 }
 
