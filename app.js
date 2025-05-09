@@ -1,35 +1,166 @@
-// --- Configuration and Shared State ---
-let width = 0,
-  height = 0;
+/**
+ * Opinion Map Painting Application
+ *
+ * A visualization tool for exploring and analyzing opinion clusters
+ * in conversation data.
+ */
 
-// Reference: https://matplotlib.org/stable/users/explain/colors/colormaps.html#qualitative
-const presetColorsTab10 = [
-  "#1f77b4", // (A) muted blue
-  "#ff7f0e", // (B) safety orange
-  "#2ca02c", // (C) cooked asparagus green
-  "#d62728", // (D) brick red
-  "#9467bd", // (E) muted purple
-  "#8c564b", // (F) chestnut brown
-  "#e377c2", // (G) raspberry yogurt pink
-  "#7f7f7f", // (H) middle gray
-  "#bcbd22", // (I) curry yellow-green
-  "#17becf", // (J) blue-teal
-];
-const colorToLabelIndex = {}; // hex -> int
-const colorByIndex = [];
-const selectedIndicesGlobal = new Set();
-let isAdditiveDefault = loadState("additive", false);
+// ============================================================================
+// Configuration
+// ============================================================================
+
+/**
+ * Application configuration constants
+ */
+const Config = {
+  // Default dot opacity
+  dotOpacity: 0.3,
+
+  // Reference: https://matplotlib.org/stable/users/explain/colors/colormaps.html#qualitative
+  colors: {
+    tab10: [
+      "#1f77b4", // (A) muted blue
+      "#ff7f0e", // (B) safety orange
+      "#2ca02c", // (C) cooked asparagus green
+      "#d62728", // (D) brick red
+      "#9467bd", // (E) muted purple
+      "#8c564b", // (F) chestnut brown
+      "#e377c2", // (G) raspberry yogurt pink
+      "#7f7f7f", // (H) middle gray
+      "#bcbd22", // (I) curry yellow-green
+      "#17becf", // (J) blue-teal
+    ]
+  },
+
+  // Chart colors for vote visualization
+  voteColors: {
+    agree: "rgb(46, 204, 113)",
+    disagree: "rgb(231, 76, 60)",
+    pass: "rgb(230,230,230)"
+  },
+
+  // Statistical thresholds
+  stats: {
+    minVotes: 3,
+    significanceThreshold: 1.2816, // 90% confidence
+  }
+};
+
+// ============================================================================
+// State Management
+// ============================================================================
+
+/**
+ * Application state management
+ */
+const AppState = {
+  // Dimensions
+  dimensions: {
+    width: 0,
+    height: 0
+  },
+
+  // Data
+  data: {
+    X1: null, // PCA projection
+    X2: null, // PaCMAP projection
+    X3: null, // LocalMAP projection
+    participants: [],
+    commentTexts: null,
+    commentTextMap: {},
+    meta: null,
+    repComments: null,
+    dbInstance: null
+  },
+
+  // UI State
+  ui: {
+    isDragging: false,
+    hoveredIndices: new Set(),
+    dotOpacity: Config.dotOpacity
+  },
+
+  // Selection state
+  selection: {
+    colorToLabelIndex: {}, // hex -> int
+    colorByIndex: [],
+    selectedIndices: new Set()
+  },
+
+  // Preferences
+  preferences: {
+    convoSlug: null,
+    isAdditive: false,
+    flipX: false,
+    flipY: false
+  },
+
+  /**
+   * Initialize the application state
+   */
+  init() {
+    // Initialize color mapping
+    Config.colors.tab10.forEach((color, i) => {
+      this.selection.colorToLabelIndex[color] = i;
+    });
+
+    // Load preferences from session storage
+    this.preferences.convoSlug = getQueryParam("dataset") || loadState("dataset", "bg2050");
+    this.preferences.isAdditive = loadState("additive", false);
+    this.preferences.flipX = loadState("flipX", false);
+    this.preferences.flipY = loadState("flipY", false);
+    this.ui.dotOpacity = Config.dotOpacity;
+  },
+
+  /**
+   * Update dimensions based on container size
+   */
+  updateDimensions() {
+    const container = document.getElementById("plot-wrapper");
+    const containerWidth = container.clientWidth;
+    this.dimensions.width = containerWidth / 3 - 20;
+    this.dimensions.height = this.dimensions.width;
+  },
+
+  /**
+   * Reset data state for a new dataset
+   */
+  resetDataState() {
+    this.data.dbInstance = null;
+    this.data.commentTexts = null;
+    this.data.repComments = null;
+    document.getElementById("rep-comments-output").innerHTML = "";
+  }
+};
+
+// For backward compatibility with existing code
+// These will be gradually removed as code is refactored
+let width = 0, height = 0;
+let X1, X2, X3;
+let dotOpacity = AppState.ui.dotOpacity;
 let isDragging = false;
 let hoveredIndices = new Set();
-let flipX = false;
-let flipY = false;
-let X1, X2, X3;
-let dotOpacity = 0.3;
+let flipX = false, flipY = false;
+const colorToLabelIndex = AppState.selection.colorToLabelIndex;
+const colorByIndex = AppState.selection.colorByIndex;
+const selectedIndicesGlobal = AppState.selection.selectedIndices;
+let isAdditiveDefault = AppState.preferences.isAdditive;
+let convoSlug = AppState.preferences.convoSlug;
 
-// --- Data Loading ---
+// ============================================================================
+// Data Loading Functions
+// ============================================================================
+
+/**
+ * Load and render data for a specific dataset
+ * @param {string} slug - Dataset identifier
+ * @returns {Promise} - Resolves when data is loaded and rendered
+ */
 function loadAndRenderData(slug) {
-  // Force reloading of votes.db on dataset switch
-  window.dbInstance = null;
+  // Reset data state for a new dataset
+  AppState.resetDataState();
+  window.dbInstance = null; // For backward compatibility
+
   return new Promise((resolve) => {
     Promise.all([
       d3.json(`data/${slug}/pca.json`),
@@ -37,8 +168,14 @@ function loadAndRenderData(slug) {
       d3.json(`data/${slug}/localmap.json`),
       d3.json(`data/${slug}/meta.json`).catch(() => null),
     ]).then(([data1, data2, data3, meta]) => {
-      window.participants = data1.map(([tid]) => tid);
+      // Store data in AppState
+      AppState.data.participants = data1.map(([tid]) => tid);
+      AppState.data.meta = meta;
+
+      // For backward compatibility
+      window.participants = AppState.data.participants;
       window.meta = meta;
+
       showPlotLoader();
       renderMetaInfo(meta);
 
@@ -51,21 +188,35 @@ function loadAndRenderData(slug) {
           ...s, // keep any other keys
         }));
 
+        AppState.data.commentTexts = statements;
+        AppState.data.commentTextMap = Object.fromEntries(statements.map((c) => [c.tid, c]));
+
+        // For backward compatibility
         window.commentTexts = statements;
-        window.commentTextMap = Object.fromEntries(statements.map((c) => [c.tid, c]));
+        window.commentTextMap = AppState.data.commentTextMap;
       });
 
-      X1 = data1.map(([, coords]) => coords);
-      X2 = data2.map(([, coords]) => coords);
-      X3 = data3.map(([, coords]) => coords);
+      // Store projection data
+      AppState.data.X1 = data1.map(([, coords]) => coords);
+      AppState.data.X2 = data2.map(([, coords]) => coords);
+      AppState.data.X3 = data3.map(([, coords]) => coords);
 
-      window.commentTexts = null;
-      window.repComments = null;
-      document.getElementById("rep-comments-output").innerHTML = "";
-      colorByIndex.length = X1.length;
+      // For backward compatibility
+      X1 = AppState.data.X1;
+      X2 = AppState.data.X2;
+      X3 = AppState.data.X3;
+
+      // Reset selection state
+      AppState.selection.colorByIndex.length = AppState.data.X1.length;
+      AppState.selection.colorByIndex.fill(null);
+      AppState.selection.selectedIndices.clear();
+
+      // For backward compatibility
+      colorByIndex.length = AppState.data.X1.length;
       colorByIndex.fill(null);
       selectedIndicesGlobal.clear();
 
+      // Render UI
       renderAllPlots();
       renderColorPalette();
       updateLabelCounts();
@@ -76,35 +227,59 @@ function loadAndRenderData(slug) {
   });
 }
 
+/**
+ * Apply shared state from URL or other source
+ * @param {Object} state - The state to apply
+ * @returns {Promise} - Resolves when state is applied
+ */
 function applySharedState({
   dataset,
   labelIndices,
   flipX: fx = false,
   flipY: fy = false,
 }) {
-  convoSlug = dataset;
-  document.getElementById("dataset").value = dataset;
-  saveState("dataset", dataset);
+  // Update AppState
+  AppState.preferences.convoSlug = dataset;
+  AppState.preferences.flipX = fx;
+  AppState.preferences.flipY = fy;
 
-  // Flip state
+  // For backward compatibility
+  convoSlug = dataset;
   flipX = fx;
   flipY = fy;
+
+  // Update UI
+  document.getElementById("dataset").value = dataset;
   document.getElementById("flip-x-checkbox").checked = fx;
   document.getElementById("flip-y-checkbox").checked = fy;
+
+  // Save to session storage
+  saveState("dataset", dataset);
   saveState("flipX", fx);
   saveState("flipY", fy);
 
   return loadAndRenderData(dataset).then(() => {
+    // Update selection state
+    AppState.selection.colorByIndex.length = labelIndices.length;
+    AppState.selection.selectedIndices.clear();
+
+    // For backward compatibility
     colorByIndex.length = labelIndices.length;
     selectedIndicesGlobal.clear();
+
     for (let i = 0; i < labelIndices.length; i++) {
       const idx = labelIndices[i];
       if (idx != null) {
-        const color = presetColorsTab10[idx];
+        const color = Config.colors.tab10[idx];
+        AppState.selection.colorByIndex[i] = color;
+        AppState.selection.selectedIndices.add(i);
+
+        // For backward compatibility
         colorByIndex[i] = color;
         selectedIndicesGlobal.add(i);
       }
     }
+
     renderAllPlots();
     updateLabelCounts();
   });
@@ -115,114 +290,142 @@ function getQueryParam(name) {
   return params.get(name);
 }
 
-// Restore session state
-const urlDataset = getQueryParam("dataset");
-let convoSlug = urlDataset || loadState("dataset", "bg2050");
-document.getElementById("dataset").value = convoSlug;
-document.getElementById("toggle-additive").checked = isAdditiveDefault;
-document.getElementById("include-unpainted").checked = loadState(
-  "includeUnpainted",
-  false
-);
-document.getElementById("auto-analyze-checkbox").checked = loadState(
-  "autoAnalyze",
-  true
-);
-document.getElementById("include-moderated-checkbox").checked = loadState("includeModerated", false);
-document.getElementById("flip-x-checkbox").checked = loadState("flipX", false);
-document.getElementById("flip-y-checkbox").checked = loadState("flipY", false);
-flipX = document.getElementById("flip-x-checkbox").checked;
-flipY = document.getElementById("flip-y-checkbox").checked;
+// ============================================================================
+// Initialization
+// ============================================================================
 
-// --- DOM + Event Binding ---
-document.getElementById("share-button").addEventListener("click", () => {
-  const encoded = encodeShareState();
-  const url = `${location.origin}${location.pathname}#${encoded}`;
-  const input = document.getElementById("share-url");
-  input.value = url;
-  input.select();
-  document.execCommand("copy");
-});
+/**
+ * Initialize the UI with stored preferences
+ */
+function initializeUI() {
+  document.getElementById("dataset").value = AppState.preferences.convoSlug;
+  document.getElementById("toggle-additive").checked = AppState.preferences.isAdditive;
+  document.getElementById("include-unpainted").checked = loadState("includeUnpainted", false);
+  document.getElementById("auto-analyze-checkbox").checked = loadState("autoAnalyze", true);
+  document.getElementById("include-moderated-checkbox").checked = loadState("includeModerated", false);
+  document.getElementById("flip-x-checkbox").checked = AppState.preferences.flipX;
+  document.getElementById("flip-y-checkbox").checked = AppState.preferences.flipY;
 
-document.getElementById("dataset").addEventListener("change", (e) => {
-  const selectedDataset = e.target.value;
-  convoSlug = selectedDataset;
-  saveState("dataset", selectedDataset);
-  loadAndRenderData(selectedDataset);
-});
+  // Update global variables for backward compatibility
+  flipX = AppState.preferences.flipX;
+  flipY = AppState.preferences.flipY;
+}
 
-document.getElementById("toggle-additive").addEventListener("change", (e) => {
-  const isAdditive = e.target.checked;
-  isAdditiveDefault = isAdditive;
-  saveState("additive", isAdditive);
-});
+// ============================================================================
+// Event Handlers
+// ============================================================================
 
-document.getElementById("include-unpainted").addEventListener("change", (e) => {
-  const includeUnpainted = e.target.checked;
-  saveState("includeUnpainted", includeUnpainted);
-  updateLabelCounts();
-  if (document.getElementById("auto-analyze-checkbox").checked) {
-    applyGroupAnalysis();
-  }
-});
+/**
+ * Set up all event listeners
+ */
+function setupEventListeners() {
+  // Share button
+  document.getElementById("share-button").addEventListener("click", () => {
+    const encoded = encodeShareState();
+    const url = `${location.origin}${location.pathname}#${encoded}`;
+    const input = document.getElementById("share-url");
+    input.value = url;
+    input.select();
+    document.execCommand("copy");
+  });
 
-document.getElementById("flip-x-checkbox").addEventListener("change", (e) => {
-  flipX = e.target.checked;
-  saveState("flipX", flipX);
-  renderAllPlots();
-});
+  // Dataset selection
+  document.getElementById("dataset").addEventListener("change", (e) => {
+    const selectedDataset = e.target.value;
+    AppState.preferences.convoSlug = selectedDataset;
+    convoSlug = selectedDataset; // Update global for backward compatibility
+    saveState("dataset", selectedDataset);
+    loadAndRenderData(selectedDataset);
+  });
 
-document.getElementById("flip-y-checkbox").addEventListener("change", (e) => {
-  flipY = e.target.checked;
-  saveState("flipY", flipY);
-  renderAllPlots();
-});
+  // Additive selection mode
+  document.getElementById("toggle-additive").addEventListener("change", (e) => {
+    const isAdditive = e.target.checked;
+    AppState.preferences.isAdditive = isAdditive;
+    isAdditiveDefault = isAdditive; // Update global for backward compatibility
+    saveState("additive", isAdditive);
+  });
 
-document
-  .getElementById("auto-analyze-checkbox")
-  .addEventListener("change", (e) => {
+  // Include unpainted points
+  document.getElementById("include-unpainted").addEventListener("change", (e) => {
+    const includeUnpainted = e.target.checked;
+    saveState("includeUnpainted", includeUnpainted);
+    updateLabelCounts();
+    if (document.getElementById("auto-analyze-checkbox").checked) {
+      applyGroupAnalysis();
+    }
+  });
+
+  // Flip X axis
+  document.getElementById("flip-x-checkbox").addEventListener("change", (e) => {
+    AppState.preferences.flipX = e.target.checked;
+    flipX = e.target.checked; // Update global for backward compatibility
+    saveState("flipX", AppState.preferences.flipX);
+    renderAllPlots();
+  });
+
+  // Flip Y axis
+  document.getElementById("flip-y-checkbox").addEventListener("change", (e) => {
+    AppState.preferences.flipY = e.target.checked;
+    flipY = e.target.checked; // Update global for backward compatibility
+    saveState("flipY", AppState.preferences.flipY);
+    renderAllPlots();
+  });
+
+  // Auto analyze
+  document.getElementById("auto-analyze-checkbox").addEventListener("change", (e) => {
     const isEnabled = e.target.checked;
     saveState("autoAnalyze", isEnabled);
     if (isEnabled) applyGroupAnalysis();
   });
 
-document.getElementById("include-moderated-checkbox").addEventListener("change", (e) => {
-  saveState("includeModerated", e.target.checked);
-});
+  // Include moderated comments
+  document.getElementById("include-moderated-checkbox").addEventListener("change", (e) => {
+    saveState("includeModerated", e.target.checked);
+  });
 
-document.getElementById("color").addEventListener("input", (e) => {
-  const selectedColor = e.target.value;
-  if (!(selectedColor in colorToLabelIndex)) {
-    presetColorsTab10.push(selectedColor); // Add to end
-    colorToLabelIndex[selectedColor] = presetColorsTab10.length - 1;
-    renderColorPalette(); // Refresh palette
-  }
-});
+  // Color selection
+  document.getElementById("color").addEventListener("input", (e) => {
+    const selectedColor = e.target.value;
+    if (!(selectedColor in AppState.selection.colorToLabelIndex)) {
+      Config.colors.tab10.push(selectedColor); // Add to end
+      AppState.selection.colorToLabelIndex[selectedColor] = Config.colors.tab10.length - 1;
+      renderColorPalette(); // Refresh palette
+    }
+  });
 
-document.addEventListener("keydown", (e) => {
-  // Only trigger on number keys 0–9 and when not typing into an input field
-  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+  // Keyboard shortcuts
+  document.addEventListener("keydown", (e) => {
+    // Only trigger on number keys 0–9 and when not typing into an input field
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
 
-  const index = parseInt(e.key, 10);
+    const index = parseInt(e.key, 10);
 
-  if (!isNaN(index) && index < presetColorsTab10.length) {
-    const color = presetColorsTab10[index];
-    document.getElementById("color").value = color;
-    highlightSelectedColor(color); // visually reflect the change
-  }
-});
+    if (!isNaN(index) && index < Config.colors.tab10.length) {
+      const color = Config.colors.tab10[index];
+      document.getElementById("color").value = color;
+      highlightSelectedColor(color); // visually reflect the change
+    }
+  });
 
-window.addEventListener("resize", () => {
-  if (X1 && X2 && X3) renderAllPlots();
-});
+  // Window resize
+  window.addEventListener("resize", () => {
+    if (AppState.data.X1 && AppState.data.X2 && AppState.data.X3) renderAllPlots();
+  });
 
-const slider = document.getElementById("opacity-slider");
-const valueLabel = document.getElementById("opacity-value");
-slider.addEventListener("input", () => {
-  dotOpacity = parseFloat(slider.value);
-  valueLabel.textContent = dotOpacity;
-  renderAllPlots(); // Reapply to all plots
-});
+  // Opacity slider
+  const slider = document.getElementById("opacity-slider");
+  const valueLabel = document.getElementById("opacity-value");
+  slider.addEventListener("input", () => {
+    AppState.ui.dotOpacity = parseFloat(slider.value);
+    dotOpacity = AppState.ui.dotOpacity; // Update global for backward compatibility
+    valueLabel.textContent = AppState.ui.dotOpacity;
+    renderAllPlots(); // Reapply to all plots
+  });
+
+  // Run analysis button
+  document.getElementById("run-analysis").addEventListener("click", applyGroupAnalysis);
+}
 
 // --- Utility Functions ---
 
@@ -387,8 +590,8 @@ function renderColorPalette() {
   const container = document.getElementById("color-palette");
   container.innerHTML = "";
 
-  presetColorsTab10.forEach((color, i) => {
-    colorToLabelIndex[color] = i; // Assign label
+  Config.colors.tab10.forEach((color, i) => {
+    AppState.selection.colorToLabelIndex[color] = i; // Assign label
     const letter = labelIndexToLetter(i);
 
     const span = document.createElement("span");
@@ -548,6 +751,9 @@ function highlightSelectedColor(color) {
   });
 }
 
+/**
+ * Update the counts of points in each label group
+ */
 function updateLabelCounts() {
   const counts = {};
   const labelArray = getLabelArrayWithOptionalUngrouped();
@@ -558,8 +764,8 @@ function updateLabelCounts() {
   const container = document.getElementById("label-counts");
 
   const ordered = Object.entries(counts).sort(([colorA], [colorB]) => {
-    const iA = colorToLabelIndex[colorA] ?? 999;
-    const iB = colorToLabelIndex[colorB] ?? 999;
+    const iA = AppState.selection.colorToLabelIndex[colorA] ?? 999;
+    const iB = AppState.selection.colorToLabelIndex[colorB] ?? 999;
     return iA - iB;
   });
 
@@ -575,19 +781,22 @@ function updateLabelCounts() {
       .join("") || "(No selections yet)";
 }
 
+/**
+ * Apply hover styles to points
+ */
 function applyHoverStyles() {
   d3.selectAll("circle").each(function () {
     const circle = d3.select(this);
     const index = +circle.attr("data-index");
-    const rawColor = colorByIndex[index];
+    const rawColor = AppState.selection.colorByIndex[index];
     const baseColor = rawColor || "#7f7f7f";
-    if (hoveredIndices.has(index)) {
+    if (AppState.ui.hoveredIndices.has(index)) {
       const hoverColor = adjustColorForHover(baseColor);
       circle.attr("fill", hoverColor).attr("fill-opacity", 0.3).raise();
     } else {
       circle
         .attr("fill", rawColor || "rgba(0,0,0,0.5)")
-        .attr("fill-opacity", dotOpacity);
+        .attr("fill-opacity", AppState.ui.dotOpacity);
     }
   });
 }
@@ -762,15 +971,35 @@ function renderPlot(svgId, data, title) {
   });
 }
 
+/**
+ * Render all three projection plots
+ */
 function renderAllPlots() {
-  updateDimensions();
-  renderPlot("#plot1", X1, "PCA projection");
-  renderPlot("#plot2", X2, "PaCMAP projection");
-  renderPlot("#plot3", X3, "LocalMAP projection");
+  AppState.updateDimensions();
+
+  // Update global variables for backward compatibility
+  width = AppState.dimensions.width;
+  height = AppState.dimensions.height;
+
+  renderPlot("#plot1", AppState.data.X1, "PCA projection");
+  renderPlot("#plot2", AppState.data.X2, "PaCMAP projection");
+  renderPlot("#plot3", AppState.data.X3, "LocalMAP projection");
 }
 
-// --- Initial Kickoff ---
-window.addEventListener("DOMContentLoaded", () => {
+/**
+ * Application initialization
+ */
+function initializeApp() {
+  // Initialize application state
+  AppState.init();
+
+  // Initialize UI with stored preferences
+  initializeUI();
+
+  // Set up event listeners
+  setupEventListeners();
+
+  // Check for shared state in URL hash
   const hash = location.hash.slice(1);
   if (hash) {
     const shared = decodeShareState(hash);
@@ -780,11 +1009,23 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  fetch("datasets.json")
+  // Load dataset list and initialize
+  loadDatasetList()
+    .then(() => {
+      // Only run if no shared state
+      loadAndRenderData(AppState.preferences.convoSlug);
+    });
+}
+
+/**
+ * Load the dataset list from JSON
+ */
+function loadDatasetList() {
+  return fetch("datasets.json")
     .then((res) => res.json())
     .then((datasets) => {
       const select = document.getElementById("dataset");
-      const current = convoSlug;
+      const current = AppState.preferences.convoSlug;
 
       datasets.forEach(({ slug, label }) => {
         const option = document.createElement("option");
@@ -796,26 +1037,30 @@ window.addEventListener("DOMContentLoaded", () => {
 
       // fallback if current is invalid
       if (!datasets.find(d => d.slug === current)) {
-        convoSlug = datasets[0]?.slug;
-        saveState("dataset", convoSlug);
-        loadAndRenderData(convoSlug);
-      } else {
-        loadAndRenderData(convoSlug);
+        AppState.preferences.convoSlug = datasets[0]?.slug;
+        convoSlug = AppState.preferences.convoSlug; // Update global for backward compatibility
+        saveState("dataset", AppState.preferences.convoSlug);
       }
     })
     .catch((err) => {
       console.error("Failed to load dataset list:", err);
-      loadAndRenderData(convoSlug); // fallback in case JSON fails
     });
+}
 
-  // Only run if no shared state
-  loadAndRenderData(convoSlug);
-});
+// Initialize the application when the DOM is loaded
+window.addEventListener("DOMContentLoaded", initializeApp);
 
 let dbInstance = null;
 
+/**
+ * Load the votes database for a dataset
+ * @param {string} slug - Dataset identifier
+ * @returns {Promise<Object>} - SQL.js database instance
+ */
 async function loadVotesDB(slug) {
-  if (window.dbInstance) return window.dbInstance;
+  if (AppState.data.dbInstance) {
+    return AppState.data.dbInstance;
+  }
 
   const SQL = await initSqlJs({
     locateFile: (file) =>
@@ -826,13 +1071,18 @@ async function loadVotesDB(slug) {
   const buffer = await res.arrayBuffer();
   const db = new SQL.Database(new Uint8Array(buffer));
 
-  window.dbInstance = db; // ✅ this was missing!
+  // Store in AppState
+  AppState.data.dbInstance = db;
+
+  // For backward compatibility
+  window.dbInstance = db;
+
   return db;
 }
 
 // Helper function to check if z-score is significant at 90% confidence
 function zSig90(zVal) {
-  return zVal > 1.2816;
+  return zVal > Config.stats.significanceThreshold;
 }
 
 function renderRepCommentsTable(repComments) {
@@ -843,8 +1093,8 @@ function renderRepCommentsTable(repComments) {
     .sort(([a], [b]) => {
       // Sort by group letter.
       // Anything without a label goes to the end.
-      const indexA = colorToLabelIndex[a] ?? Infinity;
-      const indexB = colorToLabelIndex[b] ?? Infinity;
+      const indexA = AppState.selection.colorToLabelIndex[a] ?? Infinity;
+      const indexB = AppState.selection.colorToLabelIndex[b] ?? Infinity;
       return indexA - indexB;
     })
     .forEach(([labelColor, comments]) => {
@@ -867,7 +1117,7 @@ function renderRepCommentsTable(repComments) {
 
       const UNGROUPED_LABEL = "Ungrouped";
 
-      const labelIndex = colorToLabelIndex[labelColor];
+      const labelIndex = AppState.selection.colorToLabelIndex[labelColor];
       const letter =
         labelIndex !== undefined
           ? labelIndexToLetter(labelIndex)
@@ -905,8 +1155,8 @@ function renderRepCommentsTable(repComments) {
           c.repful_for === "agree"
             ? "green"
             : c.repful_for === "disagree"
-            ? "red"
-            : "#333";
+              ? "red"
+              : "#333";
 
         const match = window.commentTextMap?.[c.tid];
         const commentText = match?.txt || "<em>Missing</em>";
@@ -922,11 +1172,7 @@ function renderRepCommentsTable(repComments) {
             S: c.n_trials,
           },
           nMembers: groupSize, // or total participants in this group
-          voteColors: {
-            agree: "rgb(46, 204, 113)",
-            disagree: "rgb(231, 76, 60)",
-            pass: "rgb(230,230,230)"
-          }
+          voteColors: Config.voteColors
         });
 
         // Comment ID
@@ -1080,8 +1326,7 @@ function beatsBestAgr(commentStats, currentBest) {
 
 function finalizeCommentStats(tid, stats) {
   const { na, nd, ns, pa, pd, pat, pdt, ra, rd, rat, rdt } = stats;
-  const MIN_VOTES = 3;
-  const isAgreeMoreRep = (rat > rdt && na >= MIN_VOTES) || nd < MIN_VOTES;
+  const isAgreeMoreRep = (rat > rdt && na >= Config.stats.minVotes) || nd < Config.stats.minVotes;
   const repful_for = isAgreeMoreRep ? "agree" : "disagree";
 
   return {
@@ -1185,12 +1430,12 @@ function calculateRepresentativeComments(groupVotes, commentTexts) {
   const allComments = commentTexts
     ? commentTexts.map((c) => c.id)
     : Array.from(
-        new Set(
-          Object.values(groupVotes)
-            .flatMap((group) => Object.values(group))
-            .flatMap((votes) => Object.keys(votes).map(Number))
-        )
-      ).sort((a, b) => a - b); // unique sorted comment_ids
+      new Set(
+        Object.values(groupVotes)
+          .flatMap((group) => Object.values(group))
+          .flatMap((votes) => Object.keys(votes).map(Number))
+      )
+    ).sort((a, b) => a - b); // unique sorted comment_ids
   const allGroups = Object.keys(groupVotes);
   const commentStatsWithTid = [];
 
@@ -1248,12 +1493,16 @@ function calculateRepresentativeComments(groupVotes, commentTexts) {
   return repCommentMap;
 }
 
+/**
+ * Get an array of labels with optional handling for unpainted points
+ * @returns {Array} Array of color labels or null
+ */
 function getLabelArrayWithOptionalUngrouped() {
   const includeUnpainted = document.getElementById("include-unpainted").checked;
   const labels = [];
 
-  for (let i = 0; i < colorByIndex.length; i++) {
-    const label = colorByIndex[i];
+  for (let i = 0; i < AppState.selection.colorByIndex.length; i++) {
+    const label = AppState.selection.colorByIndex[i];
     if (label) {
       labels.push(label);
     } else if (includeUnpainted) {
@@ -1309,7 +1558,7 @@ async function applyGroupAnalysis() {
   // 🔥 FORCE a DOM paint before continuing with long task
   await preworkRenderPipelinePauseHelper();
 
-  const db = await loadVotesDB(convoSlug);
+  const db = await loadVotesDB(AppState.preferences.convoSlug);
   let commentTexts;
   const rep = await analyzePaintedClusters(db, labelArray, commentTexts);
   renderRepCommentsTable(rep, window.commentTexts);
@@ -1318,6 +1567,3 @@ async function applyGroupAnalysis() {
   hidePlotLoader();
 }
 
-document
-  .getElementById("run-analysis")
-  .addEventListener("click", applyGroupAnalysis);
