@@ -97,7 +97,8 @@ const AppState = {
     isAdditive: false,
     flipX: false,
     flipY: false,
-    scaleOpacityWithVotes: false
+    scaleOpacityWithVotes: false,
+    showGroupComparison: false
   },
 
   /**
@@ -115,6 +116,7 @@ const AppState = {
     this.preferences.flipX = loadState("flipX", false);
     this.preferences.flipY = loadState("flipY", false);
     this.preferences.scaleOpacityWithVotes = loadState("scaleOpacityWithVotes", false);
+    this.preferences.showGroupComparison = loadState("showGroupComparison", false);
     this.ui.dotOpacity = Config.dotOpacity;
     this.ui.dotSize = Config.dotSize;
   },
@@ -320,6 +322,7 @@ function initializeUI() {
   document.getElementById("scale-opacity-checkbox").checked = AppState.preferences.scaleOpacityWithVotes;
   document.getElementById("flip-x-checkbox").checked = AppState.preferences.flipX;
   document.getElementById("flip-y-checkbox").checked = AppState.preferences.flipY;
+  document.getElementById("show-group-comparison-checkbox").checked = AppState.preferences.showGroupComparison;
 
   // Initialize sliders
   document.getElementById("opacity-slider").value = AppState.ui.dotOpacity;
@@ -478,6 +481,17 @@ function setupEventListeners() {
         hidePlotLoader();
       }
     }, 10);
+  });
+
+  // Show group comparison checkbox
+  document.getElementById("show-group-comparison-checkbox").addEventListener("change", (e) => {
+    AppState.preferences.showGroupComparison = e.target.checked;
+    saveState("showGroupComparison", AppState.preferences.showGroupComparison);
+
+    // If analysis results are already displayed, rerun the analysis to update the display
+    if (document.getElementById("rep-comments-output").innerHTML !== "") {
+      applyGroupAnalysis();
+    }
   });
 
   // Run analysis button
@@ -1087,7 +1101,9 @@ function renderPlot(svgId, data, title) {
   svg.on("mousemove", function (event) {
     if (isDragging) return;
     const [x, y] = d3.pointer(event, this);
-    hoveredIndices = findIndicesWithinRadius(data, x, y, scales);
+    // Don't change radius with dotSize for now.
+    const FORCE_RADIUS = 10
+    hoveredIndices = findIndicesWithinRadius(data, x, y, scales, FORCE_RADIUS);
     // Update AppState as well for the refactored code
     AppState.ui.hoveredIndices = new Set(hoveredIndices);
     applyHoverStyles();
@@ -1279,88 +1295,230 @@ function renderRepCommentsTable(repComments) {
   const container = document.getElementById("rep-comments-output");
   container.innerHTML = "";
 
-  Object.entries(repComments)
-    .sort(([a], [b]) => {
-      // Sort by group letter.
-      // Anything without a label goes to the end.
-      const indexA = AppState.selection.colorToLabelIndex[a] ?? Infinity;
-      const indexB = AppState.selection.colorToLabelIndex[b] ?? Infinity;
-      return indexA - indexB;
-    })
-    .forEach(([labelColor, comments]) => {
-      const groupDiv = document.createElement("div");
-      groupDiv.style.marginBottom = "30px";
+  // Get all group colors sorted by their label index
+  const allGroupColors = Object.keys(repComments).sort((a, b) => {
+    const indexA = AppState.selection.colorToLabelIndex[a] ?? Infinity;
+    const indexB = AppState.selection.colorToLabelIndex[b] ?? Infinity;
+    return indexA - indexB;
+  });
 
-      // Section header with colored circle
-      const title = document.createElement("h3");
-      title.style.display = "flex";
-      title.style.alignItems = "center";
-      title.style.gap = "10px";
+  // Get group sizes for each color
+  const groupSizes = {};
+  allGroupColors.forEach(color => {
+    groupSizes[color] = getLabelArrayWithOptionalUngrouped().filter(
+      (label) => label === color
+    ).length;
+  });
 
-      const circle = document.createElement("span");
-      circle.style.display = "inline-block";
-      circle.style.width = "16px";
-      circle.style.height = "16px";
-      circle.style.borderRadius = "50%";
-      circle.style.backgroundColor = labelColor;
-      circle.style.border = "1px solid #999";
+  // Process each group
+  allGroupColors.forEach((labelColor) => {
+    const comments = repComments[labelColor];
+    const groupDiv = document.createElement("div");
+    groupDiv.style.marginBottom = "30px";
 
-      const UNGROUPED_LABEL = "Ungrouped";
+    // Section header with colored circle
+    const title = document.createElement("h3");
+    title.style.display = "flex";
+    title.style.alignItems = "center";
+    title.style.gap = "10px";
 
-      const labelIndex = AppState.selection.colorToLabelIndex[labelColor];
-      const letter =
-        labelIndex !== undefined
-          ? labelIndexToLetter(labelIndex)
+    const circle = document.createElement("span");
+    circle.style.display = "inline-block";
+    circle.style.width = "16px";
+    circle.style.height = "16px";
+    circle.style.borderRadius = "50%";
+    circle.style.backgroundColor = labelColor;
+    circle.style.border = "1px solid #999";
+
+    const UNGROUPED_LABEL = "Ungrouped";
+
+    const labelIndex = AppState.selection.colorToLabelIndex[labelColor];
+    const letter =
+      labelIndex !== undefined
+        ? labelIndexToLetter(labelIndex)
+        : UNGROUPED_LABEL;
+
+    const groupSize = groupSizes[labelColor];
+
+    const text = document.createElement("span");
+    text.textContent = `Group ${letter} (${groupSize} participants)`;
+
+    title.appendChild(circle);
+    title.appendChild(text);
+    groupDiv.appendChild(title);
+
+    const table = document.createElement("table");
+    table.style.borderCollapse = "collapse";
+    table.style.width = "100%";
+
+    // Create header row
+    const headerRow = document.createElement("tr");
+
+    // Basic columns
+    const basicHeaders = ["Comment ID", "Rep Type", "% Support"];
+    basicHeaders.forEach((h) => {
+      const th = document.createElement("th");
+      th.textContent = h;
+      th.style.borderBottom = "2px solid #ccc";
+      th.style.padding = "6px 10px";
+      th.style.textAlign = "left";
+      headerRow.appendChild(th);
+    });
+
+    // Add group comparison columns if enabled
+    if (AppState.preferences.showGroupComparison) {
+      allGroupColors.forEach(color => {
+        const groupIndex = AppState.selection.colorToLabelIndex[color];
+        const groupLetter = groupIndex !== undefined
+          ? labelIndexToLetter(groupIndex)
           : UNGROUPED_LABEL;
 
-      const groupSize = getLabelArrayWithOptionalUngrouped().filter(
-        (label) => label === labelColor
-      ).length;
-
-      const text = document.createElement("span");
-      text.textContent = `Group ${letter} (${groupSize} participants)`;
-
-      title.appendChild(circle);
-      title.appendChild(text);
-      groupDiv.appendChild(title);
-
-      const table = document.createElement("table");
-      table.style.borderCollapse = "collapse";
-      table.style.width = "100%";
-
-      const headerRow = document.createElement("tr");
-      ["Comment ID", "Rep Type", "% Support", "", "Statement"].forEach((h) => {
         const th = document.createElement("th");
-        th.textContent = h;
+        th.textContent = `Group ${groupLetter}`;
         th.style.borderBottom = "2px solid #ccc";
         th.style.padding = "6px 10px";
-        th.style.textAlign = "left";
-        headerRow.appendChild(th);
-      });
-      table.appendChild(headerRow);
+        th.style.textAlign = "center";
 
-      comments.forEach((c) => {
-        const tr = document.createElement("tr");
-        const repColor =
-          c.repful_for === "agree"
-            ? "green"
-            : c.repful_for === "disagree"
-              ? "red"
-              : "#333";
-
-        const match = window.commentTextMap?.[c.tid];
-        const isModerated = match?.mod === "-1" || match?.mod === -1;
-        const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
-
-        // Add "(moderated)" text and apply red styling to moderated statements when included
-        let commentText = match?.txt || "<em>Missing</em>";
-        if (isModerated && includeModerated) {
-          commentText = `<span style="color: red;">${commentText} (moderated)</span>`;
+        // Highlight the current group's column
+        if (color === labelColor) {
+          th.style.fontWeight = "bold";
+          th.style.backgroundColor = "#f0f0f0";
+        } else {
+          th.style.opacity = "0.8";
         }
 
-        const metaLine = `<div style="font-size: 0.85em; color: #666; margin-top: 4px;">
-          Agree: ${c.n_agree}, Disagree: ${c.n_disagree}, Pass: ${c.n_pass}, Total: ${c.n_trials}
-        </div>`;
+        headerRow.appendChild(th);
+      });
+    } else {
+      // Just add a single chart column if comparison is disabled
+      const th = document.createElement("th");
+      th.textContent = "";
+      th.style.borderBottom = "2px solid #ccc";
+      th.style.padding = "6px 10px";
+      th.style.textAlign = "left";
+      headerRow.appendChild(th);
+    }
+
+    // Statement column
+    const thStatement = document.createElement("th");
+    thStatement.textContent = "Statement";
+    thStatement.style.borderBottom = "2px solid #ccc";
+    thStatement.style.padding = "6px 10px";
+    thStatement.style.textAlign = "left";
+    headerRow.appendChild(thStatement);
+
+    table.appendChild(headerRow);
+
+    // Create rows for each comment
+    comments.forEach((c) => {
+      const tr = document.createElement("tr");
+      const repColor =
+        c.repful_for === "agree"
+          ? "green"
+          : c.repful_for === "disagree"
+            ? "red"
+            : "#333";
+
+      const match = window.commentTextMap?.[c.tid];
+      const isModerated = match?.mod === "-1" || match?.mod === -1;
+      const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
+
+      // Add "(moderated)" text and apply red styling to moderated statements when included
+      let commentText = match?.txt || "<em>Missing</em>";
+      if (isModerated && includeModerated) {
+        commentText = `<span style="color: red;">${commentText} (moderated)</span>`;
+      }
+
+      const metaLine = `<div style="font-size: 0.85em; color: #666; margin-top: 4px;">
+        Agree: ${c.n_agree}, Disagree: ${c.n_disagree}, Pass: ${c.n_pass}, Total: ${c.n_trials}
+      </div>`;
+
+      // Comment ID
+      const tdId = document.createElement("td");
+      tdId.textContent = c.tid;
+      tdId.style.padding = "6px 10px";
+      tdId.style.borderBottom = "1px solid #eee";
+      tr.appendChild(tdId);
+
+      // Rep Type
+      const tdRep = document.createElement("td");
+      tdRep.innerHTML = `<span style="color: ${repColor}; font-weight: bold;">${c.repful_for}</span>`;
+      tdRep.style.padding = "6px 10px";
+      tdRep.style.borderBottom = "1px solid #eee";
+      tr.appendChild(tdRep);
+
+      // % Support
+      const tdPct = document.createElement("td");
+      tdPct.textContent = `${Math.round((c.n_success / c.n_trials) * 100)}%`;
+      tdPct.style.padding = "6px 10px";
+      tdPct.style.borderBottom = "1px solid #eee";
+      tr.appendChild(tdPct);
+
+      // Add bar charts for each group if comparison is enabled
+      if (AppState.preferences.showGroupComparison) {
+        // Find vote data for this comment across all groups
+        const commentId = c.tid;
+        const groupVoteData = {};
+
+        // Collect vote data for all groups for this comment
+        allGroupColors.forEach(color => {
+          // Default values
+          groupVoteData[color] = {
+            agrees: 0,
+            disagrees: 0,
+            passes: 0,
+            total: 0
+          };
+
+          // Try to find this comment's data in repComments for each group
+          if (repComments[color]) {
+            const groupComment = repComments[color].find(gc => gc.tid === commentId);
+            if (groupComment) {
+              groupVoteData[color] = {
+                agrees: groupComment.n_agree,
+                disagrees: groupComment.n_disagree,
+                passes: groupComment.n_pass,
+                total: groupComment.n_trials
+              };
+            }
+          }
+        });
+
+        // Create a bar chart for each group
+        allGroupColors.forEach(color => {
+          const tdChart = document.createElement("td");
+          tdChart.style.padding = "6px 10px";
+          tdChart.style.borderBottom = "1px solid #eee";
+          tdChart.style.textAlign = "center";
+
+          const voteData = groupVoteData[color];
+
+          // Create bar chart for this group
+          const barChart = createCompactBarChart({
+            voteCounts: {
+              A: voteData.agrees,
+              D: voteData.disagrees,
+              S: voteData.total
+            },
+            nMembers: groupSizes[color],
+            voteColors: Config.voteColors
+          });
+
+          // Highlight current group's column
+          if (color === labelColor) {
+            tdChart.style.backgroundColor = "#f0f0f0";
+          } else {
+            tdChart.style.opacity = "0.7";
+          }
+
+          tdChart.appendChild(barChart);
+          tr.appendChild(tdChart);
+        });
+      } else {
+        // Just add a single chart if comparison is disabled
+        const tdChart = document.createElement("td");
+        tdChart.style.padding = "6px 10px";
+        tdChart.style.borderBottom = "1px solid #eee";
 
         const barChart = createCompactBarChart({
           voteCounts: {
@@ -1368,50 +1526,27 @@ function renderRepCommentsTable(repComments) {
             D: c.n_disagree,
             S: c.n_trials,
           },
-          nMembers: groupSize, // or total participants in this group
+          nMembers: groupSize,
           voteColors: Config.voteColors
         });
 
-        // Comment ID
-        const tdId = document.createElement("td");
-        tdId.textContent = c.tid;
-        tdId.style.padding = "6px 10px";
-        tdId.style.borderBottom = "1px solid #eee";
-        tr.appendChild(tdId);
-
-        // Rep Type
-        const tdRep = document.createElement("td");
-        tdRep.innerHTML = `<span style="color: ${repColor}; font-weight: bold;">${c.repful_for}</span>`;
-        tdRep.style.padding = "6px 10px";
-        tdRep.style.borderBottom = "1px solid #eee";
-        tr.appendChild(tdRep);
-
-        // % Support
-        const tdPct = document.createElement("td");
-        tdPct.textContent = `${Math.round((c.n_success / c.n_trials) * 100)}%`;
-        tdPct.style.padding = "6px 10px";
-        tdPct.style.borderBottom = "1px solid #eee";
-        tr.appendChild(tdPct);
-
-        // ⬅️ NEW: Bar chart column
-        const tdChart = document.createElement("td");
-        tdChart.style.padding = "6px 10px";
-        tdChart.style.borderBottom = "1px solid #eee";
         tdChart.appendChild(barChart);
         tr.appendChild(tdChart);
+      }
 
-        // Statement + meta
-        const tdStatement = document.createElement("td");
-        tdStatement.innerHTML = `<div class="comment-text">${commentText}</div>${metaLine}`;
-        tdStatement.style.padding = "6px 10px";
-        tdStatement.style.borderBottom = "1px solid #eee";
-        tr.appendChild(tdStatement);
+      // Statement + meta
+      const tdStatement = document.createElement("td");
+      tdStatement.innerHTML = `<div class="comment-text">${commentText}</div>${metaLine}`;
+      tdStatement.style.padding = "6px 10px";
+      tdStatement.style.borderBottom = "1px solid #eee";
+      tr.appendChild(tdStatement);
 
-        table.appendChild(tr);
-      });
-      groupDiv.appendChild(table);
-      container.appendChild(groupDiv);
+      table.appendChild(tr);
     });
+
+    groupDiv.appendChild(table);
+    container.appendChild(groupDiv);
+  });
 }
 
 // Test if two proportions differ significantly
@@ -1472,10 +1607,12 @@ async function getGroupVoteMatrices(db, labelArray) {
 
   const groupVotes = {};
   for (const [label, indices] of Object.entries(groups)) {
+    // Properly quote participant IDs as they are strings
+    const quotedIndices = indices.map(pid => `'${pid}'`);
     const result = db.exec(`
       SELECT participant_id, comment_id, vote
       FROM votes
-      WHERE participant_id IN (${indices.join(",")})
+      WHERE participant_id IN (${quotedIndices.join(",")})
     `);
 
     const voteMatrix = {};
