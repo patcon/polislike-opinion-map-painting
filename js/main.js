@@ -811,27 +811,38 @@ function renderMetaInfo(meta) {
 
   const items = [
     {
-      label: "About:",
+      label: "About",
       url: meta.about_url,
     },
     {
-      label: "Conversation:",
+      label: "Conversation",
       url: meta.conversation_url,
     },
     {
-      label: "Report:",
+      label: "Report",
       url: meta.report_url,
     },
   ];
 
   container.innerHTML = items
     .map(({ label, url }) => {
-      const content = url
-        ? `<a href="${url}" target="_blank" style="color: #0066cc;">link</a>`
-        : `<span style="color: #999;">n/a</span>`;
-      return `<span>${label} ${content}</span>`;
+      const isDisabled = !url;
+      const buttonClass = isDisabled
+        ? "inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-400 rounded-md border border-gray-300 cursor-not-allowed opacity-75"
+        : "inline-flex items-center px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-700 rounded-md border border-gray-300 shadow-sm transition-colors";
+
+      const content = isDisabled
+        ? `<span class="inline-flex items-center">${label}</span>`
+        : `<a href="${url}" target="_blank" class="inline-flex items-center">${label}</a>`;
+
+      return `
+        <button class="${buttonClass} mr-2 mb-2" ${isDisabled ? 'disabled' : ''}>
+          <span class="mr-1.5">🔗</span>
+          ${content}
+        </button>
+      `;
     })
-    .join(" &nbsp; | &nbsp; ");
+    .join("");
 }
 
 function highlightSelectedColor(color) {
