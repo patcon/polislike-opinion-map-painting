@@ -95,7 +95,8 @@ const AppState = {
     convoSlug: null,
     isAdditive: false,
     flipX: false,
-    flipY: false
+    flipY: false,
+    scaleOpacityWithVotes: false
   },
 
   /**
@@ -112,6 +113,7 @@ const AppState = {
     this.preferences.isAdditive = loadState("additive", false);
     this.preferences.flipX = loadState("flipX", false);
     this.preferences.flipY = loadState("flipY", false);
+    this.preferences.scaleOpacityWithVotes = loadState("scaleOpacityWithVotes", false);
     this.ui.dotOpacity = Config.dotOpacity;
     this.ui.dotSize = Config.dotSize;
   },
@@ -308,6 +310,7 @@ function initializeUI() {
   document.getElementById("include-unpainted").checked = loadState("includeUnpainted", false);
   document.getElementById("auto-analyze-checkbox").checked = loadState("autoAnalyze", true);
   document.getElementById("include-moderated-checkbox").checked = loadState("includeModerated", false);
+  document.getElementById("scale-opacity-checkbox").checked = AppState.preferences.scaleOpacityWithVotes;
   document.getElementById("flip-x-checkbox").checked = AppState.preferences.flipX;
   document.getElementById("flip-y-checkbox").checked = AppState.preferences.flipY;
 
@@ -442,6 +445,13 @@ function setupEventListeners() {
     dotSize = AppState.ui.dotSize; // Update global for backward compatibility
     dotSizeValueLabel.textContent = AppState.ui.dotSize;
     saveState("dotSize", AppState.ui.dotSize);
+    renderAllPlots(); // Reapply to all plots
+  });
+
+  // Scale opacity with vote count checkbox
+  document.getElementById("scale-opacity-checkbox").addEventListener("change", (e) => {
+    AppState.preferences.scaleOpacityWithVotes = e.target.checked;
+    saveState("scaleOpacityWithVotes", AppState.preferences.scaleOpacityWithVotes);
     renderAllPlots(); // Reapply to all plots
   });
 
@@ -807,6 +817,8 @@ function updateLabelCounts() {
 
 /**
  * Apply hover styles to points
+ * This is a simplified version that doesn't try to calculate opacity scaling
+ * since that's handled by updateOpacityBasedOnVotes
  */
 function applyHoverStyles() {
   d3.selectAll("circle").each(function () {
@@ -814,13 +826,14 @@ function applyHoverStyles() {
     const index = +circle.attr("data-index");
     const rawColor = AppState.selection.colorByIndex[index];
     const baseColor = rawColor || "#7f7f7f";
+
     if (AppState.ui.hoveredIndices.has(index)) {
       const hoverColor = adjustColorForHover(baseColor);
       circle.attr("fill", hoverColor).attr("fill-opacity", 0.3).raise();
     } else {
-      circle
-        .attr("fill", rawColor || "rgba(0,0,0,0.5)")
-        .attr("fill-opacity", AppState.ui.dotOpacity);
+      // Don't modify opacity here, it's handled by updateOpacityBasedOnVotes
+      circle.attr("fill", rawColor || "rgba(0,0,0,0.5)");
+      // We don't set fill-opacity here as it would override the scaled opacity
     }
   });
 }
@@ -915,6 +928,55 @@ function getParticipantVoteSummary(participantId) {
     .join("\n");
 }
 
+/**
+ * Calculate opacity scale factor based on vote count
+ * @param {string} participantId - The participant ID
+ * @returns {Promise<number>} - Scale factor between 0 and 1
+ */
+async function calculateOpacityScaleFactor(participantId) {
+  // If scaling is disabled, return 1 (full opacity)
+  if (!AppState.preferences.scaleOpacityWithVotes) {
+    return 1;
+  }
+
+  // Ensure database is loaded
+  if (!window.dbInstance) {
+    try {
+      await loadVotesDB(AppState.preferences.convoSlug);
+    } catch (error) {
+      console.error("Failed to load votes database:", error);
+      return 1;
+    }
+  }
+
+  // If comments not loaded, return 1
+  if (!window.commentTexts) {
+    return 1;
+  }
+
+  // Get all unmoderated statements
+  const unmoderatedStatements = window.commentTexts.filter(s =>
+    s.mod !== -1 && s.mod !== "-1"
+  );
+
+  // If no unmoderated statements, return 1
+  if (unmoderatedStatements.length === 0) {
+    return 1;
+  }
+
+  // Count how many statements this participant voted on
+  const result = window.dbInstance.exec(`
+    SELECT COUNT(*) as vote_count
+    FROM votes
+    WHERE participant_id = '${participantId}'
+  `);
+
+  const voteCount = result[0]?.values[0][0] || 0;
+
+  // Calculate scale factor: votes / total unmoderated statements
+  return Math.max(0.1, Math.min(1, voteCount / unmoderatedStatements.length));
+}
+
 function renderPlot(svgId, data, title) {
   const svg = d3.select(svgId);
   svg.attr("width", width).attr("height", height);
@@ -964,7 +1026,7 @@ function renderPlot(svgId, data, title) {
     .attr("cx", ({ d }) => scales.x(d[0]))
     .attr("cy", ({ d }) => scales.y(d[1]))
     .attr("r", dotSize)
-    .attr("fill-opacity", dotOpacity)
+    .attr("fill-opacity", dotOpacity) // Start with default opacity
     .attr("fill", ({ i }) => colorByIndex[i] || "rgba(0,0,0,0.5)")
     .attr("data-index", ({ i }) => i)
     // Show user vote history in console (for debug)
@@ -1000,6 +1062,49 @@ function renderPlot(svgId, data, title) {
 }
 
 /**
+ * Update opacity of all circles based on vote count
+ */
+async function updateOpacityBasedOnVotes() {
+  if (!AppState.preferences.scaleOpacityWithVotes) {
+    return;
+  }
+
+  // Ensure database is loaded
+  if (!window.dbInstance) {
+    try {
+      await loadVotesDB(AppState.preferences.convoSlug);
+    } catch (error) {
+      console.error("Failed to load votes database:", error);
+      return;
+    }
+  }
+
+  // Calculate opacity for each participant
+  const opacityFactors = {};
+
+  for (let i = 0; i < window.participants?.length || 0; i++) {
+    const pid = window.participants[i];
+    if (pid) {
+      opacityFactors[i] = await calculateOpacityScaleFactor(pid);
+    }
+  }
+
+  // Apply opacity to all circles
+  d3.selectAll("circle").each(function () {
+    const circle = d3.select(this);
+    const index = +circle.attr("data-index");
+
+    if (AppState.ui.hoveredIndices.has(index)) {
+      // Don't change opacity for hovered circles
+      return;
+    }
+
+    const factor = opacityFactors[index] || 1;
+    circle.attr("fill-opacity", dotOpacity * factor);
+  });
+}
+
+/**
  * Render all three projection plots
  */
 function renderAllPlots() {
@@ -1012,6 +1117,11 @@ function renderAllPlots() {
   renderPlot("#plot1", AppState.data.X1, "PCA projection");
   renderPlot("#plot2", AppState.data.X2, "PaCMAP projection");
   renderPlot("#plot3", AppState.data.X3, "LocalMAP projection");
+
+  // Update opacity based on vote count if enabled
+  if (AppState.preferences.scaleOpacityWithVotes) {
+    updateOpacityBasedOnVotes();
+  }
 }
 
 /**
