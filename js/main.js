@@ -1344,7 +1344,14 @@ function renderRepCommentsTable(repComments) {
               : "#333";
 
         const match = window.commentTextMap?.[c.tid];
-        const commentText = match?.txt || "<em>Missing</em>";
+        const isModerated = match?.mod === "-1" || match?.mod === -1;
+        const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
+
+        // Add "(moderated)" text and apply red styling to moderated statements when included
+        let commentText = match?.txt || "<em>Missing</em>";
+        if (isModerated && includeModerated) {
+          commentText = `<span style="color: red;">${commentText} (moderated)</span>`;
+        }
 
         const metaLine = `<div style="font-size: 0.85em; color: #666; margin-top: 4px;">
           Agree: ${c.n_agree}, Disagree: ${c.n_disagree}, Pass: ${c.n_pass}, Total: ${c.n_trials}
