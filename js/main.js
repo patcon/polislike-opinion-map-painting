@@ -1390,10 +1390,36 @@ function renderRepCommentsTable(repComments) {
           : UNGROUPED_LABEL;
 
         const th = document.createElement("th");
-        th.textContent = `Group ${groupLetter}`;
         th.style.borderBottom = "2px solid #ccc";
         th.style.padding = "6px 10px";
         th.style.textAlign = "center";
+
+        // Create a container for the circle and text
+        const container = document.createElement("div");
+        container.style.display = "flex";
+        container.style.alignItems = "center";
+        container.style.justifyContent = "center";
+        container.style.gap = "5px";
+
+        // Create colored circle similar to section header
+        const circle = document.createElement("span");
+        circle.style.display = "inline-block";
+        circle.style.width = "12px";
+        circle.style.height = "12px";
+        circle.style.borderRadius = "50%";
+        circle.style.backgroundColor = color;
+        circle.style.border = "1px solid #999";
+
+        // Create text element
+        const text = document.createElement("span");
+        text.textContent = `Group ${groupLetter}`;
+
+        // Add circle and text to container
+        container.appendChild(circle);
+        container.appendChild(text);
+
+        // Add container to header cell
+        th.appendChild(container);
 
         // Highlight the current group's column
         if (color === labelColor) {
