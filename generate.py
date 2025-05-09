@@ -27,17 +27,27 @@ import numpy as np
 import requests
 import os
 
+
 # --- CLI Handling ---
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", help="Full Polis URL to a conversation or report")
     parser.add_argument("--report-id", help="Polis report ID", default=None)
     parser.add_argument("--convo-id", help="Polis conversation ID", default=None)
-    parser.add_argument("--import-dir", help="Directory with previously downloaded data", default=None)
+    parser.add_argument(
+        "--import-dir", help="Directory with previously downloaded data", default=None
+    )
     parser.add_argument("--slug", help="Optional directory name override")
-    parser.add_argument("--polis-base-url", default="https://pol.is", help="Base URL for Polis API (default: https://pol.is)")
-    parser.add_argument("--ca-bundle", help="Path to custom CA bundle for HTTPS verification")
+    parser.add_argument(
+        "--polis-base-url",
+        default="https://pol.is",
+        help="Base URL for Polis API (default: https://pol.is)",
+    )
+    parser.add_argument(
+        "--ca-bundle", help="Path to custom CA bundle for HTTPS verification"
+    )
     return parser.parse_args()
+
 
 def parse_url_metadata(url: str):
     parsed = urlparse(url)
@@ -57,40 +67,51 @@ def parse_url_metadata(url: str):
     else:
         raise ValueError(f"Could not detect ID type in URL: {url}")
 
+
 # --- Projection Helpers ---
 def run_projection(name, data, seed, raw_vote_matrix):
     pipe = None
     if name == "PCA":
-        pipe = Pipeline([
-            ("impute", SimpleImputer(missing_values=np.nan, strategy="mean")),
-            ("pca", PCA(n_components=2, random_state=seed)),
-            ("scale", SparsityAwareScaler(X_sparse=raw_vote_matrix.values)),
-        ])
+        pipe = Pipeline(
+            [
+                ("impute", SimpleImputer(missing_values=np.nan, strategy="mean")),
+                ("pca", PCA(n_components=2, random_state=seed)),
+                ("scale", SparsityAwareScaler(X_sparse=raw_vote_matrix.values)),
+            ]
+        )
     elif name == "PaCMAP":
-        pipe = Pipeline([
-            ("impute", SimpleImputer(missing_values=np.nan, strategy="mean")),
-            ("pacmap", PaCMAP(n_components=2, random_state=seed)),
-        ])
+        pipe = Pipeline(
+            [
+                ("impute", SimpleImputer(missing_values=np.nan, strategy="mean")),
+                ("pacmap", PaCMAP(n_components=2, random_state=seed)),
+            ]
+        )
     elif name == "LocalMAP":
-        pipe = Pipeline([
-            ("impute", SimpleImputer(missing_values=np.nan, strategy="mean")),
-            ("localmap", LocalMAP(n_components=2, random_state=seed)),
-        ])
+        pipe = Pipeline(
+            [
+                ("impute", SimpleImputer(missing_values=np.nan, strategy="mean")),
+                ("localmap", LocalMAP(n_components=2, random_state=seed)),
+            ]
+        )
     else:
         raise ValueError(f"Unknown projection method: {name}")
     return pipe.fit_transform(data)
+
 
 # --- Save Vote Matrix to SQLite ---
 def save_votes_db(raw_vote_matrix, participant_ids, outpath):
     print("🗃️  Creating votes.db from filtered participants")
     df = raw_vote_matrix.loc[participant_ids].copy()
-    df = df.reset_index().rename(columns={"index": "participant_id"})  # Keep participant_id as a column
-    long_df = df.melt(id_vars="participant_id", var_name="comment_id", value_name="vote")
-    long_df = long_df.dropna(subset=["vote"]).astype({
-        "participant_id": str,
-        "comment_id": str,
-        "vote": int
-    })
+    df = df.reset_index().rename(
+        # Keep participant_id as a column
+        columns={"index": "participant_id"}
+    )
+    long_df = df.melt(
+        id_vars="participant_id", var_name="comment_id", value_name="vote"
+    )
+    long_df = long_df.dropna(subset=["vote"]).astype(
+        {"participant_id": str, "comment_id": str, "vote": int}
+    )
 
     conn = sqlite3.connect(outpath)
     long_df.to_sql("votes", conn, index=False, if_exists="replace")
@@ -99,6 +120,7 @@ def save_votes_db(raw_vote_matrix, participant_ids, outpath):
     conn.commit()
     conn.close()
     print(f"✅ Saved votes.db with {len(long_df)} rows")
+
 
 # --- Main Logic ---
 def main():
@@ -113,7 +135,9 @@ def main():
         args.convo_id = parsed.get("convo_id")
 
     if not (args.convo_id or args.report_id or args.import_dir):
-        raise ValueError("You must pass one of --convo-id, --report-id, or --import-dir")
+        raise ValueError(
+            "You must pass one of --convo-id, --report-id, --url, or --import-dir"
+        )
 
     if args.ca_bundle:
         os.environ["REQUESTS_CA_BUNDLE"] = os.path.abspath(args.ca_bundle)
@@ -124,22 +148,32 @@ def main():
     base_url = args.polis_base_url
     if args.import_dir:
         print(f"🔍 Loading from directory: {args.import_dir}")
-        loader = Loader(filepaths=[
-            os.path.join(args.import_dir, "comments.json"),
-            os.path.join(args.import_dir, "votes.json"),
-            os.path.join(args.import_dir, "math-pca2.json"),
-            os.path.join(args.import_dir, "conversation.json"),
-        ])
+        loader = Loader(
+            filepaths=[
+                os.path.join(args.import_dir, "comments.json"),
+                os.path.join(args.import_dir, "votes.json"),
+                os.path.join(args.import_dir, "math-pca2.json"),
+                os.path.join(args.import_dir, "conversation.json"),
+            ]
+        )
         loader.conversation_id = loader.conversation_data["conversation_id"]
     elif args.report_id:
-        print(f"🔍 Loading via report ID: {args.polis_base_url.rstrip('/')}/report/{args.report_id}")
-        loader = Loader(polis_instance_url=base_url, polis_id=args.report_id, data_source="csv_export")
+        print(
+            f"🔍 Loading via report ID: {args.polis_base_url.rstrip('/')}/report/{args.report_id}"
+        )
+        loader = Loader(
+            polis_instance_url=base_url,
+            polis_id=args.report_id,
+            data_source="csv_export",
+        )
         loader.load_api_data_report()
         loader.conversation_id = loader.report_data["conversation_id"]
         loader.load_api_data_math()
         loader.load_api_data_conversation()
     else:
-        print(f"🔍 Loading via conversation ID: {args.polis_base_url.rstrip('/')}/{args.convo_id}")
+        print(
+            f"🔍 Loading via conversation ID: {args.polis_base_url.rstrip('/')}/{args.convo_id}"
+        )
         loader = Loader(polis_instance_url=base_url, polis_id=args.convo_id)
 
     slug = args.slug or loader.conversation_id
@@ -162,7 +196,7 @@ def main():
     # Save statements.json from loader.comments_data
     with open(outdir / "statements.json", "w") as f:
         json.dump(loader.comments_data, f, indent=2)
-    print("✅ Saved statements.json from loader")   
+    print("✅ Saved statements.json from loader")
 
     clustered_pids, _ = extract_data_from_polismath(loader.math_data)
     safe_ids = [pid for pid in clustered_pids if pid in raw_vote_matrix.index]
@@ -175,7 +209,12 @@ def main():
     projections = {}
     for name in ["PCA", "PaCMAP", "LocalMAP"]:
         print(f"🔄 Running projection: {name}")
-        X = run_projection(name, filtered_vote_matrix.values, seed=607642, raw_vote_matrix=raw_vote_matrix)
+        X = run_projection(
+            name,
+            filtered_vote_matrix.values,
+            seed=607642,
+            raw_vote_matrix=raw_vote_matrix,
+        )
         X_filtered = X[cluster_mask]
 
         # Get participant_ids matching filtered projection
@@ -205,7 +244,9 @@ def main():
         if hasattr(loader, "report_data") and "report_url" in loader.report_data:
             meta["report_url"] = loader.report_data["report_url"]
         elif args.report_id:
-            meta["report_url"] = f"{args.polis_base_url.rstrip('/')}/report/{args.report_id}"
+            meta["report_url"] = (
+                f"{args.polis_base_url.rstrip('/')}/report/{args.report_id}"
+            )
 
         with open(meta_path, "w") as f:
             json.dump(meta, f, indent=2)
@@ -213,7 +254,7 @@ def main():
 
         print(f"Done! Files written to {outdir}")
 
-        datasets_path = Path("datasets.json")
+        datasets_path = Path("data/datasets.json")
 
         # Load existing or create new list
         if datasets_path.exists():
@@ -237,6 +278,7 @@ def main():
         with open(datasets_path, "w") as f:
             json.dump(datasets, f, indent=2)
             print("📘 Updated datasets.json")
+
 
 if __name__ == "__main__":
     print("🚀 Starting Red-Dwarf report generator")

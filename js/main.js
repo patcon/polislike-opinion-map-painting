@@ -163,10 +163,10 @@ function loadAndRenderData(slug) {
 
   return new Promise((resolve) => {
     Promise.all([
-      d3.json(`data/${slug}/pca.json`),
-      d3.json(`data/${slug}/pacmap.json`),
-      d3.json(`data/${slug}/localmap.json`),
-      d3.json(`data/${slug}/meta.json`).catch(() => null),
+      d3.json(`data/datasets/${slug}/pca.json`),
+      d3.json(`data/datasets/${slug}/pacmap.json`),
+      d3.json(`data/datasets/${slug}/localmap.json`),
+      d3.json(`data/datasets/${slug}/meta.json`).catch(() => null),
     ]).then(([data1, data2, data3, meta]) => {
       // Store data in AppState
       AppState.data.participants = data1.map(([tid]) => tid);
@@ -179,7 +179,7 @@ function loadAndRenderData(slug) {
       showPlotLoader();
       renderMetaInfo(meta);
 
-      d3.json(`data/${slug}/statements.json`).then((rawStatements) => {
+      d3.json(`data/datasets/${slug}/statements.json`).then((rawStatements) => {
         const statements = rawStatements.map((s) => ({
           tid: s.tid ?? s.statement_id,
           pid: s.pid ?? s.participant_id,
@@ -1025,7 +1025,7 @@ function initializeApp() {
  * Load the dataset list from JSON
  */
 function loadDatasetList() {
-  return fetch("datasets.json")
+  return fetch("data/datasets.json")
     .then((res) => res.json())
     .then((datasets) => {
       const select = document.getElementById("dataset");
