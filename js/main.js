@@ -862,11 +862,15 @@ function updateLabelCounts() {
   container.innerHTML =
     ordered
       .map(
-        ([color, count]) => `
+        ([color, count]) => {
+          const labelIndex = AppState.selection.colorToLabelIndex[color];
+          const letter = labelIndex !== undefined ? labelIndexToLetter(labelIndex) : "";
+          return `
     <span style="margin-right: 12px;">
-      <span style="display:inline-block; width:14px; height:14px; background:${color}; border:1px solid #aaa; margin-right:5px; vertical-align:middle;"></span>
-      ${count}
-    </span>`
+      <span style="display:inline-block; width:18px; height:18px; background:${color}; border:1px solid #aaa; margin-right:5px; vertical-align:middle; border-radius:50%; text-align:center; line-height:18px; font-size:11px; color:white; font-family:sans-serif;">${letter}</span>
+      <span style="vertical-align:middle;">${count}</span>
+    </span>`;
+        }
       )
       .join("") || "(No selections yet)";
 }
