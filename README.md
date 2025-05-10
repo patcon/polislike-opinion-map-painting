@@ -74,7 +74,7 @@ Demo of label painting import: [`https://patcon.github.io/polislike-opinion-map-
    - Move along "coasts" of map, or across ismuths.
    - See how "dense" some regions are with participants, while some are diffuse and sparsely populated.
    - Notice how one algorithm might see structure or relationship differently than another.
-7. FUTURE: Paint regions with different colors, and see which statements across which they differ and over which statements they align.
+7. Paint regions with different colors, and see across which statements they differ and over which statements they align.
 
 ### Generate and use your own data
 
@@ -113,6 +113,42 @@ Other CLI features:
 See all options by running `uv run python generate --help`
 
 You can find an exploratory data science notebook here: https://gist.github.com/patcon/0fe7e07ff9dae3a01b2ad49798d98306
+
+## Testing
+
+This project uses Jest for testing. The following commands are available:
+
+```sh
+# Run tests
+npm test
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage in watch mode
+npm run test:coverage:watch
+```
+
+The coverage report will be generated in the `coverage` directory.
+
+The project is currently in the early stages of implementing test coverage. We've started with low threshold values to establish a baseline, with the goal of gradually increasing coverage over time to reach at least 70% for branches, functions, lines, and statements.
+
+### Coverage Monitoring
+
+To help maintain and improve test coverage, the project includes:
+
+1. A GitHub Actions workflow that runs tests with coverage on every push and pull request, with results displayed directly in the GitHub interface
+2. A script to check if coverage has decreased compared to the previous run:
+
+```sh
+# Run the coverage check script
+npm run check-coverage
+```
+
+This script will compare the current coverage with the previous run and alert if coverage has decreased.
 
 ## CodeSandbox
 

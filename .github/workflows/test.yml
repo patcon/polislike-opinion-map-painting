@@ -1,0 +1,47 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install jq
+        run: |
+          if ! command -v jq &> /dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Create coverage summary
+        run: |
+          echo "## Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| File | % Stmts | % Branch | % Funcs | % Lines |" >> $GITHUB_STEP_SUMMARY
+          echo "| ---- | ------- | -------- | ------- | ------- |" >> $GITHUB_STEP_SUMMARY
+
+          # Extract coverage data from coverage-summary.json
+          echo "| All files | $(jq -r '.total.statements.pct' coverage/coverage-summary.json)% | $(jq -r '.total.branches.pct' coverage/coverage-summary.json)% | $(jq -r '.total.functions.pct' coverage/coverage-summary.json)% | $(jq -r '.total.lines.pct' coverage/coverage-summary.json)% |" >> $GITHUB_STEP_SUMMARY
+
+          # Add individual file coverage
+          for file in $(jq -r 'keys[] | select(. != "total")' coverage/coverage-summary.json); do
+            echo "| $file | $(jq -r ".[\"$file\"].statements.pct" coverage/coverage-summary.json)% | $(jq -r ".[\"$file\"].branches.pct" coverage/coverage-summary.json)% | $(jq -r ".[\"$file\"].functions.pct" coverage/coverage-summary.json)% | $(jq -r ".[\"$file\"].lines.pct" coverage/coverage-summary.json)% |" >> $GITHUB_STEP_SUMMARY
+          done

@@ -1,0 +1,206 @@
+// ============================================================================
+// Configuration
+// ============================================================================
+
+/**
+ * Application configuration constants
+ */
+const Config = {
+    // Default dot opacity
+    dotOpacity: 0.3,
+    // Default dot size
+    dotSize: 3,
+
+    // Reference: https://matplotlib.org/stable/users/explain/colors/colormaps.html#qualitative
+    colors: {
+        tab10: [
+            "#1f77b4", // (A) muted blue
+            "#ff7f0e", // (B) safety orange
+            "#2ca02c", // (C) cooked asparagus green
+            "#d62728", // (D) brick red
+            "#9467bd", // (E) muted purple
+            "#8c564b", // (F) chestnut brown
+            "#e377c2", // (G) raspberry yogurt pink
+            "#7f7f7f", // (H) middle gray
+            "#bcbd22", // (I) curry yellow-green
+            "#17becf", // (J) blue-teal
+        ]
+    },
+
+    // Chart colors for vote visualization
+    voteColors: {
+        agree: "rgb(46, 204, 113)",
+        disagree: "rgb(231, 76, 60)",
+        pass: "rgb(230,230,230)"
+    },
+
+    // Statistical thresholds
+    stats: {
+        minVotes: 3,
+        significanceThreshold: 1.2816, // 90% confidence
+    }
+};
+
+// ============================================================================
+// State Management
+// ============================================================================
+
+/**
+ * Application state management
+ */
+const AppState = {
+    // Dimensions
+    dimensions: {
+        width: 0,
+        height: 0
+    },
+
+    // Data
+    data: {
+        X1: null, // PCA projection
+        X2: null, // PaCMAP projection
+        X3: null, // LocalMAP projection
+        participants: [],
+        commentTexts: null,
+        commentTextMap: {},
+        meta: null,
+        repComments: null,
+        dbInstance: null
+    },
+
+    // UI State
+    ui: {
+        isDragging: false,
+        hoveredIndices: new Set(),
+        dotOpacity: Config.dotOpacity,
+        dotSize: Config.dotSize,
+        opacityFactorCache: {} // Cache for opacity scale factors
+    },
+
+    // Selection state
+    selection: {
+        colorToLabelIndex: {}, // hex -> int
+        colorByIndex: [],
+        selectedIndices: new Set()
+    },
+
+    // Preferences
+    preferences: {
+        convoSlug: null,
+        isAdditive: false,
+        flipX: false,
+        flipY: false,
+        scaleOpacityWithVotes: false,
+        showGroupComparison: true
+    },
+
+    /**
+     * Initialize the application state
+     */
+    init() {
+        // Initialize color mapping
+        Config.colors.tab10.forEach((color, i) => {
+            this.selection.colorToLabelIndex[color] = i;
+        });
+
+        // Load preferences from session storage
+        this.preferences.convoSlug = getQueryParam("dataset") || loadState("dataset", "bg2050");
+        this.preferences.isAdditive = loadState("additive", false);
+        this.preferences.flipX = loadState("flipX", false);
+        this.preferences.flipY = loadState("flipY", false);
+        this.preferences.scaleOpacityWithVotes = loadState("scaleOpacityWithVotes", false);
+        this.preferences.showGroupComparison = loadState("showGroupComparison", true);
+        this.ui.dotOpacity = Config.dotOpacity;
+        this.ui.dotSize = Config.dotSize;
+    },
+
+    /**
+     * Update dimensions based on container size
+     */
+    updateDimensions() {
+        const container = document.getElementById("plot-wrapper");
+        const containerWidth = container.clientWidth;
+        this.dimensions.width = containerWidth / 3 - 20;
+        this.dimensions.height = this.dimensions.width;
+    },
+
+    /**
+     * Reset data state for a new dataset
+     */
+    resetDataState() {
+        this.data.dbInstance = null;
+        this.data.commentTexts = null;
+        this.data.repComments = null;
+        this.ui.opacityFactorCache = {}; // Clear opacity cache when changing datasets
+        document.getElementById("rep-comments-output").innerHTML = "";
+    }
+};
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * Save state to session storage
+ * @param {string} key - The key to save under
+ * @param {any} value - The value to save
+ */
+function saveState(key, value) {
+    sessionStorage.setItem(key, JSON.stringify(value));
+}
+
+/**
+ * Load state from session storage
+ * @param {string} key - The key to load
+ * @param {any} defaultValue - Default value if key doesn't exist
+ * @returns {any} - The loaded value or default
+ */
+function loadState(key, defaultValue) {
+    const saved = sessionStorage.getItem(key);
+    return saved !== null ? JSON.parse(saved) : defaultValue;
+}
+
+/**
+ * Get a query parameter from the URL
+ * @param {string} name - The parameter name
+ * @returns {string|null} - The parameter value or null
+ */
+function getQueryParam(name) {
+    const params = new URLSearchParams(window.location.search);
+    return params.get(name);
+}
+
+/**
+ * Convert a label index to a letter (A, B, C, etc.)
+ * @param {number} i - The index
+ * @returns {string} - The letter
+ */
+function labelIndexToLetter(i) {
+    return String.fromCharCode("A".charCodeAt(0) + i);
+}
+
+/**
+ * Show the plot loader overlay
+ */
+function showPlotLoader() {
+    document.getElementById("plot-loader").style.display = "flex";
+}
+
+/**
+ * Hide the plot loader overlay
+ */
+function hidePlotLoader() {
+    document.getElementById("plot-loader").style.display = "none";
+}
+
+// For testing purposes, export objects and functions
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        Config,
+        AppState,
+        getQueryParam,
+        loadState,
+        saveState,
+        // Add other functions you want to test
+    };
+}
