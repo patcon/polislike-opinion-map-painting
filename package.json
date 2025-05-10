@@ -6,7 +6,11 @@
   "scripts": {
     "start": "serve",
     "build": "echo This is a static template, there is no bundler or bundling involved!",
-    "test": "jest"
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:watch": "jest --watch",
+    "test:coverage:watch": "jest --coverage --watch",
+    "check-coverage": "./scripts/check-coverage.sh"
   },
   "repository": {
     "type": "git",
