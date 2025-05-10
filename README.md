@@ -43,10 +43,23 @@ Demo of label painting import: [`https://patcon.github.io/polislike-opinion-map-
   - [ ] add ability to hardcode seed for clustering algo
   - [ ] add pre-calculated cluster label sets for PCA/PaCMAP/LocalMAP
 - [x] add links to Polis convo and report when applicable
-- [ ] Clean up interface
+- [x] Clean up interface
+- [x] Add columns to more easily compare statement stats between groups
+- [x] add option to scale opacity with: vote count
+  - participant voting on all statement = full opacity (proxy for engagement)
+- [ ] add option to scale opacity with: participant ID (proxy for time of arrival)
+- [x] Add slider for max opacity and dot size (adjustment allows suitability for large and small convos)
+- [x] allow toggling inclusion of moderated statements in analysis
+- [ ] BUG: fix group stats for moderated statements
 - [ ] Add option to view side-by-side vs single large view
 - [ ] Add feature to animate transitions between algo projects in single view mode.
 - [ ] Add true "paint" style selection.
+- [ ] Get group selection working on mobile
+- [ ] add report option to set limit of number to select
+- [ ] add report option to ignore statements below a certain vote threshold
+- [ ] add report option to sort by column
+- [ ] investigate navigating from sqlite to duckdb for in-browser database
+- [ ] better compression of data for shorter share urls
 
 ## Usage
 
