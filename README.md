@@ -59,6 +59,7 @@ Demo of label painting import: [`https://patcon.github.io/polislike-opinion-map-
 - [ ] add report option to ignore statements below a certain vote threshold
 - [ ] add report option to sort by column
 - [ ] investigate navigating from sqlite to duckdb for in-browser database
+- [ ] better compression of data for shorter share urls
 
 ## Usage
 
