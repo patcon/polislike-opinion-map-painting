@@ -143,20 +143,6 @@ const AppState = {
   }
 };
 
-// For backward compatibility with existing code
-// These will be gradually removed as code is refactored
-let width = 0, height = 0;
-let X1, X2, X3;
-let dotOpacity = AppState.ui.dotOpacity;
-let dotSize = AppState.ui.dotSize;
-let isDragging = false;
-let hoveredIndices = new Set();
-let flipX = false, flipY = false;
-const colorToLabelIndex = AppState.selection.colorToLabelIndex;
-const colorByIndex = AppState.selection.colorByIndex;
-const selectedIndicesGlobal = AppState.selection.selectedIndices;
-let isAdditiveDefault = AppState.preferences.isAdditive;
-let convoSlug = AppState.preferences.convoSlug;
 
 // ============================================================================
 // Data Loading Functions
@@ -170,7 +156,6 @@ let convoSlug = AppState.preferences.convoSlug;
 function loadAndRenderData(slug) {
   // Reset data state for a new dataset
   AppState.resetDataState();
-  window.dbInstance = null; // For backward compatibility
 
   return new Promise((resolve) => {
     Promise.all([
@@ -183,9 +168,6 @@ function loadAndRenderData(slug) {
       AppState.data.participants = data1.map(([tid]) => tid);
       AppState.data.meta = meta;
 
-      // For backward compatibility
-      window.participants = AppState.data.participants;
-      window.meta = meta;
 
       showPlotLoader();
       renderMetaInfo(meta);
@@ -202,9 +184,6 @@ function loadAndRenderData(slug) {
         AppState.data.commentTexts = statements;
         AppState.data.commentTextMap = Object.fromEntries(statements.map((c) => [c.tid, c]));
 
-        // For backward compatibility
-        window.commentTexts = statements;
-        window.commentTextMap = AppState.data.commentTextMap;
       });
 
       // Store projection data
@@ -212,20 +191,12 @@ function loadAndRenderData(slug) {
       AppState.data.X2 = data2.map(([, coords]) => coords);
       AppState.data.X3 = data3.map(([, coords]) => coords);
 
-      // For backward compatibility
-      X1 = AppState.data.X1;
-      X2 = AppState.data.X2;
-      X3 = AppState.data.X3;
 
       // Reset selection state
       AppState.selection.colorByIndex.length = AppState.data.X1.length;
       AppState.selection.colorByIndex.fill(null);
       AppState.selection.selectedIndices.clear();
 
-      // For backward compatibility
-      colorByIndex.length = AppState.data.X1.length;
-      colorByIndex.fill(null);
-      selectedIndicesGlobal.clear();
 
       // Render UI
       renderAllPlots();
@@ -254,10 +225,6 @@ function applySharedState({
   AppState.preferences.flipX = fx;
   AppState.preferences.flipY = fy;
 
-  // For backward compatibility
-  convoSlug = dataset;
-  flipX = fx;
-  flipY = fy;
 
   // Update UI
   document.getElementById("dataset").value = dataset;
@@ -274,20 +241,12 @@ function applySharedState({
     AppState.selection.colorByIndex.length = labelIndices.length;
     AppState.selection.selectedIndices.clear();
 
-    // For backward compatibility
-    colorByIndex.length = labelIndices.length;
-    selectedIndicesGlobal.clear();
-
     for (let i = 0; i < labelIndices.length; i++) {
       const idx = labelIndices[i];
       if (idx != null) {
         const color = Config.colors.tab10[idx];
         AppState.selection.colorByIndex[i] = color;
         AppState.selection.selectedIndices.add(i);
-
-        // For backward compatibility
-        colorByIndex[i] = color;
-        selectedIndicesGlobal.add(i);
       }
     }
 
@@ -330,9 +289,6 @@ function initializeUI() {
   document.getElementById("dot-size-slider").value = AppState.ui.dotSize;
   document.getElementById("dot-size-value").textContent = AppState.ui.dotSize;
 
-  // Update global variables for backward compatibility
-  flipX = AppState.preferences.flipX;
-  flipY = AppState.preferences.flipY;
 }
 
 // ============================================================================
@@ -357,7 +313,6 @@ function setupEventListeners() {
   document.getElementById("dataset").addEventListener("change", (e) => {
     const selectedDataset = e.target.value;
     AppState.preferences.convoSlug = selectedDataset;
-    convoSlug = selectedDataset; // Update global for backward compatibility
     saveState("dataset", selectedDataset);
     loadAndRenderData(selectedDataset);
   });
@@ -366,7 +321,6 @@ function setupEventListeners() {
   document.getElementById("toggle-additive").addEventListener("change", (e) => {
     const isAdditive = e.target.checked;
     AppState.preferences.isAdditive = isAdditive;
-    isAdditiveDefault = isAdditive; // Update global for backward compatibility
     saveState("additive", isAdditive);
   });
 
@@ -383,7 +337,6 @@ function setupEventListeners() {
   // Flip X axis
   document.getElementById("flip-x-checkbox").addEventListener("change", (e) => {
     AppState.preferences.flipX = e.target.checked;
-    flipX = e.target.checked; // Update global for backward compatibility
     saveState("flipX", AppState.preferences.flipX);
     renderAllPlots();
   });
@@ -391,7 +344,6 @@ function setupEventListeners() {
   // Flip Y axis
   document.getElementById("flip-y-checkbox").addEventListener("change", (e) => {
     AppState.preferences.flipY = e.target.checked;
-    flipY = e.target.checked; // Update global for backward compatibility
     saveState("flipY", AppState.preferences.flipY);
     renderAllPlots();
   });
@@ -442,7 +394,6 @@ function setupEventListeners() {
   const opacityValueLabel = document.getElementById("opacity-value");
   opacitySlider.addEventListener("input", () => {
     AppState.ui.dotOpacity = parseFloat(opacitySlider.value);
-    dotOpacity = AppState.ui.dotOpacity; // Update global for backward compatibility
     opacityValueLabel.textContent = AppState.ui.dotOpacity;
     renderAllPlots(); // Reapply to all plots
   });
@@ -452,7 +403,6 @@ function setupEventListeners() {
   const dotSizeValueLabel = document.getElementById("dot-size-value");
   dotSizeSlider.addEventListener("input", () => {
     AppState.ui.dotSize = parseFloat(dotSizeSlider.value);
-    dotSize = AppState.ui.dotSize; // Update global for backward compatibility
     dotSizeValueLabel.textContent = AppState.ui.dotSize;
     saveState("dotSize", AppState.ui.dotSize);
     renderAllPlots(); // Reapply to all plots
@@ -501,15 +451,15 @@ function setupEventListeners() {
 // --- Utility Functions ---
 
 function encodeShareState() {
-  const dataset = convoSlug;
-  const labelIndices = colorByIndex.map((c) =>
-    c == null ? null : colorToLabelIndex[c]
+  const dataset = AppState.preferences.convoSlug;
+  const labelIndices = AppState.selection.colorByIndex.map((c) =>
+    c == null ? null : AppState.selection.colorToLabelIndex[c]
   );
   const payload = {
     dataset,
     labelIndices,
-    flipX,
-    flipY,
+    flipX: AppState.preferences.flipX,
+    flipY: AppState.preferences.flipY,
   };
   return btoa(JSON.stringify(payload));
 }
@@ -522,7 +472,7 @@ function decodeShareState(base64) {
     // Backward compatibility: if old `labels` format is used
     if (parsed.labels) {
       const labelIndices = parsed.labels.map((color) =>
-        color == null ? null : colorToLabelIndex[color]
+        color == null ? null : AppState.selection.colorToLabelIndex[color]
       );
       parsed.labelIndices = labelIndices;
     }
@@ -561,11 +511,14 @@ function labelIndexToLetter(i) {
 }
 
 function getScales(X, width, height, padding = 40) {
+  // Use AppState dimensions if width/height not provided
+  width = width || AppState.dimensions.width;
+  height = height || AppState.dimensions.height;
   const xExtent = d3.extent(X, (d) => d[0]);
   const yExtent = d3.extent(X, (d) => d[1]);
 
-  const xDomain = flipX ? [...xExtent].reverse() : xExtent;
-  const yDomain = flipY ? [...yExtent].reverse() : yExtent;
+  const xDomain = AppState.preferences.flipX ? [...xExtent].reverse() : xExtent;
+  const yDomain = AppState.preferences.flipY ? [...yExtent].reverse() : yExtent;
 
   return {
     x: d3
@@ -580,10 +533,7 @@ function getScales(X, width, height, padding = 40) {
 }
 
 function updateDimensions() {
-  const container = document.getElementById("plot-wrapper");
-  const containerWidth = container.clientWidth;
-  width = containerWidth / 3 - 20;
-  height = width;
+  AppState.updateDimensions();
 }
 
 function pointInPolygon([x, y], vs) {
@@ -600,7 +550,7 @@ function pointInPolygon([x, y], vs) {
 
 function findIndicesWithinRadius(data, mouseX, mouseY, scales, radius = null) {
   // Use the current dot size for hover detection if no radius is specified
-  const hoverRadius = radius || Math.max(dotSize + 5, 10);
+  const hoverRadius = radius || Math.max(AppState.ui.dotSize + 5, 10);
   const indices = new Set();
   data.forEach((d, i) => {
     const dx = scales.x(d[0]) - mouseX;
@@ -914,11 +864,11 @@ function applyHoverStyles() {
         } else {
           // If no stored value, calculate from cache
           const factor = AppState.ui.opacityFactorCache[index] || 1;
-          circle.attr("fill-opacity", dotOpacity * factor);
+          circle.attr("fill-opacity", AppState.ui.dotOpacity * factor);
         }
       } else {
         // Use default opacity if scaling is disabled
-        circle.attr("fill-opacity", dotOpacity);
+        circle.attr("fill-opacity", AppState.ui.dotOpacity);
       }
     }
   });
@@ -947,7 +897,7 @@ function makeLassoDragHandler(svg, data, scales) {
   return d3
     .drag()
     .on("start", () => {
-      isDragging = true;
+      AppState.ui.isDragging = true;
       coords = [];
       if (lassoPath) lassoPath.remove();
       lassoPath = null;
@@ -962,23 +912,23 @@ function makeLassoDragHandler(svg, data, scales) {
       const modifierHeld =
         sourceEvent &&
         (sourceEvent.shiftKey || sourceEvent.metaKey || sourceEvent.ctrlKey);
-      const additive = isAdditiveDefault || modifierHeld;
+      const additive = AppState.preferences.isAdditive || modifierHeld;
 
       if (!additive) {
-        colorByIndex.fill(null);
-        selectedIndicesGlobal.clear();
+        AppState.selection.colorByIndex.fill(null);
+        AppState.selection.selectedIndices.clear();
       }
 
       svg.selectAll("circle").each(function ({ d, i }) {
         const cx = scales.x(d[0]);
         const cy = scales.y(d[1]);
         if (pointInPolygon([cx, cy], coords)) {
-          colorByIndex[i] = selectedColor;
-          selectedIndicesGlobal.add(i);
+          AppState.selection.colorByIndex[i] = selectedColor;
+          AppState.selection.selectedIndices.add(i);
         }
       });
 
-      isDragging = false;
+      AppState.ui.isDragging = false;
       renderAllPlots();
       updateLabelCounts();
 
@@ -992,9 +942,9 @@ function makeLassoDragHandler(svg, data, scales) {
 }
 
 function getParticipantVoteSummary(participantId) {
-  if (!window.dbInstance || !window.commentTexts) return "(data not loaded)";
+  if (!AppState.data.dbInstance || !AppState.data.commentTexts) return "(data not loaded)";
 
-  const result = window.dbInstance.exec(`
+  const result = AppState.data.dbInstance.exec(`
     SELECT comment_id, vote
     FROM votes
     WHERE participant_id = '${participantId}'
@@ -1008,7 +958,7 @@ function getParticipantVoteSummary(participantId) {
       else if (vote === -1) label = "disagree";
       else label = "pass";
 
-      const text = window.commentTexts?.[cid]?.txt || "<missing>";
+      const text = AppState.data.commentTextMap?.[cid]?.txt || "<missing>";
       return `#${cid} - ${label}: ${text}`;
     })
     .join("\n");
@@ -1026,7 +976,7 @@ async function calculateOpacityScaleFactor(participantId) {
   }
 
   // Ensure database is loaded
-  if (!window.dbInstance) {
+  if (!AppState.data.dbInstance) {
     try {
       await loadVotesDB(AppState.preferences.convoSlug);
     } catch (error) {
@@ -1036,12 +986,12 @@ async function calculateOpacityScaleFactor(participantId) {
   }
 
   // If comments not loaded, return 1
-  if (!window.commentTexts) {
+  if (!AppState.data.commentTexts) {
     return 1;
   }
 
   // Get all unmoderated statements
-  const unmoderatedStatements = window.commentTexts.filter(s =>
+  const unmoderatedStatements = AppState.data.commentTexts.filter(s =>
     s.mod !== -1 && s.mod !== "-1"
   );
 
@@ -1051,7 +1001,7 @@ async function calculateOpacityScaleFactor(participantId) {
   }
 
   // Count how many statements this participant voted on
-  const result = window.dbInstance.exec(`
+  const result = AppState.data.dbInstance.exec(`
     SELECT COUNT(*) as vote_count
     FROM votes
     WHERE participant_id = '${participantId}'
@@ -1065,8 +1015,8 @@ async function calculateOpacityScaleFactor(participantId) {
 
 function renderPlot(svgId, data, title) {
   const svg = d3.select(svgId);
-  svg.attr("width", width).attr("height", height);
-  const scales = getScales(data, width, height);
+  svg.attr("width", AppState.dimensions.width).attr("height", AppState.dimensions.height);
+  const scales = getScales(data, AppState.dimensions.width, AppState.dimensions.height);
   svg.selectAll("*").remove();
 
   // Add light origin axes at x=0 and y=0 (if within domain)
@@ -1078,7 +1028,7 @@ function renderPlot(svgId, data, title) {
       .attr("x1", scales.x(0))
       .attr("x2", scales.x(0))
       .attr("y1", 0)
-      .attr("y2", height)
+      .attr("y2", AppState.dimensions.height)
       .attr("stroke", "#ccc")
       .attr("stroke-width", 1)
       .attr("stroke-dasharray", "2,2");
@@ -1087,7 +1037,7 @@ function renderPlot(svgId, data, title) {
   if (yMin < 0 && yMax > 0) {
     svg.append("line")
       .attr("x1", 0)
-      .attr("x2", width)
+      .attr("x2", AppState.dimensions.width)
       .attr("y1", scales.y(0))
       .attr("y2", scales.y(0))
       .attr("stroke", "#ccc")
@@ -1097,7 +1047,7 @@ function renderPlot(svgId, data, title) {
 
   svg
     .append("text")
-    .attr("x", width / 2)
+    .attr("x", AppState.dimensions.width / 2)
     .attr("y", 25)
     .attr("text-anchor", "middle")
     .attr("font-size", "16px")
@@ -1111,15 +1061,15 @@ function renderPlot(svgId, data, title) {
     .append("circle")
     .attr("cx", ({ d }) => scales.x(d[0]))
     .attr("cy", ({ d }) => scales.y(d[1]))
-    .attr("r", dotSize)
-    .attr("fill-opacity", dotOpacity) // Start with default opacity
-    .attr("fill", ({ i }) => colorByIndex[i] || "rgba(0,0,0,0.5)")
+    .attr("r", AppState.ui.dotSize)
+    .attr("fill-opacity", AppState.ui.dotOpacity) // Start with default opacity
+    .attr("fill", ({ i }) => AppState.selection.colorByIndex[i] || "rgba(0,0,0,0.5)")
     .attr("data-index", ({ i }) => i)
     // Show user vote history in console (for debug)
     .on("mouseover", function (event, d) {
       const i = d.i;
       this.hoverTimeout = setTimeout(() => {
-        const pid = window.participants?.[i] || `#${i}`;
+        const pid = AppState.data.participants?.[i] || `#${i}`;
         console.log(`Participant ID: ${pid}`);
         console.log(getParticipantVoteSummary(pid));
       }, 100);
@@ -1131,19 +1081,15 @@ function renderPlot(svgId, data, title) {
   svg.call(makeLassoDragHandler(svg, data, scales));
 
   svg.on("mousemove", function (event) {
-    if (isDragging) return;
+    if (AppState.ui.isDragging) return;
     const [x, y] = d3.pointer(event, this);
     // Don't change radius with dotSize for now.
     const FORCE_RADIUS = 10
-    hoveredIndices = findIndicesWithinRadius(data, x, y, scales, FORCE_RADIUS);
-    // Update AppState as well for the refactored code
-    AppState.ui.hoveredIndices = new Set(hoveredIndices);
+    AppState.ui.hoveredIndices = findIndicesWithinRadius(data, x, y, scales, FORCE_RADIUS);
     applyHoverStyles();
   });
 
   svg.on("mouseleave", () => {
-    hoveredIndices.clear();
-    // Update AppState as well for the refactored code
     AppState.ui.hoveredIndices.clear();
     applyHoverStyles();
   });
@@ -1160,7 +1106,7 @@ async function updateOpacityBasedOnVotes() {
   }
 
   // Ensure database is loaded
-  if (!window.dbInstance) {
+  if (!AppState.data.dbInstance) {
     try {
       await loadVotesDB(AppState.preferences.convoSlug);
     } catch (error) {
@@ -1172,8 +1118,8 @@ async function updateOpacityBasedOnVotes() {
   // Calculate opacity for each participant and cache the results
   const opacityFactors = {};
 
-  for (let i = 0; i < window.participants?.length || 0; i++) {
-    const pid = window.participants[i];
+  for (let i = 0; i < AppState.data.participants?.length || 0; i++) {
+    const pid = AppState.data.participants[i];
     if (pid) {
       // Use cached value if available, otherwise calculate
       if (AppState.ui.opacityFactorCache[i] === undefined) {
@@ -1194,7 +1140,7 @@ async function updateOpacityBasedOnVotes() {
     }
 
     const factor = opacityFactors[index] || 1;
-    const scaledOpacity = dotOpacity * factor;
+    const scaledOpacity = AppState.ui.dotOpacity * factor;
 
     // Store the scaled opacity as a data attribute for hover handling
     circle.attr("data-scaled-opacity", scaledOpacity);
@@ -1210,9 +1156,6 @@ async function updateOpacityBasedOnVotes() {
 function renderAllPlots() {
   AppState.updateDimensions();
 
-  // Update global variables for backward compatibility
-  width = AppState.dimensions.width;
-  height = AppState.dimensions.height;
 
   renderPlot("#plot1", AppState.data.X1, "PCA projection");
   renderPlot("#plot2", AppState.data.X2, "PaCMAP projection");
@@ -1276,7 +1219,6 @@ function loadDatasetList() {
       // fallback if current is invalid
       if (!datasets.find(d => d.slug === current)) {
         AppState.preferences.convoSlug = datasets[0]?.slug;
-        convoSlug = AppState.preferences.convoSlug; // Update global for backward compatibility
         saveState("dataset", AppState.preferences.convoSlug);
       }
     })
@@ -1288,7 +1230,6 @@ function loadDatasetList() {
 // Initialize the application when the DOM is loaded
 window.addEventListener("DOMContentLoaded", initializeApp);
 
-let dbInstance = null;
 
 /**
  * Load the votes database for a dataset
@@ -1312,8 +1253,6 @@ async function loadVotesDB(slug) {
   // Store in AppState
   AppState.data.dbInstance = db;
 
-  // For backward compatibility
-  window.dbInstance = db;
 
   return db;
 }
@@ -1477,7 +1416,7 @@ function renderRepCommentsTable(repComments) {
             ? "red"
             : "#333";
 
-      const match = window.commentTextMap?.[c.tid];
+      const match = AppState.data.commentTextMap?.[c.tid];
       const isModerated = match?.mod === "-1" || match?.mod === -1;
       const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
 
@@ -1692,7 +1631,7 @@ async function getGroupVoteMatrices(db, labelArray) {
   const groups = {};
   labelArray.forEach((label, index) => {
     if (label != null) {
-      const pid = window.participants?.[index];
+      const pid = AppState.data.participants?.[index];
       if (pid !== undefined) {
         if (!groups[label]) groups[label] = [];
         groups[label].push(pid);
@@ -1796,7 +1735,7 @@ function selectRepComments(commentStatsWithTid) {
   });
 
   commentStatsWithTid.forEach(([tid, groupsData]) => {
-    const comment = window.commentTextMap?.[tid];
+    const comment = AppState.data.commentTextMap?.[tid];
     // TODO: Get this working for strict moderation (-1 or 0)
     // This doesn't work in upstream Polis either, so has feature parity rn.
     const isModerated = comment?.mod === "-1" || comment?.mod === -1;
