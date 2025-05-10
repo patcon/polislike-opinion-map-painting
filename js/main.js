@@ -482,6 +482,8 @@ window.addEventListener("DOMContentLoaded", initializeApp);
 // For testing purposes, export objects and functions
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
+    twoPropTest,
+    zSig90,
     // Add other functions you want to test
   };
 }
