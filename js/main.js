@@ -1999,3 +1999,17 @@ async function applyGroupAnalysis() {
   hidePlotLoader();
 }
 
+// For testing purposes, export objects and functions
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    Config,
+    AppState,
+    getQueryParam,
+    loadState,
+    saveState,
+    getScales,
+    pointInPolygon,
+    updateDimensions,
+    // Add other functions you want to test
+  };
+}
