@@ -5,1585 +5,23 @@
  * in conversation data.
  */
 
-// ============================================================================
-// Configuration
-// ============================================================================
-
 /**
- * Application configuration constants
+ * Helper function to check if z-score is significant at 90% confidence
+ * @param {number} zVal - Z-score
+ * @returns {boolean} - True if significant
  */
-const Config = {
-  // Default dot opacity
-  dotOpacity: 0.3,
-  // Default dot size
-  dotSize: 3,
-
-  // Reference: https://matplotlib.org/stable/users/explain/colors/colormaps.html#qualitative
-  colors: {
-    tab10: [
-      "#1f77b4", // (A) muted blue
-      "#ff7f0e", // (B) safety orange
-      "#2ca02c", // (C) cooked asparagus green
-      "#d62728", // (D) brick red
-      "#9467bd", // (E) muted purple
-      "#8c564b", // (F) chestnut brown
-      "#e377c2", // (G) raspberry yogurt pink
-      "#7f7f7f", // (H) middle gray
-      "#bcbd22", // (I) curry yellow-green
-      "#17becf", // (J) blue-teal
-    ]
-  },
-
-  // Chart colors for vote visualization
-  voteColors: {
-    agree: "rgb(46, 204, 113)",
-    disagree: "rgb(231, 76, 60)",
-    pass: "rgb(230,230,230)"
-  },
-
-  // Statistical thresholds
-  stats: {
-    minVotes: 3,
-    significanceThreshold: 1.2816, // 90% confidence
-  }
-};
-
-// ============================================================================
-// State Management
-// ============================================================================
-
-/**
- * Application state management
- */
-const AppState = {
-  // Dimensions
-  dimensions: {
-    width: 0,
-    height: 0
-  },
-
-  // Data
-  data: {
-    X1: null, // PCA projection
-    X2: null, // PaCMAP projection
-    X3: null, // LocalMAP projection
-    participants: [],
-    commentTexts: null,
-    commentTextMap: {},
-    meta: null,
-    repComments: null,
-    dbInstance: null
-  },
-
-  // UI State
-  ui: {
-    isDragging: false,
-    hoveredIndices: new Set(),
-    dotOpacity: Config.dotOpacity,
-    dotSize: Config.dotSize,
-    opacityFactorCache: {} // Cache for opacity scale factors
-  },
-
-  // Selection state
-  selection: {
-    colorToLabelIndex: {}, // hex -> int
-    colorByIndex: [],
-    selectedIndices: new Set()
-  },
-
-  // Preferences
-  preferences: {
-    convoSlug: null,
-    isAdditive: false,
-    flipX: false,
-    flipY: false,
-    scaleOpacityWithVotes: false,
-    showGroupComparison: true
-  },
-
-  /**
-   * Initialize the application state
-   */
-  init() {
-    // Initialize color mapping
-    Config.colors.tab10.forEach((color, i) => {
-      this.selection.colorToLabelIndex[color] = i;
-    });
-
-    // Load preferences from session storage
-    this.preferences.convoSlug = getQueryParam("dataset") || loadState("dataset", "bg2050");
-    this.preferences.isAdditive = loadState("additive", false);
-    this.preferences.flipX = loadState("flipX", false);
-    this.preferences.flipY = loadState("flipY", false);
-    this.preferences.scaleOpacityWithVotes = loadState("scaleOpacityWithVotes", false);
-    this.preferences.showGroupComparison = loadState("showGroupComparison", true);
-    this.ui.dotOpacity = Config.dotOpacity;
-    this.ui.dotSize = Config.dotSize;
-  },
-
-  /**
-   * Update dimensions based on container size
-   */
-  updateDimensions() {
-    const container = document.getElementById("plot-wrapper");
-    const containerWidth = container.clientWidth;
-    this.dimensions.width = containerWidth / 3 - 20;
-    this.dimensions.height = this.dimensions.width;
-  },
-
-  /**
-   * Reset data state for a new dataset
-   */
-  resetDataState() {
-    this.data.dbInstance = null;
-    this.data.commentTexts = null;
-    this.data.repComments = null;
-    this.ui.opacityFactorCache = {}; // Clear opacity cache when changing datasets
-    document.getElementById("rep-comments-output").innerHTML = "";
-  }
-};
-
-
-// ============================================================================
-// Data Loading Functions
-// ============================================================================
-
-/**
- * Load and render data for a specific dataset
- * @param {string} slug - Dataset identifier
- * @returns {Promise} - Resolves when data is loaded and rendered
- */
-function loadAndRenderData(slug) {
-  // Reset data state for a new dataset
-  AppState.resetDataState();
-
-  return new Promise((resolve) => {
-    Promise.all([
-      d3.json(`data/datasets/${slug}/pca.json`),
-      d3.json(`data/datasets/${slug}/pacmap.json`),
-      d3.json(`data/datasets/${slug}/localmap.json`),
-      d3.json(`data/datasets/${slug}/meta.json`).catch(() => null),
-    ]).then(([data1, data2, data3, meta]) => {
-      // Store data in AppState
-      AppState.data.participants = data1.map(([tid]) => tid);
-      AppState.data.meta = meta;
-
-
-      showPlotLoader();
-      renderMetaInfo(meta);
-
-      d3.json(`data/datasets/${slug}/statements.json`).then((rawStatements) => {
-        const statements = rawStatements.map((s) => ({
-          tid: s.tid ?? s.statement_id,
-          pid: s.pid ?? s.participant_id,
-          mod: s.mod ?? s.moderated,
-          txt: s.txt ?? s.text ?? "<missing>", // optional: fallback for text
-          ...s, // keep any other keys
-        }));
-
-        AppState.data.commentTexts = statements;
-        AppState.data.commentTextMap = Object.fromEntries(statements.map((c) => [c.tid, c]));
-
-      });
-
-      // Store projection data
-      AppState.data.X1 = data1.map(([, coords]) => coords);
-      AppState.data.X2 = data2.map(([, coords]) => coords);
-      AppState.data.X3 = data3.map(([, coords]) => coords);
-
-
-      // Reset selection state
-      AppState.selection.colorByIndex.length = AppState.data.X1.length;
-      AppState.selection.colorByIndex.fill(null);
-      AppState.selection.selectedIndices.clear();
-
-
-      // Render UI
-      renderAllPlots();
-      renderColorPalette();
-      updateLabelCounts();
-      hidePlotLoader();
-
-      resolve(); // ✅ Important
-    });
-  });
-}
-
-/**
- * Apply shared state from URL or other source
- * @param {Object} state - The state to apply
- * @returns {Promise} - Resolves when state is applied
- */
-function applySharedState({
-  dataset,
-  labelIndices,
-  flipX: fx = false,
-  flipY: fy = false,
-}) {
-  // Update AppState
-  AppState.preferences.convoSlug = dataset;
-  AppState.preferences.flipX = fx;
-  AppState.preferences.flipY = fy;
-
-
-  // Update UI
-  document.getElementById("dataset").value = dataset;
-  document.getElementById("flip-x-checkbox").checked = fx;
-  document.getElementById("flip-y-checkbox").checked = fy;
-
-  // Save to session storage
-  saveState("dataset", dataset);
-  saveState("flipX", fx);
-  saveState("flipY", fy);
-
-  return loadAndRenderData(dataset).then(() => {
-    // Update selection state
-    AppState.selection.colorByIndex.length = labelIndices.length;
-    AppState.selection.selectedIndices.clear();
-
-    for (let i = 0; i < labelIndices.length; i++) {
-      const idx = labelIndices[i];
-      if (idx != null) {
-        const color = Config.colors.tab10[idx];
-        AppState.selection.colorByIndex[i] = color;
-        AppState.selection.selectedIndices.add(i);
-      }
-    }
-
-    renderAllPlots();
-    updateLabelCounts();
-
-    // If auto-analyze is enabled and we have painted groups, run analysis automatically
-    if (document.getElementById("auto-analyze-checkbox").checked && AppState.selection.selectedIndices.size > 0) {
-      applyGroupAnalysis();
-    }
-  });
-}
-
-function getQueryParam(name) {
-  const params = new URLSearchParams(window.location.search);
-  return params.get(name);
-}
-
-// ============================================================================
-// Initialization
-// ============================================================================
-
-/**
- * Initialize the UI with stored preferences
- */
-function initializeUI() {
-  document.getElementById("dataset").value = AppState.preferences.convoSlug;
-  document.getElementById("toggle-additive").checked = AppState.preferences.isAdditive;
-  document.getElementById("include-unpainted").checked = loadState("includeUnpainted", false);
-  document.getElementById("auto-analyze-checkbox").checked = loadState("autoAnalyze", true);
-  document.getElementById("include-moderated-checkbox").checked = loadState("includeModerated", false);
-  document.getElementById("scale-opacity-checkbox").checked = AppState.preferences.scaleOpacityWithVotes;
-  document.getElementById("flip-x-checkbox").checked = AppState.preferences.flipX;
-  document.getElementById("flip-y-checkbox").checked = AppState.preferences.flipY;
-  document.getElementById("show-group-comparison-checkbox").checked = AppState.preferences.showGroupComparison;
-
-  // Initialize sliders
-  document.getElementById("opacity-slider").value = AppState.ui.dotOpacity;
-  document.getElementById("opacity-value").textContent = AppState.ui.dotOpacity;
-  document.getElementById("dot-size-slider").value = AppState.ui.dotSize;
-  document.getElementById("dot-size-value").textContent = AppState.ui.dotSize;
-
-}
-
-// ============================================================================
-// Event Handlers
-// ============================================================================
-
-/**
- * Set up all event listeners
- */
-function setupEventListeners() {
-  // Share button
-  document.getElementById("share-button").addEventListener("click", () => {
-    const encoded = encodeShareState();
-    const url = `${location.origin}${location.pathname}#${encoded}`;
-    const input = document.getElementById("share-url");
-    input.value = url;
-    input.select();
-    document.execCommand("copy");
-  });
-
-  // Dataset selection
-  document.getElementById("dataset").addEventListener("change", (e) => {
-    const selectedDataset = e.target.value;
-    AppState.preferences.convoSlug = selectedDataset;
-    saveState("dataset", selectedDataset);
-    loadAndRenderData(selectedDataset);
-  });
-
-  // Additive selection mode
-  document.getElementById("toggle-additive").addEventListener("change", (e) => {
-    const isAdditive = e.target.checked;
-    AppState.preferences.isAdditive = isAdditive;
-    saveState("additive", isAdditive);
-  });
-
-  // Include unpainted points
-  document.getElementById("include-unpainted").addEventListener("change", (e) => {
-    const includeUnpainted = e.target.checked;
-    saveState("includeUnpainted", includeUnpainted);
-    updateLabelCounts();
-    if (document.getElementById("auto-analyze-checkbox").checked) {
-      applyGroupAnalysis();
-    }
-  });
-
-  // Flip X axis
-  document.getElementById("flip-x-checkbox").addEventListener("change", (e) => {
-    AppState.preferences.flipX = e.target.checked;
-    saveState("flipX", AppState.preferences.flipX);
-    renderAllPlots();
-  });
-
-  // Flip Y axis
-  document.getElementById("flip-y-checkbox").addEventListener("change", (e) => {
-    AppState.preferences.flipY = e.target.checked;
-    saveState("flipY", AppState.preferences.flipY);
-    renderAllPlots();
-  });
-
-  // Auto analyze
-  document.getElementById("auto-analyze-checkbox").addEventListener("change", (e) => {
-    const isEnabled = e.target.checked;
-    saveState("autoAnalyze", isEnabled);
-    if (isEnabled) applyGroupAnalysis();
-  });
-
-  // Include moderated comments
-  document.getElementById("include-moderated-checkbox").addEventListener("change", (e) => {
-    saveState("includeModerated", e.target.checked);
-  });
-
-  // Color selection
-  document.getElementById("color").addEventListener("input", (e) => {
-    const selectedColor = e.target.value;
-    if (!(selectedColor in AppState.selection.colorToLabelIndex)) {
-      Config.colors.tab10.push(selectedColor); // Add to end
-      AppState.selection.colorToLabelIndex[selectedColor] = Config.colors.tab10.length - 1;
-      renderColorPalette(); // Refresh palette
-    }
-  });
-
-  // Keyboard shortcuts
-  document.addEventListener("keydown", (e) => {
-    // Only trigger on number keys 0–9 and when not typing into an input field
-    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-
-    const index = parseInt(e.key, 10);
-
-    if (!isNaN(index) && index < Config.colors.tab10.length) {
-      const color = Config.colors.tab10[index];
-      document.getElementById("color").value = color;
-      highlightSelectedColor(color); // visually reflect the change
-    }
-  });
-
-  // Window resize
-  window.addEventListener("resize", () => {
-    if (AppState.data.X1 && AppState.data.X2 && AppState.data.X3) renderAllPlots();
-  });
-
-  // Opacity slider
-  const opacitySlider = document.getElementById("opacity-slider");
-  const opacityValueLabel = document.getElementById("opacity-value");
-  opacitySlider.addEventListener("input", () => {
-    AppState.ui.dotOpacity = parseFloat(opacitySlider.value);
-    opacityValueLabel.textContent = AppState.ui.dotOpacity;
-    renderAllPlots(); // Reapply to all plots
-  });
-
-  // Dot size slider
-  const dotSizeSlider = document.getElementById("dot-size-slider");
-  const dotSizeValueLabel = document.getElementById("dot-size-value");
-  dotSizeSlider.addEventListener("input", () => {
-    AppState.ui.dotSize = parseFloat(dotSizeSlider.value);
-    dotSizeValueLabel.textContent = AppState.ui.dotSize;
-    saveState("dotSize", AppState.ui.dotSize);
-    renderAllPlots(); // Reapply to all plots
-  });
-
-  // Scale opacity with vote count checkbox
-  document.getElementById("scale-opacity-checkbox").addEventListener("change", async (e) => {
-    AppState.preferences.scaleOpacityWithVotes = e.target.checked;
-    saveState("scaleOpacityWithVotes", AppState.preferences.scaleOpacityWithVotes);
-
-    // Show loading spinner before rerendering
-    showPlotLoader();
-
-    // Use setTimeout to ensure the spinner is shown before the potentially blocking operations
-    setTimeout(async () => {
-      try {
-        // If opacity scaling is enabled, ensure the database is loaded
-        if (AppState.preferences.scaleOpacityWithVotes && !window.dbInstance) {
-          await loadVotesDB(AppState.preferences.convoSlug);
-        }
-
-        // Rerender all plots
-        renderAllPlots();
-      } finally {
-        // Always hide the loader when done
-        hidePlotLoader();
-      }
-    }, 10);
-  });
-
-  // Show group comparison checkbox
-  document.getElementById("show-group-comparison-checkbox").addEventListener("change", (e) => {
-    AppState.preferences.showGroupComparison = e.target.checked;
-    saveState("showGroupComparison", AppState.preferences.showGroupComparison);
-
-    // If analysis results are already displayed, rerun the analysis to update the display
-    if (document.getElementById("rep-comments-output").innerHTML !== "") {
-      applyGroupAnalysis();
-    }
-  });
-
-  // Run analysis button
-  document.getElementById("run-analysis").addEventListener("click", applyGroupAnalysis);
-}
-
-// --- Utility Functions ---
-
-function encodeShareState() {
-  const dataset = AppState.preferences.convoSlug;
-  const labelIndices = AppState.selection.colorByIndex.map((c) =>
-    c == null ? null : AppState.selection.colorToLabelIndex[c]
-  );
-  const payload = {
-    dataset,
-    labelIndices,
-    flipX: AppState.preferences.flipX,
-    flipY: AppState.preferences.flipY,
-  };
-  return btoa(JSON.stringify(payload));
-}
-
-function decodeShareState(base64) {
-  try {
-    const json = atob(base64);
-    const parsed = JSON.parse(json);
-
-    // Backward compatibility: if old `labels` format is used
-    if (parsed.labels) {
-      const labelIndices = parsed.labels.map((color) =>
-        color == null ? null : AppState.selection.colorToLabelIndex[color]
-      );
-      parsed.labelIndices = labelIndices;
-    }
-
-    return {
-      dataset: parsed.dataset,
-      labelIndices: parsed.labelIndices || [],
-      flipX: parsed.flipX || false,
-      flipY: parsed.flipY || false,
-    };
-  } catch (e) {
-    console.warn("Invalid share state", e);
-    return null;
-  }
-}
-
-function saveState(key, value) {
-  sessionStorage.setItem(key, JSON.stringify(value));
-}
-
-function loadState(key, defaultValue) {
-  const saved = sessionStorage.getItem(key);
-  return saved !== null ? JSON.parse(saved) : defaultValue;
-}
-
-function showPlotLoader() {
-  document.getElementById("plot-loader").style.display = "flex";
-}
-
-function hidePlotLoader() {
-  document.getElementById("plot-loader").style.display = "none";
-}
-
-function labelIndexToLetter(i) {
-  return String.fromCharCode("A".charCodeAt(0) + i);
-}
-
-function getScales(X, width, height, padding = 40) {
-  // Use AppState dimensions if width/height not provided
-  width = width || AppState.dimensions.width;
-  height = height || AppState.dimensions.height;
-  const xExtent = d3.extent(X, (d) => d[0]);
-  const yExtent = d3.extent(X, (d) => d[1]);
-
-  const xDomain = AppState.preferences.flipX ? [...xExtent].reverse() : xExtent;
-  const yDomain = AppState.preferences.flipY ? [...yExtent].reverse() : yExtent;
-
-  return {
-    x: d3
-      .scaleLinear()
-      .domain(xDomain)
-      .range([padding, width - padding]),
-    y: d3
-      .scaleLinear()
-      .domain(yDomain)
-      .range([height - padding, padding]),
-  };
-}
-
-function updateDimensions() {
-  AppState.updateDimensions();
-}
-
-function pointInPolygon([x, y], vs) {
-  let inside = false;
-  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-    const [xi, yi] = vs[i],
-      [xj, yj] = vs[j];
-    const intersect =
-      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
-    if (intersect) inside = !inside;
-  }
-  return inside;
-}
-
-function findIndicesWithinRadius(data, mouseX, mouseY, scales, radius = null) {
-  // Use the current dot size for hover detection if no radius is specified
-  const hoverRadius = radius || Math.max(AppState.ui.dotSize + 5, 10);
-  const indices = new Set();
-  data.forEach((d, i) => {
-    const dx = scales.x(d[0]) - mouseX;
-    const dy = scales.y(d[1]) - mouseY;
-    if (Math.hypot(dx, dy) < hoverRadius) {
-      indices.add(i);
-    }
-  });
-  return indices;
-}
-
-function adjustColorForHover(hex, factor = 0.2) {
-  if (!hex.startsWith("#")) return hex;
-  const toHSL = (r, g, b) => {
-    r /= 255;
-    g /= 255;
-    b /= 255;
-    const max = Math.max(r, g, b),
-      min = Math.min(r, g, b);
-    let h,
-      s,
-      l = (max + min) / 2;
-    if (max === min) {
-      h = s = 0;
-    } else {
-      const d = max - min;
-      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-      switch (max) {
-        case r:
-          h = (g - b) / d + (g < b ? 6 : 0);
-          break;
-        case g:
-          h = (b - r) / d + 2;
-          break;
-        case b:
-          h = (r - g) / d + 4;
-          break;
-      }
-      h /= 6;
-    }
-    return {
-      h: Math.round(h * 360),
-      s: Math.round(s * 100),
-      l: Math.round(l * 100),
-    };
-  };
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  const { h, s, l } = toHSL(r, g, b);
-  const lightness = Math.max(
-    0,
-    Math.min(100, l + (l > 50 ? -1 : 1) * factor * 100)
-  );
-  return `hsl(${h}, ${s}%, ${lightness}%)`;
-}
-
-// --- UI Rendering Functions ---
-function renderColorPalette() {
-  const container = document.getElementById("color-palette");
-  container.innerHTML = "";
-
-  Config.colors.tab10.forEach((color, i) => {
-    AppState.selection.colorToLabelIndex[color] = i; // Assign label
-    const letter = labelIndexToLetter(i);
-
-    const span = document.createElement("span");
-    span.classList.add("palette-color");
-    span.setAttribute("data-color", color); // Needed for selection logic
-    span.style = `
-      display:inline-block; width:24px; height:24px;
-      background:${color}; border:1px solid #888;
-      margin-right:5px; cursor:pointer; text-align:center;
-      line-height:22px; font-size:12px; color:white; font-family:sans-serif;
-      border-radius:50%; /* Make it circular */
-    `;
-    span.title = `${letter} (${color})`;
-    span.textContent = letter;
-
-    span.onclick = () => {
-      document.getElementById("color").value = color;
-      highlightSelectedColor(color);
-    };
-
-    container.appendChild(span);
-  });
-
-  // Re-apply highlight after re-render
-  highlightSelectedColor(document.getElementById("color").value);
-}
-
-function createCompactBarChart({ voteCounts, nMembers, voteColors, boldLargest = true }) {
-  const container = document.createElement("div");
-  container.style.display = "inline-block";
-  container.style.verticalAlign = "middle";
-  container.style.marginLeft = "10px";
-
-  let w = 100;
-  let agrees = 0;
-  let disagrees = 0;
-  let sawTheComment = 0;
-  let missingCounts = false;
-
-  if (typeof voteCounts !== "undefined") {
-    agrees = voteCounts.A ?? 0;
-    disagrees = voteCounts.D ?? 0;
-    sawTheComment = voteCounts.S ?? 0;
-  } else {
-    missingCounts = true;
-  }
-
-  let passes = sawTheComment - (agrees + disagrees);
-
-  const agree = (agrees / nMembers) * w;
-  const disagree = (disagrees / nMembers) * w;
-  const pass = (passes / nMembers) * w;
-
-  const agreeSaw = (agrees / sawTheComment) * 100 || 0;
-  const disagreeSaw = (disagrees / sawTheComment) * 100 || 0;
-  const passSaw = (passes / sawTheComment) * 100 || 0;
-
-  const agreeString = `${Math.round(agreeSaw)}%`;
-  const disagreeString = `${Math.round(disagreeSaw)}%`;
-  const passString = `${Math.round(passSaw)}%`;
-
-  container.title = `${agreeString} Agreed\n${disagreeString} Disagreed\n${passString} Passed\n${sawTheComment} Respondents`;
-
-  // SVG Bar Chart
-  const svgNS = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(svgNS, "svg");
-  svg.setAttribute("width", w + 1);
-  svg.setAttribute("height", 10);
-  svg.style.marginBottom = "2px";
-
-  const outerRect = document.createElementNS(svgNS, "rect");
-  outerRect.setAttribute("x", 0.5);
-  outerRect.setAttribute("width", w + 0.5);
-  outerRect.setAttribute("height", 10);
-  outerRect.setAttribute("fill", "white");
-  outerRect.setAttribute("stroke", "rgb(180,180,180)");
-  svg.appendChild(outerRect);
-
-  const passRect = document.createElementNS(svgNS, "rect");
-  passRect.setAttribute("x", 0.5 + agree + disagree);
-  passRect.setAttribute("width", pass);
-  passRect.setAttribute("y", 0.5);
-  passRect.setAttribute("height", 9);
-  passRect.setAttribute("fill", voteColors.pass);
-  svg.appendChild(passRect);
-
-  const agreeRect = document.createElementNS(svgNS, "rect");
-  agreeRect.setAttribute("x", 0.5);
-  agreeRect.setAttribute("width", agree);
-  agreeRect.setAttribute("y", 0.5);
-  agreeRect.setAttribute("height", 9);
-  agreeRect.setAttribute("fill", voteColors.agree);
-  svg.appendChild(agreeRect);
-
-  const disagreeRect = document.createElementNS(svgNS, "rect");
-  disagreeRect.setAttribute("x", 0.5 + agree);
-  disagreeRect.setAttribute("width", disagree);
-  disagreeRect.setAttribute("y", 0.5);
-  disagreeRect.setAttribute("height", 9);
-  disagreeRect.setAttribute("fill", voteColors.disagree);
-  svg.appendChild(disagreeRect);
-
-  container.appendChild(svg);
-
-  // Label section
-  const label = document.createElement("div");
-  label.style.fontSize = "12px";
-
-  if (missingCounts) {
-    label.innerHTML = `<span style="color: grey; margin-right: 4px;">Missing vote counts</span>`;
-  } else {
-    // Determine which value is largest
-    let largestValue = Math.max(agreeSaw, disagreeSaw, passSaw);
-    let agreeStyle = "";
-    let disagreeStyle = "";
-    let passStyle = "";
-
-    if (boldLargest && sawTheComment > 0) {
-      if (largestValue === agreeSaw && agrees > 0) {
-        agreeStyle = "font-weight: bold;";
-      } else if (largestValue === disagreeSaw && disagrees > 0) {
-        disagreeStyle = "font-weight: bold;";
-      } else if (largestValue === passSaw && passes > 0) {
-        passStyle = "font-weight: bold;";
-      }
-    }
-
-    label.innerHTML = `
-      <span style="color: ${voteColors.agree}; margin-right: 6px; ${agreeStyle}">${agreeString}</span>
-      <span style="color: ${voteColors.disagree}; margin-right: 6px; ${disagreeStyle}">${disagreeString}</span>
-      <span style="color: #999; margin-right: 6px; ${passStyle}">${passString}</span>
-      <span style="color: grey;">(${sawTheComment})</span>
-    `;
-  }
-
-  container.appendChild(label);
-  return container;
-}
-
-function renderMetaInfo(meta) {
-  const container = document.getElementById("meta-info");
-
-  if (!meta) meta = {};
-
-  const items = [
-    {
-      label: "About",
-      url: meta.about_url,
-    },
-    {
-      label: "Conversation",
-      url: meta.conversation_url,
-    },
-    {
-      label: "Report",
-      url: meta.report_url,
-    },
-  ];
-
-  container.innerHTML = items
-    .map(({ label, url }) => {
-      const isDisabled = !url;
-      const buttonClass = isDisabled
-        ? "inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-400 rounded-md border border-gray-300 cursor-not-allowed opacity-75"
-        : "inline-flex items-center px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-700 rounded-md border border-gray-300 shadow-sm transition-colors";
-
-      const content = isDisabled
-        ? `<span class="inline-flex items-center">${label}</span>`
-        : `<a href="${url}" target="_blank" class="inline-flex items-center">${label}</a>`;
-
-      return `
-        <button class="${buttonClass} mr-2 mb-2" ${isDisabled ? 'disabled' : ''}>
-          <span class="mr-1.5">🔗</span>
-          ${content}
-        </button>
-      `;
-    })
-    .join("");
-}
-
-function highlightSelectedColor(color) {
-  document.querySelectorAll(".palette-color").forEach((el) => {
-    const isSelected = el.getAttribute("data-color") === color;
-    el.style.outline = isSelected ? "3px solid black" : "none";
-  });
-}
-
-/**
- * Update the counts of points in each label group
- */
-function updateLabelCounts() {
-  const counts = {};
-  const labelArray = getLabelArrayWithOptionalUngrouped();
-  labelArray.forEach((color) => {
-    if (color) counts[color] = (counts[color] || 0) + 1;
-  });
-
-  const container = document.getElementById("label-counts");
-
-  const ordered = Object.entries(counts).sort(([colorA], [colorB]) => {
-    const iA = AppState.selection.colorToLabelIndex[colorA] ?? 999;
-    const iB = AppState.selection.colorToLabelIndex[colorB] ?? 999;
-    return iA - iB;
-  });
-
-  container.innerHTML =
-    ordered
-      .map(
-        ([color, count]) => {
-          const labelIndex = AppState.selection.colorToLabelIndex[color];
-          const letter = labelIndex !== undefined ? labelIndexToLetter(labelIndex) : "";
-          return `
-    <span style="margin-right: 12px;">
-      <span style="display:inline-block; width:18px; height:18px; background:${color}; border:1px solid #aaa; margin-right:5px; vertical-align:middle; border-radius:50%; text-align:center; line-height:18px; font-size:11px; color:white; font-family:sans-serif;">${letter}</span>
-      <span style="vertical-align:middle;">${count}</span>
-    </span>`;
-        }
-      )
-      .join("") || "(No selections yet)";
-}
-
-/**
- * Apply hover styles to points
- * This is a simplified version that doesn't try to calculate opacity scaling
- * since that's handled by updateOpacityBasedOnVotes
- */
-function applyHoverStyles() {
-  d3.selectAll("circle").each(function () {
-    const circle = d3.select(this);
-    const index = +circle.attr("data-index");
-    const rawColor = AppState.selection.colorByIndex[index];
-    const baseColor = rawColor || "#7f7f7f";
-
-    if (AppState.ui.hoveredIndices.has(index)) {
-      const hoverColor = adjustColorForHover(baseColor);
-      circle.attr("fill", hoverColor).attr("fill-opacity", 0.3).raise();
-    } else {
-      // Set the fill color
-      circle.attr("fill", rawColor || "rgba(0,0,0,0.5)");
-
-      // Restore the scaled opacity if opacity scaling is enabled
-      if (AppState.preferences.scaleOpacityWithVotes) {
-        // Get the stored scaled opacity from the data attribute
-        const scaledOpacity = circle.attr("data-scaled-opacity");
-        if (scaledOpacity) {
-          circle.attr("fill-opacity", scaledOpacity);
-        } else {
-          // If no stored value, calculate from cache
-          const factor = AppState.ui.opacityFactorCache[index] || 1;
-          circle.attr("fill-opacity", AppState.ui.dotOpacity * factor);
-        }
-      } else {
-        // Use default opacity if scaling is disabled
-        circle.attr("fill-opacity", AppState.ui.dotOpacity);
-      }
-    }
-  });
-}
-
-// --- Plotting Functions ---
-function makeLassoDragHandler(svg, data, scales) {
-  let coords = [];
-  let lassoPath = null;
-
-  function drawPath() {
-    if (!lassoPath) {
-      lassoPath = svg
-        .append("path")
-        .attr("id", "lasso")
-        .style("stroke", "#666")
-        .style("stroke-width", 1.5)
-        .style("stroke-dasharray", "4,2")
-        .style("stroke-dashoffset", 0)
-        .style("animation", "marching-ants 1s linear infinite")
-        .style("fill", "rgba(0,0,0,0.1)");
-    }
-    lassoPath.attr("d", d3.line()(coords));
-  }
-
-  return d3
-    .drag()
-    .on("start", () => {
-      AppState.ui.isDragging = true;
-      coords = [];
-      if (lassoPath) lassoPath.remove();
-      lassoPath = null;
-    })
-    .on("drag", function (event) {
-      coords.push(d3.pointer(event, this));
-      drawPath();
-    })
-    .on("end", function (event) {
-      const selectedColor = document.getElementById("color").value;
-      const sourceEvent = event.sourceEvent;
-      const modifierHeld =
-        sourceEvent &&
-        (sourceEvent.shiftKey || sourceEvent.metaKey || sourceEvent.ctrlKey);
-      const additive = AppState.preferences.isAdditive || modifierHeld;
-
-      if (!additive) {
-        AppState.selection.colorByIndex.fill(null);
-        AppState.selection.selectedIndices.clear();
-      }
-
-      svg.selectAll("circle").each(function ({ d, i }) {
-        const cx = scales.x(d[0]);
-        const cy = scales.y(d[1]);
-        if (pointInPolygon([cx, cy], coords)) {
-          AppState.selection.colorByIndex[i] = selectedColor;
-          AppState.selection.selectedIndices.add(i);
-        }
-      });
-
-      AppState.ui.isDragging = false;
-      renderAllPlots();
-      updateLabelCounts();
-
-      const autoAnalyze = document.getElementById(
-        "auto-analyze-checkbox"
-      )?.checked;
-      if (autoAnalyze) {
-        applyGroupAnalysis();
-      }
-    });
-}
-
-function getParticipantVoteSummary(participantId) {
-  if (!AppState.data.dbInstance || !AppState.data.commentTexts) return "(data not loaded)";
-
-  const result = AppState.data.dbInstance.exec(`
-    SELECT comment_id, vote
-    FROM votes
-    WHERE participant_id = '${participantId}'
-  `);
-
-  const rows = result[0]?.values || [];
-  return rows
-    .map(([cid, vote]) => {
-      let label;
-      if (vote === 1) label = "agree";
-      else if (vote === -1) label = "disagree";
-      else label = "pass";
-
-      const text = AppState.data.commentTextMap?.[cid]?.txt || "<missing>";
-      return `#${cid} - ${label}: ${text}`;
-    })
-    .join("\n");
-}
-
-/**
- * Calculate opacity scale factor based on vote count
- * @param {string} participantId - The participant ID
- * @returns {Promise<number>} - Scale factor between 0 and 1
- */
-async function calculateOpacityScaleFactor(participantId) {
-  // If scaling is disabled, return 1 (full opacity)
-  if (!AppState.preferences.scaleOpacityWithVotes) {
-    return 1;
-  }
-
-  // Ensure database is loaded
-  if (!AppState.data.dbInstance) {
-    try {
-      await loadVotesDB(AppState.preferences.convoSlug);
-    } catch (error) {
-      console.error("Failed to load votes database:", error);
-      return 1;
-    }
-  }
-
-  // If comments not loaded, return 1
-  if (!AppState.data.commentTexts) {
-    return 1;
-  }
-
-  // Get all unmoderated statements
-  const unmoderatedStatements = AppState.data.commentTexts.filter(s =>
-    s.mod !== -1 && s.mod !== "-1"
-  );
-
-  // If no unmoderated statements, return 1
-  if (unmoderatedStatements.length === 0) {
-    return 1;
-  }
-
-  // Count how many statements this participant voted on
-  const result = AppState.data.dbInstance.exec(`
-    SELECT COUNT(*) as vote_count
-    FROM votes
-    WHERE participant_id = '${participantId}'
-  `);
-
-  const voteCount = result[0]?.values[0][0] || 0;
-
-  // Calculate scale factor: votes / total unmoderated statements
-  return Math.max(0.1, Math.min(1, voteCount / unmoderatedStatements.length));
-}
-
-function renderPlot(svgId, data, title) {
-  const svg = d3.select(svgId);
-  svg.attr("width", AppState.dimensions.width).attr("height", AppState.dimensions.height);
-  const scales = getScales(data, AppState.dimensions.width, AppState.dimensions.height);
-  svg.selectAll("*").remove();
-
-  // Add light origin axes at x=0 and y=0 (if within domain)
-  const [xMin, xMax] = d3.extent(data, d => d[0]);
-  const [yMin, yMax] = d3.extent(data, d => d[1]);
-
-  if (xMin < 0 && xMax > 0) {
-    svg.append("line")
-      .attr("x1", scales.x(0))
-      .attr("x2", scales.x(0))
-      .attr("y1", 0)
-      .attr("y2", AppState.dimensions.height)
-      .attr("stroke", "#ccc")
-      .attr("stroke-width", 1)
-      .attr("stroke-dasharray", "2,2");
-  }
-
-  if (yMin < 0 && yMax > 0) {
-    svg.append("line")
-      .attr("x1", 0)
-      .attr("x2", AppState.dimensions.width)
-      .attr("y1", scales.y(0))
-      .attr("y2", scales.y(0))
-      .attr("stroke", "#ccc")
-      .attr("stroke-width", 1)
-      .attr("stroke-dasharray", "2,2");
-  }
-
-  svg
-    .append("text")
-    .attr("x", AppState.dimensions.width / 2)
-    .attr("y", 25)
-    .attr("text-anchor", "middle")
-    .attr("font-size", "16px")
-    .attr("font-weight", "bold")
-    .text(title);
-
-  svg
-    .selectAll("circle")
-    .data(data.map((d, i) => ({ d, i })))
-    .enter()
-    .append("circle")
-    .attr("cx", ({ d }) => scales.x(d[0]))
-    .attr("cy", ({ d }) => scales.y(d[1]))
-    .attr("r", AppState.ui.dotSize)
-    .attr("fill-opacity", AppState.ui.dotOpacity) // Start with default opacity
-    .attr("fill", ({ i }) => AppState.selection.colorByIndex[i] || "rgba(0,0,0,0.5)")
-    .attr("data-index", ({ i }) => i)
-    // Show user vote history in console (for debug)
-    .on("mouseover", function (event, d) {
-      const i = d.i;
-      this.hoverTimeout = setTimeout(() => {
-        const pid = AppState.data.participants?.[i] || `#${i}`;
-        console.log(`Participant ID: ${pid}`);
-        console.log(getParticipantVoteSummary(pid));
-      }, 100);
-    })
-    .on("mouseout", function () {
-      clearTimeout(this.hoverTimeout);
-    });
-
-  svg.call(makeLassoDragHandler(svg, data, scales));
-
-  svg.on("mousemove", function (event) {
-    if (AppState.ui.isDragging) return;
-    const [x, y] = d3.pointer(event, this);
-    // Don't change radius with dotSize for now.
-    const FORCE_RADIUS = 10
-    AppState.ui.hoveredIndices = findIndicesWithinRadius(data, x, y, scales, FORCE_RADIUS);
-    applyHoverStyles();
-  });
-
-  svg.on("mouseleave", () => {
-    AppState.ui.hoveredIndices.clear();
-    applyHoverStyles();
-  });
-}
-
-/**
- * Update opacity of all circles based on vote count
- */
-async function updateOpacityBasedOnVotes() {
-  if (!AppState.preferences.scaleOpacityWithVotes) {
-    // Clear cache when disabled
-    AppState.ui.opacityFactorCache = {};
-    return;
-  }
-
-  // Ensure database is loaded
-  if (!AppState.data.dbInstance) {
-    try {
-      await loadVotesDB(AppState.preferences.convoSlug);
-    } catch (error) {
-      console.error("Failed to load votes database:", error);
-      return;
-    }
-  }
-
-  // Calculate opacity for each participant and cache the results
-  const opacityFactors = {};
-
-  for (let i = 0; i < AppState.data.participants?.length || 0; i++) {
-    const pid = AppState.data.participants[i];
-    if (pid) {
-      // Use cached value if available, otherwise calculate
-      if (AppState.ui.opacityFactorCache[i] === undefined) {
-        AppState.ui.opacityFactorCache[i] = await calculateOpacityScaleFactor(pid);
-      }
-      opacityFactors[i] = AppState.ui.opacityFactorCache[i];
-    }
-  }
-
-  // Apply opacity to all circles
-  d3.selectAll("circle").each(function () {
-    const circle = d3.select(this);
-    const index = +circle.attr("data-index");
-
-    if (AppState.ui.hoveredIndices.has(index)) {
-      // Don't change opacity for hovered circles
-      return;
-    }
-
-    const factor = opacityFactors[index] || 1;
-    const scaledOpacity = AppState.ui.dotOpacity * factor;
-
-    // Store the scaled opacity as a data attribute for hover handling
-    circle.attr("data-scaled-opacity", scaledOpacity);
-
-    // Apply the scaled opacity
-    circle.attr("fill-opacity", scaledOpacity);
-  });
-}
-
-/**
- * Render all three projection plots
- */
-function renderAllPlots() {
-  AppState.updateDimensions();
-
-
-  renderPlot("#plot1", AppState.data.X1, "PCA projection");
-  renderPlot("#plot2", AppState.data.X2, "PaCMAP projection");
-  renderPlot("#plot3", AppState.data.X3, "LocalMAP projection");
-
-  // Update opacity based on vote count if enabled
-  if (AppState.preferences.scaleOpacityWithVotes) {
-    updateOpacityBasedOnVotes();
-  }
-}
-
-/**
- * Application initialization
- */
-function initializeApp() {
-  // Initialize application state
-  AppState.init();
-
-  // Initialize UI with stored preferences
-  initializeUI();
-
-  // Set up event listeners
-  setupEventListeners();
-
-  // First load the dataset list to ensure dropdown is populated
-  loadDatasetList()
-    .then(() => {
-      // Check for shared state in URL hash
-      const hash = location.hash.slice(1);
-      if (hash) {
-        const shared = decodeShareState(hash);
-        if (shared) {
-          applySharedState(shared);
-          return; // ✅ Don't run normal startup; already handled
-        }
-      }
-
-      // Only run if no shared state
-      loadAndRenderData(AppState.preferences.convoSlug);
-    });
-}
-
-/**
- * Load the dataset list from JSON
- */
-function loadDatasetList() {
-  return fetch("data/datasets.json")
-    .then((res) => res.json())
-    .then((datasets) => {
-      const select = document.getElementById("dataset");
-      const current = AppState.preferences.convoSlug;
-
-      datasets.forEach(({ slug, label }) => {
-        const option = document.createElement("option");
-        option.value = slug;
-        option.textContent = label;
-        if (slug === current) option.selected = true;
-        select.appendChild(option);
-      });
-
-      // fallback if current is invalid
-      if (!datasets.find(d => d.slug === current)) {
-        AppState.preferences.convoSlug = datasets[0]?.slug;
-        saveState("dataset", AppState.preferences.convoSlug);
-      }
-    })
-    .catch((err) => {
-      console.error("Failed to load dataset list:", err);
-    });
-}
-
-// Initialize the application when the DOM is loaded
-window.addEventListener("DOMContentLoaded", initializeApp);
-
-
-/**
- * Load the votes database for a dataset
- * @param {string} slug - Dataset identifier
- * @returns {Promise<Object>} - SQL.js database instance
- */
-async function loadVotesDB(slug) {
-  if (AppState.data.dbInstance) {
-    return AppState.data.dbInstance;
-  }
-
-  const SQL = await initSqlJs({
-    locateFile: (file) =>
-      `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`,
-  });
-
-  const res = await fetch(`data/datasets/${slug}/votes.db`);
-  const buffer = await res.arrayBuffer();
-  const db = new SQL.Database(new Uint8Array(buffer));
-
-  // Store in AppState
-  AppState.data.dbInstance = db;
-
-
-  return db;
-}
-
-// Helper function to check if z-score is significant at 90% confidence
 function zSig90(zVal) {
   return zVal > Config.stats.significanceThreshold;
 }
 
-function renderRepCommentsTable(repComments) {
-  const container = document.getElementById("rep-comments-output");
-  container.innerHTML = "";
-
-  // Get all group colors sorted by their label index
-  const allGroupColors = Object.keys(repComments).sort((a, b) => {
-    const indexA = AppState.selection.colorToLabelIndex[a] ?? Infinity;
-    const indexB = AppState.selection.colorToLabelIndex[b] ?? Infinity;
-    return indexA - indexB;
-  });
-
-  // Get group sizes for each color
-  const groupSizes = {};
-  allGroupColors.forEach(color => {
-    groupSizes[color] = getLabelArrayWithOptionalUngrouped().filter(
-      (label) => label === color
-    ).length;
-  });
-
-  // Process each group
-  allGroupColors.forEach((labelColor) => {
-    const comments = repComments[labelColor];
-    const groupDiv = document.createElement("div");
-    groupDiv.style.marginBottom = "30px";
-
-    // Section header with colored circle
-    const title = document.createElement("h3");
-    title.style.display = "flex";
-    title.style.alignItems = "center";
-    title.style.gap = "10px";
-
-    const circle = document.createElement("span");
-    circle.style.display = "inline-block";
-    circle.style.width = "16px";
-    circle.style.height = "16px";
-    circle.style.borderRadius = "50%";
-    circle.style.backgroundColor = labelColor;
-    circle.style.border = "1px solid #999";
-
-    const UNGROUPED_LABEL = "Ungrouped";
-
-    const labelIndex = AppState.selection.colorToLabelIndex[labelColor];
-    const letter =
-      labelIndex !== undefined
-        ? labelIndexToLetter(labelIndex)
-        : UNGROUPED_LABEL;
-
-    const groupSize = groupSizes[labelColor];
-
-    const text = document.createElement("span");
-    text.textContent = `Group ${letter} (${groupSize} participants)`;
-
-    title.appendChild(circle);
-    title.appendChild(text);
-    groupDiv.appendChild(title);
-
-    const table = document.createElement("table");
-    table.style.borderCollapse = "collapse";
-    table.style.width = "100%";
-
-    // Create header row
-    const headerRow = document.createElement("tr");
-
-    // Basic columns
-    const basicHeaders = ["Comment ID", "Rep Type", "% Support"];
-    basicHeaders.forEach((h) => {
-      const th = document.createElement("th");
-      th.textContent = h;
-      th.style.borderBottom = "2px solid #ccc";
-      th.style.padding = "6px 10px";
-      th.style.textAlign = "left";
-      headerRow.appendChild(th);
-    });
-
-    // Add group comparison columns if enabled
-    if (AppState.preferences.showGroupComparison) {
-      allGroupColors.forEach(color => {
-        const groupIndex = AppState.selection.colorToLabelIndex[color];
-        const groupLetter = groupIndex !== undefined
-          ? labelIndexToLetter(groupIndex)
-          : UNGROUPED_LABEL;
-
-        const th = document.createElement("th");
-        th.style.borderBottom = "2px solid #ccc";
-        th.style.padding = "6px 10px";
-        th.style.textAlign = "center";
-
-        // Create a container for the circle and text
-        const container = document.createElement("div");
-        container.style.display = "flex";
-        container.style.alignItems = "center";
-        container.style.justifyContent = "center";
-        container.style.gap = "5px";
-
-        // Create colored circle similar to section header
-        const circle = document.createElement("span");
-        circle.style.display = "inline-block";
-        circle.style.width = "12px";
-        circle.style.height = "12px";
-        circle.style.borderRadius = "50%";
-        circle.style.backgroundColor = color;
-        circle.style.border = "1px solid #999";
-
-        // Create text element
-        const text = document.createElement("span");
-        text.textContent = `Group ${groupLetter}`;
-
-        // Add circle and text to container
-        container.appendChild(circle);
-        container.appendChild(text);
-
-        // Add container to header cell
-        th.appendChild(container);
-
-        // Highlight the current group's column
-        if (color === labelColor) {
-          th.style.fontWeight = "bold";
-          th.style.backgroundColor = "#f0f0f0";
-        } else {
-          th.style.opacity = "0.8";
-        }
-
-        headerRow.appendChild(th);
-      });
-    } else {
-      // Just add a single chart column if comparison is disabled
-      const th = document.createElement("th");
-      th.textContent = "";
-      th.style.borderBottom = "2px solid #ccc";
-      th.style.padding = "6px 10px";
-      th.style.textAlign = "left";
-      headerRow.appendChild(th);
-    }
-
-    // Statement column
-    const thStatement = document.createElement("th");
-    thStatement.textContent = "Statement";
-    thStatement.style.borderBottom = "2px solid #ccc";
-    thStatement.style.padding = "6px 10px";
-    thStatement.style.textAlign = "left";
-    headerRow.appendChild(thStatement);
-
-    table.appendChild(headerRow);
-
-    // Create rows for each comment
-    comments.forEach((c) => {
-      const tr = document.createElement("tr");
-      const repColor =
-        c.repful_for === "agree"
-          ? "green"
-          : c.repful_for === "disagree"
-            ? "red"
-            : "#333";
-
-      const match = AppState.data.commentTextMap?.[c.tid];
-      const isModerated = match?.mod === "-1" || match?.mod === -1;
-      const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
-
-      // Add "(moderated)" text and apply red styling to moderated statements when included
-      let commentText = match?.txt || "<em>Missing</em>";
-      if (isModerated && includeModerated) {
-        commentText = `<span style="color: red;">${commentText} (moderated)</span>`;
-      }
-
-      const metaLine = `<div style="font-size: 0.85em; color: #666; margin-top: 4px;">
-        Agree: ${c.n_agree}, Disagree: ${c.n_disagree}, Pass: ${c.n_pass}, Total: ${c.n_trials}
-      </div>`;
-
-      // Comment ID
-      const tdId = document.createElement("td");
-      tdId.textContent = c.tid;
-      tdId.style.padding = "6px 10px";
-      tdId.style.borderBottom = "1px solid #eee";
-      tr.appendChild(tdId);
-
-      // Rep Type
-      const tdRep = document.createElement("td");
-      tdRep.innerHTML = `<span style="color: ${repColor}; font-weight: bold;">${c.repful_for}</span>`;
-      tdRep.style.padding = "6px 10px";
-      tdRep.style.borderBottom = "1px solid #eee";
-      tr.appendChild(tdRep);
-
-      // % Support
-      const tdPct = document.createElement("td");
-      tdPct.textContent = `${Math.round((c.n_success / c.n_trials) * 100)}%`;
-      tdPct.style.padding = "6px 10px";
-      tdPct.style.borderBottom = "1px solid #eee";
-      tr.appendChild(tdPct);
-
-      // Add bar charts for each group if comparison is enabled
-      if (AppState.preferences.showGroupComparison) {
-        // Find vote data for this comment across all groups
-        const commentId = c.tid;
-        const groupVoteData = {};
-
-        // First, use the current comment's data for the current group
-        // This ensures consistency with the statement summary
-        groupVoteData[labelColor] = {
-          agrees: c.n_agree,
-          disagrees: c.n_disagree,
-          passes: c.n_pass,
-          total: c.n_trials
-        };
-
-        // For other groups, try to find the comment in their representative comments first
-        allGroupColors.forEach(color => {
-          if (color === labelColor) return; // Skip current group, already handled
-
-          // Default values
-          groupVoteData[color] = {
-            agrees: 0,
-            disagrees: 0,
-            passes: 0,
-            total: 0
-          };
-
-          // First try to find this comment in the other group's representative comments
-          if (repComments[color]) {
-            const groupComment = repComments[color].find(gc => gc.tid === commentId);
-            if (groupComment) {
-              groupVoteData[color] = {
-                agrees: groupComment.n_agree,
-                disagrees: groupComment.n_disagree,
-                passes: groupComment.n_pass,
-                total: groupComment.n_trials
-              };
-              return; // Found in rep comments, no need to calculate from raw data
-            }
-          }
-
-          // If not found in rep comments, calculate from raw vote data
-          if (AppState.data.groupVotes && AppState.data.groupVotes[color]) {
-            const groupMatrix = AppState.data.groupVotes[color];
-            let agrees = 0, disagrees = 0, passes = 0, total = 0;
-
-            Object.values(groupMatrix).forEach(participantVotes => {
-              const vote = participantVotes[commentId];
-              if (vote !== undefined) {
-                total++;
-                if (vote === 1) agrees++;
-                else if (vote === -1) disagrees++;
-                else passes++;
-              }
-            });
-
-            if (total > 0) {
-              groupVoteData[color] = {
-                agrees,
-                disagrees,
-                passes,
-                total
-              };
-            }
-          }
-        });
-
-        // Create a bar chart for each group
-        allGroupColors.forEach(color => {
-          const tdChart = document.createElement("td");
-          tdChart.style.padding = "6px 10px";
-          tdChart.style.borderBottom = "1px solid #eee";
-          tdChart.style.textAlign = "center";
-
-          const voteData = groupVoteData[color];
-
-          // Create bar chart for this group
-          const barChart = createCompactBarChart({
-            voteCounts: {
-              A: voteData.agrees,
-              D: voteData.disagrees,
-              S: voteData.total
-            },
-            nMembers: groupSizes[color],
-            voteColors: Config.voteColors
-          });
-
-          // Highlight current group's column
-          if (color === labelColor) {
-            tdChart.style.backgroundColor = "#f0f0f0";
-          } else {
-            tdChart.style.opacity = "0.7";
-          }
-
-          tdChart.appendChild(barChart);
-          tr.appendChild(tdChart);
-        });
-      } else {
-        // Just add a single chart if comparison is disabled
-        const tdChart = document.createElement("td");
-        tdChart.style.padding = "6px 10px";
-        tdChart.style.borderBottom = "1px solid #eee";
-
-        const barChart = createCompactBarChart({
-          voteCounts: {
-            A: c.n_agree,
-            D: c.n_disagree,
-            S: c.n_trials,
-          },
-          nMembers: groupSize,
-          voteColors: Config.voteColors
-        });
-
-        tdChart.appendChild(barChart);
-        tr.appendChild(tdChart);
-      }
-
-      // Statement + meta
-      const tdStatement = document.createElement("td");
-      tdStatement.innerHTML = `<div class="comment-text">${commentText}</div>${metaLine}`;
-      tdStatement.style.padding = "6px 10px";
-      tdStatement.style.borderBottom = "1px solid #eee";
-      tr.appendChild(tdStatement);
-
-      table.appendChild(tr);
-    });
-
-    groupDiv.appendChild(table);
-    container.appendChild(groupDiv);
-  });
-}
-
-// Test if two proportions differ significantly
+/**
+ * Two-proportion z-test
+ * @param {number} succIn - Successes in group
+ * @param {number} succOut - Successes outside group
+ * @param {number} popIn - Population in group
+ * @param {number} popOut - Population outside group
+ * @returns {number} - Z-score
+ */
 function twoPropTest(succIn, succOut, popIn, popOut) {
   const adjustedSuccIn = succIn + 1;
   const adjustedSuccOut = succOut + 1;
@@ -1603,7 +41,12 @@ function twoPropTest(succIn, succOut, popIn, popOut) {
   );
 }
 
-// Helper function to calculate comparative statistics for groups
+/**
+ * Add comparative statistics to comment stats
+ * @param {Object} inStats - Stats for in-group
+ * @param {Object} restStats - Stats for out-group
+ * @returns {Object} - Combined stats
+ */
 function addComparativeStats(inStats, restStats) {
   // Sum up values across other groups
   const sumOtherNa = restStats.reduce((sum, g) => sum + g.na, 0);
@@ -1627,6 +70,12 @@ function addComparativeStats(inStats, restStats) {
   };
 }
 
+/**
+ * Get group vote matrices
+ * @param {Object} db - Database instance
+ * @param {Array} labelArray - Array of labels
+ * @returns {Promise<Object>} - Group vote matrices
+ */
 async function getGroupVoteMatrices(db, labelArray) {
   const groups = {};
   labelArray.forEach((label, index) => {
@@ -1646,8 +95,8 @@ async function getGroupVoteMatrices(db, labelArray) {
     const result = db.exec(`
       SELECT participant_id, comment_id, vote
       FROM votes
-      WHERE participant_id IN (${quotedIndices.join(",")})
-    `);
+      WHERE participant_id IN(${quotedIndices.join(",")})
+  `);
 
     const voteMatrix = {};
     const rows = result[0]?.values || [];
@@ -1663,6 +112,11 @@ async function getGroupVoteMatrices(db, labelArray) {
   return groupVotes;
 }
 
+/**
+ * Check if a comment passes the significance test
+ * @param {Object} commentStats - Comment statistics
+ * @returns {boolean} - True if passes test
+ */
 function passesByTest(commentStats) {
   return (
     (zSig90(commentStats.rat) && zSig90(commentStats.pat)) ||
@@ -1670,6 +124,12 @@ function passesByTest(commentStats) {
   );
 }
 
+/**
+ * Check if a comment beats the best by z-score
+ * @param {Object} commentStats - Comment statistics
+ * @param {number} currentBestZ - Current best z-score
+ * @returns {boolean} - True if beats best
+ */
 function beatsBestByTest(commentStats, currentBestZ) {
   return (
     currentBestZ === null ||
@@ -1677,6 +137,12 @@ function beatsBestByTest(commentStats, currentBestZ) {
   );
 }
 
+/**
+ * Check if a comment beats the best by agreement
+ * @param {Object} commentStats - Comment statistics
+ * @param {Object} currentBest - Current best stats
+ * @returns {boolean} - True if beats best
+ */
 function beatsBestAgr(commentStats, currentBest) {
   const { na, nd, ra, rat, pa, pat } = commentStats;
   if (na === 0 && nd === 0) return false;
@@ -1692,6 +158,12 @@ function beatsBestAgr(commentStats, currentBest) {
   return zSig90(pat) || (ra > 1.0 && pa > 0.5);
 }
 
+/**
+ * Finalize comment statistics
+ * @param {string} tid - Comment ID
+ * @param {Object} stats - Comment statistics
+ * @returns {Object} - Finalized stats
+ */
 function finalizeCommentStats(tid, stats) {
   const { na, nd, ns, pa, pd, pat, pdt, ra, rd, rat, rdt } = stats;
   const isAgreeMoreRep = (rat > rdt && na >= Config.stats.minVotes) || nd < Config.stats.minVotes;
@@ -1716,12 +188,22 @@ function repnessMetric(data) {
   return data.repness * data.repness_test * data.p_success * data.p_test;
 }
 
+/**
+ * Sort comments by agreement before disagreement
+ * @param {Array} comments - Comments to sort
+ * @returns {Array} - Sorted comments
+ */
 function agreesBeforeDisagrees(comments) {
   const agrees = comments.filter((c) => c.repful_for === "agree");
   const disagrees = comments.filter((c) => c.repful_for === "disagree");
   return [...agrees, ...disagrees];
 }
 
+/**
+ * Select representative comments
+ * @param {Array} commentStatsWithTid - Comment statistics
+ * @returns {Array} - Representative comments
+ */
 function selectRepComments(commentStatsWithTid) {
   const result = {};
   const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
@@ -1787,13 +269,24 @@ function selectRepComments(commentStatsWithTid) {
   return finalResult;
 }
 
-// Test if a proportion differs from 0.5
+/**
+ * Proportion test
+ * @param {number} succ - Successes
+ * @param {number} n - Total
+ * @returns {number} - Z-score
+ */
 function propTest(succ, n) {
   const adjustedSucc = succ + 1;
   const adjustedN = n + 1;
   return 2 * Math.sqrt(adjustedN) * (adjustedSucc / adjustedN - 0.5);
 }
 
+/**
+ * Calculate representative comments
+ * @param {Object} groupVotes - Group votes
+ * @param {Array} commentTexts - Comment texts
+ * @returns {Object} - Representative comments by group
+ */
 function calculateRepresentativeComments(groupVotes, commentTexts) {
   const allComments = commentTexts
     ? commentTexts.map((c) => c.id)
@@ -1862,8 +355,8 @@ function calculateRepresentativeComments(groupVotes, commentTexts) {
 }
 
 /**
- * Get an array of labels with optional handling for unpainted points
- * @returns {Array} Array of color labels or null
+ * Get label array with optional ungrouped points
+ * @returns {Array} - Label array
  */
 function getLabelArrayWithOptionalUngrouped() {
   const includeUnpainted = document.getElementById("include-unpainted").checked;
@@ -1883,6 +376,13 @@ function getLabelArrayWithOptionalUngrouped() {
   return labels;
 }
 
+/**
+ * Analyze painted clusters
+ * @param {Object} db - Database instance
+ * @param {Array} labelArray - Label array
+ * @param {Array} commentTexts - Comment texts
+ * @returns {Promise<Object>} - Representative comments
+ */
 async function analyzePaintedClusters(db, labelArray, commentTexts) {
   const groupVotes = await getGroupVoteMatrices(db, labelArray);
   const repComments = calculateRepresentativeComments(groupVotes, commentTexts);
@@ -1895,15 +395,8 @@ async function analyzePaintedClusters(db, labelArray, commentTexts) {
 }
 
 /**
- * Forces the browser to render pending DOM updates before continuing.
- * Use this after DOM changes (like showing a spinner) but before heavy work.
- *
- * @returns {Promise<void>} Resolves on the next tick, after paint.
+ * Apply group analysis
  */
-function preworkRenderPipelinePauseHelper() {
-  return new Promise((r) => setTimeout(r, 0));
-}
-
 async function applyGroupAnalysis() {
   const output = document.getElementById("rep-comments-output");
 
@@ -1912,7 +405,7 @@ async function applyGroupAnalysis() {
   // Count distinct labels, excluding nulls
   const uniqueLabels = new Set(labelArray.filter((x) => x !== null));
   if (uniqueLabels.size < 2) {
-    output.innerHTML = `<p style="color: #c00; font-weight: bold;">Need at least two groups to analyze.</p>`;
+    output.innerHTML = `< p style = "color: #c00; font-weight: bold;" > Need at least two groups to analyze.</p > `;
     return;
   }
 
@@ -1920,10 +413,10 @@ async function applyGroupAnalysis() {
   showPlotLoader();
 
   output.innerHTML = `
-    <div class="spinner-container">
+  < div class="spinner-container" >
       <div class="spinner"></div>
       <span>Analyzing groups…</span>
-    </div>
+    </div >
   `;
 
   // 🔥 FORCE a DOM paint before continuing with long task
@@ -1938,17 +431,57 @@ async function applyGroupAnalysis() {
   hidePlotLoader();
 }
 
+// ============================================================================
+// Application Initialization
+// ============================================================================
+
+/**
+ * Initialize the application
+ */
+function initializeApp() {
+  // Initialize application state
+  AppState.init();
+
+  // Initialize UI with stored preferences
+  initializeUI();
+
+  // Set up event listeners
+  setupEventListeners();
+
+  // First load the dataset list to ensure dropdown is populated
+  loadDatasetList()
+    .then(() => {
+      // Check for shared state in URL hash
+      const hash = location.hash.slice(1);
+      if (hash) {
+        const shared = decodeShareState(hash);
+        if (shared) {
+          applySharedState(shared);
+          return; // ✅ Don't run normal startup; already handled
+        }
+      }
+
+      // Only run if no shared state
+      loadAndRenderData(AppState.preferences.convoSlug);
+    });
+}
+
+/**
+ * Forces the browser to render pending DOM updates before continuing.
+ * Use this after DOM changes (like showing a spinner) but before heavy work.
+ *
+ * @returns {Promise<void>} Resolves on the next tick, after paint.
+ */
+function preworkRenderPipelinePauseHelper() {
+  return new Promise((r) => setTimeout(r, 0));
+}
+
+// Initialize the application when the DOM is loaded
+window.addEventListener("DOMContentLoaded", initializeApp);
+
 // For testing purposes, export objects and functions
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    Config,
-    AppState,
-    getQueryParam,
-    loadState,
-    saveState,
-    getScales,
-    pointInPolygon,
-    updateDimensions,
     // Add other functions you want to test
   };
 }
