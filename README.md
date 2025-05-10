@@ -140,7 +140,7 @@ The project is currently in the early stages of implementing test coverage. We'v
 
 To help maintain and improve test coverage, the project includes:
 
-1. A GitHub Actions workflow that runs tests with coverage on every push and pull request
+1. A GitHub Actions workflow that runs tests with coverage on every push and pull request, with results displayed directly in the GitHub interface
 2. A script to check if coverage has decreased compared to the previous run:
 
 ```sh
