@@ -236,9 +236,9 @@ function setupEventListeners() {
 function initializeTooltips() {
     // Define tooltip content for each projection type
     const tooltipContent = {
-        "PCA": "Principal Component Analysis (PCA): A dimensionality reduction technique that finds the directions (principal components) of maximum variance in the data. It's useful for visualizing high-dimensional data in a lower-dimensional space while preserving as much variance as possible.",
-        "PaCMAP": "Pairwise Controlled Manifold Approximation and Projection (PaCMAP): A dimensionality reduction algorithm that preserves both local and global structure of the data. It balances the preservation of local neighborhoods with the overall data distribution.",
-        "LocalMAP": "LocalMAP: A dimensionality reduction technique that focuses on preserving local relationships between data points. It's particularly effective at maintaining the structure of local neighborhoods in the data."
+        "PCA": "Principal Component Analysis (PCA): The oldest technique (1903) that uses linear regression to find relationships in data. Used in Polis, it's good at capturing overall data variance but may miss complex non-linear relationships. PCA works by finding directions of maximum variance in the data.",
+        "PaCMAP": "Pairwise Controlled Manifold Approximation and Projection (PaCMAP): A newer technique (2021) that preserves both local and global structure. It works like a physics simulation with attractive and repulsive forces between data points. Has a simpler loss function than comparable algorithms.",
+        "LocalMAP": "LocalMAP: The newest technique (2024) that builds on PaCMAP. It uses graph structures to better preserve both local and global relationships in the data. Particularly good at maintaining the structure of local neighborhoods while showing overall patterns."
     };
 
     // Create a tooltip container if it doesn't exist
