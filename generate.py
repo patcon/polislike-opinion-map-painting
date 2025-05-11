@@ -177,7 +177,7 @@ def main():
         loader = Loader(polis_instance_url=base_url, polis_id=args.convo_id)
 
     slug = args.slug or loader.conversation_id
-    outdir = Path("data") / slug
+    outdir = Path("data/datasets") / slug
     outdir.mkdir(parents=True, exist_ok=True)
     print(f"📁 Output directory: {outdir}")
 
