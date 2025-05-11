@@ -132,17 +132,26 @@ function applySharedState({
  */
 function encodeShareState() {
     const dataset = AppState.preferences.convoSlug;
-    const labelIndices = AppState.selection.colorByIndex.map((c) =>
-        c == null ? null : AppState.selection.colorToLabelIndex[c]
-    );
+
+    // Check if any participants are painted
+    const hasPaintedParticipants = AppState.selection.selectedIndices.size > 0;
+
+    // Create the base payload with settings
     const payload = {
         dataset,
-        labelIndices,
         flipX: AppState.preferences.flipX,
         flipY: AppState.preferences.flipY,
         opacity: AppState.ui.dotOpacity,
         dotSize: AppState.ui.dotSize
     };
+
+    // Only include labelIndices if there are painted participants
+    if (hasPaintedParticipants) {
+        payload.labelIndices = AppState.selection.colorByIndex.map((c) =>
+            c == null ? null : AppState.selection.colorToLabelIndex[c]
+        );
+    }
+
     return btoa(JSON.stringify(payload));
 }
 
