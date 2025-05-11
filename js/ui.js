@@ -809,11 +809,11 @@ function createCompactBarChart({ voteCounts, nMembers, voteColors, boldLargest =
  * @param {number} options.width - Width of the chart (default: 100)
  * @returns {HTMLElement} - Container element with the bar chart
  */
-function createMoreCompactBarChart({ voteCounts, nMembers, voteColors, boldLargest = true, width = 50 }) {
+function createMoreCompactBarChart({ voteCounts, nMembers, voteColors, boldLargest = true, width = 40 }) {
     const container = document.createElement("div");
     container.style.display = "inline-block";
     container.style.verticalAlign = "middle";
-    container.style.marginLeft = "10px";
+    container.style.margin = "0 5px";
 
     let w = width;
     let agrees = 0;
@@ -911,11 +911,16 @@ function createMoreCompactBarChart({ voteCounts, nMembers, voteColors, boldLarge
             }
         }
 
+        // Create a wrapper div with the same width as the bar chart to ensure alignment
         label.innerHTML = `
-    <span style="color: ${voteColors.agree}; margin-right: 3px; ${agreeStyle}"> ${agreeString} </span>
-    <span style="color: ${voteColors.disagree}; margin-right: 3px; ${disagreeStyle}">${disagreeString} </span>
-    <span style="color: #999; margin-right: 3px; ${passStyle}">${passString}%</span>
-    <span style="display: block; color: grey; flex: 0 0 100%">(${sawTheComment})</span>
+    <div style="width: ${w + 1}px;">
+      <div style="display: flex; justify-content: center; gap: 3px;">
+        <span style="color: ${voteColors.agree}; ${agreeStyle}">${agreeString}</span>
+        <span style="color: ${voteColors.disagree}; ${disagreeStyle}">${disagreeString}</span>
+        <span style="color: #999; ${passStyle}">${passString}%</span>
+      </div>
+      <div style="width: ${w + 1}px; text-align: center; color: grey;">(${sawTheComment})</div>
+    </div>
   `;
     }
 
