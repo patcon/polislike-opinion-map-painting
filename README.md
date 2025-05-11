@@ -60,6 +60,9 @@ Demo of label painting import: [`https://patcon.github.io/polislike-opinion-map-
 - [ ] add report option to sort by column
 - [ ] investigate navigating from sqlite to duckdb for in-browser database
 - [ ] better compression of data for shorter share urls
+- Sliders to reveal proportion of participants
+  - [ ] uniformly with participant ID (first vote order)
+  - [ ] uniformly with time (first vote time order)
 
 ## Usage
 
