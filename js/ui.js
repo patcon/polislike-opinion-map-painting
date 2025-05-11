@@ -964,16 +964,19 @@ function renderRepCommentsTable(repComments) {
 
     // Create tab navigation
     const tabNav = document.createElement("div");
-    tabNav.className = "flex border-b border-gray-200";
+    tabNav.className = "flex flex-wrap border-b border-gray-200";
     tabContainer.appendChild(tabNav);
 
     // Create tab content container
     const tabContent = document.createElement("div");
-    tabContent.className = "mt-4";
+    tabContent.className = "mt-4 relative";
     tabContainer.appendChild(tabContent);
 
     // Track the active tab
     let activeTabId = null;
+
+    // Array to store all content panels for height calculation
+    const contentPanels = [];
 
     // Function to switch tabs
     const switchTab = (tabId) => {
@@ -1026,8 +1029,8 @@ function renderRepCommentsTable(repComments) {
         tab.setAttribute("aria-controls", contentId);
         tab.setAttribute("aria-selected", index === 0 ? "true" : "false");
         tab.className = `flex items-center px-4 py-2 font-medium text-sm border-b-2 focus:outline-none ${index === 0
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:border-gray-300'
+            ? 'border-primary-500 text-primary-600'
+            : 'border-transparent text-gray-500 hover:border-gray-300'
             }`;
 
         // Create colored circle for tab
@@ -1297,6 +1300,9 @@ function renderRepCommentsTable(repComments) {
         contentPanel.appendChild(table);
         tabContent.appendChild(contentPanel);
 
+        // Store the panel for later height calculation
+        contentPanels.push(contentPanel);
+
         // Set the first tab as active
         if (index === 0) {
             activeTabId = contentId;
@@ -1305,6 +1311,42 @@ function renderRepCommentsTable(repComments) {
 
     // Add the tab container to the main container
     container.appendChild(tabContainer);
+
+    // Set a consistent height for the tab content area to prevent jumping
+    // We need to do this after all panels are added to the DOM
+    setTimeout(() => {
+        // Make all panels visible temporarily to measure their heights
+        contentPanels.forEach(panel => {
+            panel.classList.remove('hidden');
+            panel.style.position = 'absolute';
+            panel.style.visibility = 'hidden';
+            panel.style.display = 'block';
+        });
+
+        // Find the tallest panel
+        let maxHeight = 0;
+        contentPanels.forEach(panel => {
+            const height = panel.offsetHeight;
+            maxHeight = Math.max(maxHeight, height);
+        });
+
+        // Reset visibility and apply the consistent height
+        contentPanels.forEach(panel => {
+            panel.style.position = '';
+            panel.style.visibility = '';
+            panel.style.display = '';
+
+            // Hide all panels except the active one
+            if (panel.id !== activeTabId) {
+                panel.classList.add('hidden');
+            }
+        });
+
+        // Set minimum height on the tab content container
+        if (maxHeight > 0) {
+            tabContent.style.minHeight = `${maxHeight}px`;
+        }
+    }, 0);
 }
 
 /**
