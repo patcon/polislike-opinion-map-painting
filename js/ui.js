@@ -868,7 +868,7 @@ function renderRepCommentsTable(repComments) {
         const headerRow = document.createElement("tr");
 
         // Basic columns
-        const basicHeaders = ["Comment ID", "Rep Type", "% Support"];
+        const basicHeaders = ["ID", "Type", "%"];
         basicHeaders.forEach((h) => {
             const th = document.createElement("th");
             th.textContent = h;
@@ -909,7 +909,7 @@ function renderRepCommentsTable(repComments) {
 
                 // Create text element
                 const text = document.createElement("span");
-                text.textContent = `Group ${groupLetter} `;
+                text.textContent = `${groupLetter}`;
 
                 // Add circle and text to container
                 container.appendChild(circle);
