@@ -27,6 +27,95 @@ describe('Utility functions', () => {
         expect(getQueryParam('nonexistent')).toBeNull();
         expect(getQueryParam('dataset')).toBe('test');
     });
+
+    describe('saveState', () => {
+        let originalSessionStorage;
+
+        beforeEach(() => {
+            // Save original sessionStorage
+            originalSessionStorage = window.sessionStorage;
+
+            // Mock sessionStorage
+            const mockSessionStorage = {
+                getItem: jest.fn(),
+                setItem: jest.fn(),
+                clear: jest.fn(),
+                removeItem: jest.fn()
+            };
+
+            delete window.sessionStorage;
+            Object.defineProperty(window, 'sessionStorage', {
+                value: mockSessionStorage,
+                configurable: true
+            });
+        });
+
+        afterEach(() => {
+            // Restore original sessionStorage
+            delete window.sessionStorage;
+            Object.defineProperty(window, 'sessionStorage', {
+                value: originalSessionStorage,
+                configurable: true
+            });
+        });
+
+        test('saves string values correctly', () => {
+            const saveState = require('../config').saveState;
+
+            saveState('testKey', 'testValue');
+
+            expect(window.sessionStorage.setItem).toHaveBeenCalledWith(
+                'testKey',
+                JSON.stringify('testValue')
+            );
+        });
+
+        test('saves numeric values correctly', () => {
+            const saveState = require('../config').saveState;
+
+            saveState('numKey', 42);
+
+            expect(window.sessionStorage.setItem).toHaveBeenCalledWith(
+                'numKey',
+                JSON.stringify(42)
+            );
+        });
+
+        test('saves boolean values correctly', () => {
+            const saveState = require('../config').saveState;
+
+            saveState('boolKey', true);
+
+            expect(window.sessionStorage.setItem).toHaveBeenCalledWith(
+                'boolKey',
+                JSON.stringify(true)
+            );
+        });
+
+        test('saves object values correctly', () => {
+            const saveState = require('../config').saveState;
+            const testObject = { name: 'Test', values: [1, 2, 3] };
+
+            saveState('objectKey', testObject);
+
+            expect(window.sessionStorage.setItem).toHaveBeenCalledWith(
+                'objectKey',
+                JSON.stringify(testObject)
+            );
+        });
+
+        test('saves array values correctly', () => {
+            const saveState = require('../config').saveState;
+            const testArray = [1, 'two', { three: 3 }];
+
+            saveState('arrayKey', testArray);
+
+            expect(window.sessionStorage.setItem).toHaveBeenCalledWith(
+                'arrayKey',
+                JSON.stringify(testArray)
+            );
+        });
+    });
 });
 
 describe('DOM manipulation', () => {
@@ -188,5 +277,59 @@ describe('AppState.init()', () => {
         expect(AppState.preferences.flipY).toBe(true);
         expect(AppState.preferences.scaleOpacityWithVotes).toBe(true);
         expect(AppState.preferences.showGroupComparison).toBe(false);
+    });
+});
+
+describe('AppState.resetDataState()', () => {
+    beforeEach(() => {
+        // Set up the DOM
+        document.body.innerHTML = `
+      <div id="rep-comments-output">Initial content</div>
+    `;
+
+        // Import AppState
+        const { AppState } = require('../config');
+
+        // Set up initial state with mock data
+        AppState.data.dbInstance = { mock: 'database' };
+        AppState.data.commentTexts = [{ id: 1, text: 'Test comment' }];
+        AppState.data.repComments = { group1: [{ id: 1 }] };
+        AppState.ui.opacityFactorCache = { 'user1': 0.5, 'user2': 0.8 };
+    });
+
+    test('resets data state properties to null', () => {
+        const { AppState } = require('../config');
+
+        // Call the method being tested
+        AppState.resetDataState();
+
+        // Verify data properties are reset to null
+        expect(AppState.data.dbInstance).toBeNull();
+        expect(AppState.data.commentTexts).toBeNull();
+        expect(AppState.data.repComments).toBeNull();
+    });
+
+    test('clears the opacity factor cache', () => {
+        const { AppState } = require('../config');
+
+        // Call the method being tested
+        AppState.resetDataState();
+
+        // Verify the opacity cache is empty
+        expect(AppState.ui.opacityFactorCache).toEqual({});
+    });
+
+    test('clears the rep-comments-output element', () => {
+        const { AppState } = require('../config');
+
+        // Verify the element has content before reset
+        const outputElement = document.getElementById('rep-comments-output');
+        expect(outputElement.innerHTML).toBe('Initial content');
+
+        // Call the method being tested
+        AppState.resetDataState();
+
+        // Verify the element is now empty
+        expect(outputElement.innerHTML).toBe('');
     });
 });
