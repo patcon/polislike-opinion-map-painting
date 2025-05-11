@@ -1292,7 +1292,7 @@ function renderRepCommentsTable(repComments) {
 
             // Statement + meta
             const tdStatement = document.createElement("td");
-            tdStatement.innerHTML = `<div class="comment-text">${commentText}</div>${metaLine}`;
+            tdStatement.innerHTML = `<div class="comment-text" lang="und">${commentText}</div>${metaLine}`;
             tdStatement.className = "py-2 px-3 border-b border-gray-200";
             tr.appendChild(tdStatement);
 
