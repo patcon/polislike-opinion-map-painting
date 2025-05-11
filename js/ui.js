@@ -1042,7 +1042,7 @@ function renderRepCommentsTable(repComments) {
 
         // Add tab text
         const tabText = document.createElement("span");
-        tabText.textContent = `Group ${letter} (${groupSize})`;
+        tabText.innerHTML = `<span class="hidden sm:inline">Group </span>${letter} (${groupSize})`;
 
         tab.appendChild(circle);
         tab.appendChild(tabText);
