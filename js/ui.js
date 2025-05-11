@@ -27,6 +27,8 @@ function initializeUI() {
     document.getElementById("dot-size-slider").value = AppState.ui.dotSize;
     document.getElementById("dot-size-value").textContent = AppState.ui.dotSize;
 
+    // Initialize tooltips for projection explanations
+    initializeTooltips();
 }
 
 /**
@@ -228,6 +230,126 @@ function setupEventListeners() {
  * @param {Array} data - Data points
  * @param {string} title - Plot title
  */
+/**
+ * Initialize tooltip functionality for the info icons
+ */
+function initializeTooltips() {
+    // Define tooltip content for each projection type
+    const tooltipContent = {
+        "PCA": "Principal Component Analysis (PCA): A dimensionality reduction technique that finds the directions (principal components) of maximum variance in the data. It's useful for visualizing high-dimensional data in a lower-dimensional space while preserving as much variance as possible.",
+        "PaCMAP": "Pairwise Controlled Manifold Approximation and Projection (PaCMAP): A dimensionality reduction algorithm that preserves both local and global structure of the data. It balances the preservation of local neighborhoods with the overall data distribution.",
+        "LocalMAP": "LocalMAP: A dimensionality reduction technique that focuses on preserving local relationships between data points. It's particularly effective at maintaining the structure of local neighborhoods in the data."
+    };
+
+    // Create a tooltip container if it doesn't exist
+    if (!document.getElementById("tooltip-container")) {
+        const tooltipContainer = document.createElement("div");
+        tooltipContainer.id = "tooltip-container";
+        tooltipContainer.className = "fixed z-50 bg-white rounded-lg shadow-lg border border-gray-200 p-4 max-w-sm hidden";
+        tooltipContainer.style.transition = "opacity 150ms ease-in-out";
+        tooltipContainer.style.opacity = "0";
+        document.body.appendChild(tooltipContainer);
+    }
+
+    // Function to show tooltip
+    function showTooltip(title, content, event) {
+        const tooltip = document.getElementById("tooltip-container");
+
+        // Update tooltip content
+        tooltip.innerHTML = `
+            <div class="flex justify-between items-center mb-2 border-b pb-2">
+                <h3 class="font-bold text-gray-800">${title}</h3>
+                <button id="close-tooltip" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+            <div class="text-gray-600 text-sm">${content}</div>
+        `;
+
+        // Position the tooltip near the clicked element
+        const rect = event.target.getBoundingClientRect();
+
+        // Calculate position - prefer above the icon if there's room
+        let left, top;
+
+        // Horizontal positioning - center above/below the icon
+        left = rect.left + (rect.width / 2) - 150; // Center tooltip (assuming ~300px width)
+
+        // Make sure tooltip stays within viewport horizontally
+        const viewportWidth = window.innerWidth;
+        if (left < 10) left = 10; // Keep 10px from left edge
+        if (left + 300 > viewportWidth - 10) left = viewportWidth - 310; // Keep 10px from right edge
+
+        // Vertical positioning - prefer above the icon if there's room
+        const tooltipHeight = 200; // Approximate height
+        if (rect.top > tooltipHeight + 10) {
+            // Enough room above - position above the icon
+            top = window.scrollY + rect.top - tooltipHeight - 10;
+        } else {
+            // Not enough room above - position below the icon
+            top = window.scrollY + rect.bottom + 10;
+        }
+
+        tooltip.style.left = left + "px";
+        tooltip.style.top = top + "px";
+
+        // Show the tooltip
+        tooltip.classList.remove("hidden");
+        setTimeout(() => {
+            tooltip.style.opacity = "1";
+        }, 10);
+
+        // Add close button functionality
+        document.getElementById("close-tooltip").addEventListener("click", hideTooltip);
+
+        // Add click outside to close
+        document.addEventListener("click", closeTooltipOnClickOutside);
+    }
+
+    // Function to hide tooltip
+    function hideTooltip() {
+        const tooltip = document.getElementById("tooltip-container");
+        tooltip.style.opacity = "0";
+        setTimeout(() => {
+            tooltip.classList.add("hidden");
+        }, 150);
+
+        // Remove click outside listener
+        document.removeEventListener("click", closeTooltipOnClickOutside);
+    }
+
+    // Function to close tooltip when clicking outside
+    function closeTooltipOnClickOutside(e) {
+        const tooltip = document.getElementById("tooltip-container");
+        const isClickInsideTooltip = tooltip.contains(e.target);
+        const isClickOnInfoIcon = e.target.id === "plot1-info" ||
+            e.target.id === "plot2-info" ||
+            e.target.id === "plot3-info";
+
+        if (!isClickInsideTooltip && !isClickOnInfoIcon) {
+            hideTooltip();
+        }
+    }
+
+    // Add click handlers to all info icons
+    document.getElementById("plot1-info").addEventListener("click", function (event) {
+        event.stopPropagation();
+        showTooltip("PCA", tooltipContent.PCA, event);
+    });
+
+    document.getElementById("plot2-info").addEventListener("click", function (event) {
+        event.stopPropagation();
+        showTooltip("PaCMAP", tooltipContent.PaCMAP, event);
+    });
+
+    document.getElementById("plot3-info").addEventListener("click", function (event) {
+        event.stopPropagation();
+        showTooltip("LocalMAP", tooltipContent.LocalMAP, event);
+    });
+}
+
 function renderPlot(svgId, data, title) {
     const svg = d3.select(svgId);
     svg.attr("width", AppState.dimensions.width).attr("height", AppState.dimensions.height);
@@ -259,15 +381,6 @@ function renderPlot(svgId, data, title) {
             .attr("stroke-width", 1)
             .attr("stroke-dasharray", "2,2");
     }
-
-    svg
-        .append("text")
-        .attr("x", AppState.dimensions.width / 2)
-        .attr("y", 25)
-        .attr("text-anchor", "middle")
-        .attr("font-size", "16px")
-        .attr("font-weight", "bold")
-        .text(title);
 
     svg
         .selectAll("circle")

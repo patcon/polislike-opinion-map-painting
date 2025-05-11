@@ -199,9 +199,32 @@
 
     <!-- Plots -->
     <div id="plot-wrapper" class="flex flex-row w-full gap-5">
-      <svg id="plot1" class="flex-1 aspect-square min-h-[200px] bg-gray-50 border border-gray-300 rounded-md"></svg>
-      <svg id="plot2" class="flex-1 aspect-square min-h-[200px] bg-gray-50 border border-gray-300 rounded-md"></svg>
-      <svg id="plot3" class="flex-1 aspect-square min-h-[200px] bg-gray-50 border border-gray-300 rounded-md"></svg>
+      <!-- Plot 1 with title -->
+      <div class="flex-1 flex flex-col">
+        <div id="plot1-title" class="text-center font-bold mb-1 flex justify-center items-center">
+          PCA projection
+          <span id="plot1-info" class="ml-1 text-red-500 cursor-pointer" title="Click for more information">ℹ️</span>
+        </div>
+        <svg id="plot1" class="w-full aspect-square min-h-[200px] bg-gray-50 border border-gray-300 rounded-md"></svg>
+      </div>
+
+      <!-- Plot 2 with title -->
+      <div class="flex-1 flex flex-col">
+        <div id="plot2-title" class="text-center font-bold mb-1 flex justify-center items-center">
+          PaCMAP projection
+          <span id="plot2-info" class="ml-1 text-red-500 cursor-pointer" title="Click for more information">ℹ️</span>
+        </div>
+        <svg id="plot2" class="w-full aspect-square min-h-[200px] bg-gray-50 border border-gray-300 rounded-md"></svg>
+      </div>
+
+      <!-- Plot 3 with title -->
+      <div class="flex-1 flex flex-col">
+        <div id="plot3-title" class="text-center font-bold mb-1 flex justify-center items-center">
+          LocalMAP projection
+          <span id="plot3-info" class="ml-1 text-red-500 cursor-pointer" title="Click for more information">ℹ️</span>
+        </div>
+        <svg id="plot3" class="w-full aspect-square min-h-[200px] bg-gray-50 border border-gray-300 rounded-md"></svg>
+      </div>
     </div>
   </div>
 
