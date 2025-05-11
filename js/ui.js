@@ -799,6 +799,130 @@ function createCompactBarChart({ voteCounts, nMembers, voteColors, boldLargest =
     return container;
 }
 
+/**
+ * Create a more compact bar chart for vote distributions
+ * @param {Object} options - Configuration options
+ * @param {Object} options.voteCounts - Vote counts (A: agree, D: disagree, S: saw)
+ * @param {number} options.nMembers - Total number of members
+ * @param {Object} options.voteColors - Colors for different vote types
+ * @param {boolean} options.boldLargest - Whether to bold the largest percentage
+ * @param {number} options.width - Width of the chart (default: 100)
+ * @returns {HTMLElement} - Container element with the bar chart
+ */
+function createMoreCompactBarChart({ voteCounts, nMembers, voteColors, boldLargest = true, width = 50 }) {
+    const container = document.createElement("div");
+    container.style.display = "inline-block";
+    container.style.verticalAlign = "middle";
+    container.style.marginLeft = "10px";
+
+    let w = width;
+    let agrees = 0;
+    let disagrees = 0;
+    let sawTheComment = 0;
+    let missingCounts = false;
+
+    if (typeof voteCounts !== "undefined") {
+        agrees = voteCounts.A ?? 0;
+        disagrees = voteCounts.D ?? 0;
+        sawTheComment = voteCounts.S ?? 0;
+    } else {
+        missingCounts = true;
+    }
+
+    let passes = sawTheComment - (agrees + disagrees);
+
+    const agree = (agrees / nMembers) * w;
+    const disagree = (disagrees / nMembers) * w;
+    const pass = (passes / nMembers) * w;
+
+    const agreeSaw = (agrees / sawTheComment) * 100 || 0;
+    const disagreeSaw = (disagrees / sawTheComment) * 100 || 0;
+    const passSaw = (passes / sawTheComment) * 100 || 0;
+
+    const agreeString = `${Math.round(agreeSaw)}`;
+    const disagreeString = `${Math.round(disagreeSaw)}`;
+    const passString = `${Math.round(passSaw)}`;
+
+    container.title = `${agreeString}% Agreed\n${disagreeString}% Disagreed\n${passString}% Passed\n${sawTheComment} Respondents`;
+
+    // SVG Bar Chart
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("width", w + 1);
+    svg.setAttribute("height", 10);
+    svg.style.marginBottom = "2px";
+
+    const outerRect = document.createElementNS(svgNS, "rect");
+    outerRect.setAttribute("x", 0.5);
+    outerRect.setAttribute("width", w + 0.5);
+    outerRect.setAttribute("height", 10);
+    outerRect.setAttribute("fill", "white");
+    outerRect.setAttribute("stroke", "rgb(180,180,180)");
+    svg.appendChild(outerRect);
+
+    const passRect = document.createElementNS(svgNS, "rect");
+    passRect.setAttribute("x", 0.5 + agree + disagree);
+    passRect.setAttribute("width", pass);
+    passRect.setAttribute("y", 0.5);
+    passRect.setAttribute("height", 9);
+    passRect.setAttribute("fill", voteColors.pass);
+    svg.appendChild(passRect);
+
+    const agreeRect = document.createElementNS(svgNS, "rect");
+    agreeRect.setAttribute("x", 0.5);
+    agreeRect.setAttribute("width", agree);
+    agreeRect.setAttribute("y", 0.5);
+    agreeRect.setAttribute("height", 9);
+    agreeRect.setAttribute("fill", voteColors.agree);
+    svg.appendChild(agreeRect);
+
+    const disagreeRect = document.createElementNS(svgNS, "rect");
+    disagreeRect.setAttribute("x", 0.5 + agree);
+    disagreeRect.setAttribute("width", disagree);
+    disagreeRect.setAttribute("y", 0.5);
+    disagreeRect.setAttribute("height", 9);
+    disagreeRect.setAttribute("fill", voteColors.disagree);
+    svg.appendChild(disagreeRect);
+
+    container.appendChild(svg);
+
+    // Label section
+    const label = document.createElement("div");
+    label.style.fontSize = "12px";
+    label.style.display = "flex";
+    label.style.flexWrap = "wrap";
+
+    if (missingCounts) {
+        label.innerHTML = `<span style="color: grey; margin-right: 4px;">Missing vote counts</span> `;
+    } else {
+        // Determine which value is largest
+        let largestValue = Math.max(agreeSaw, disagreeSaw, passSaw);
+        let agreeStyle = "";
+        let disagreeStyle = "";
+        let passStyle = "";
+
+        if (boldLargest && sawTheComment > 0) {
+            if (largestValue === agreeSaw && agrees > 0) {
+                agreeStyle = "font-weight: bold;";
+            } else if (largestValue === disagreeSaw && disagrees > 0) {
+                disagreeStyle = "font-weight: bold;";
+            } else if (largestValue === passSaw && passes > 0) {
+                passStyle = "font-weight: bold;";
+            }
+        }
+
+        label.innerHTML = `
+    <span style="color: ${voteColors.agree}; margin-right: 3px; ${agreeStyle}"> ${agreeString} </span>
+    <span style="color: ${voteColors.disagree}; margin-right: 3px; ${disagreeStyle}">${disagreeString} </span>
+    <span style="color: #999; margin-right: 3px; ${passStyle}">${passString}%</span>
+    <span style="display: block; color: grey; flex: 0 0 100%">(${sawTheComment})</span>
+  `;
+    }
+
+    container.appendChild(label);
+    return container;
+}
+
 
 /**
  * Render the representative comments table
@@ -1070,7 +1194,7 @@ function renderRepCommentsTable(repComments) {
                     const voteData = groupVoteData[color];
 
                     // Create bar chart for this group
-                    const barChart = createCompactBarChart({
+                    const barChart = createMoreCompactBarChart({
                         voteCounts: {
                             A: voteData.agrees,
                             D: voteData.disagrees,
