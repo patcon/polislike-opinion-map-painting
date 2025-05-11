@@ -12,7 +12,11 @@ import sqlite3
 from pathlib import Path
 
 from reddwarf.data_loader import Loader
-from reddwarf.utils.matrix import generate_raw_matrix, simple_filter_matrix
+from reddwarf.utils.matrix import (
+    generate_raw_matrix,
+    get_clusterable_participant_ids,
+    simple_filter_matrix,
+)
 from reddwarf.utils.polismath import extract_data_from_polismath
 from reddwarf.utils.statements import process_statements
 
@@ -198,11 +202,17 @@ def main():
         json.dump(loader.comments_data, f, indent=2)
     print("✅ Saved statements.json from loader")
 
-    clustered_pids, _ = extract_data_from_polismath(loader.math_data)
+    try:
+        clustered_pids, _ = extract_data_from_polismath(loader.math_data)
+    except:
+        # If math-pca2.json or conversation.json aren't available, fallback.
+        clustered_pids = get_clusterable_participant_ids(
+            raw_vote_matrix, vote_threshold=7
+        )
+
     safe_ids = [pid for pid in clustered_pids if pid in raw_vote_matrix.index]
 
     # Apply cluster_mask for saving only clustered participants
-    clustered_pids, _ = extract_data_from_polismath(loader.math_data)
     cluster_mask = [pid in clustered_pids for pid in raw_vote_matrix.index]
 
     # Save projections
@@ -225,7 +235,6 @@ def main():
             json.dump(X_with_ids, f, indent=2)
 
     # Save votes.db
-    clustered_pids, _ = extract_data_from_polismath(loader.math_data)
     safe_ids = [pid for pid in clustered_pids if pid in raw_vote_matrix.index]
     save_votes_db(raw_vote_matrix, safe_ids, outdir / "votes.db")
 
