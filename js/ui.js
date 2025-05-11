@@ -944,6 +944,12 @@ function renderRepCommentsTable(repComments) {
         return indexA - indexB;
     });
 
+    // If no groups, show a message and return
+    if (allGroupColors.length === 0) {
+        container.innerHTML = "<p class='text-gray-500 italic'>No groups to display.</p>";
+        return;
+    }
+
     // Get group sizes for each color
     const groupSizes = {};
     allGroupColors.forEach(color => {
@@ -952,46 +958,107 @@ function renderRepCommentsTable(repComments) {
         ).length;
     });
 
+    // Create tab container
+    const tabContainer = document.createElement("div");
+    tabContainer.className = "mb-6";
+
+    // Create tab navigation
+    const tabNav = document.createElement("div");
+    tabNav.className = "flex border-b border-gray-200";
+    tabContainer.appendChild(tabNav);
+
+    // Create tab content container
+    const tabContent = document.createElement("div");
+    tabContent.className = "mt-4";
+    tabContainer.appendChild(tabContent);
+
+    // Track the active tab
+    let activeTabId = null;
+
+    // Function to switch tabs
+    const switchTab = (tabId) => {
+        // Hide all tab contents
+        tabContent.querySelectorAll('[role="tabpanel"]').forEach(panel => {
+            panel.classList.add('hidden');
+        });
+
+        // Show the selected tab content
+        const selectedPanel = document.getElementById(tabId);
+        if (selectedPanel) {
+            selectedPanel.classList.remove('hidden');
+        }
+
+        // Update tab styles
+        tabNav.querySelectorAll('[role="tab"]').forEach(tab => {
+            if (tab.id === `tab-${tabId}`) {
+                tab.classList.remove('border-transparent', 'hover:border-gray-300');
+                tab.classList.add('border-primary-500', 'text-primary-600');
+                tab.setAttribute('aria-selected', 'true');
+            } else {
+                tab.classList.remove('border-primary-500', 'text-primary-600');
+                tab.classList.add('border-transparent', 'hover:border-gray-300');
+                tab.setAttribute('aria-selected', 'false');
+            }
+        });
+
+        // Update active tab ID
+        activeTabId = tabId;
+    };
+
     // Process each group
-    allGroupColors.forEach((labelColor) => {
+    allGroupColors.forEach((labelColor, index) => {
         const comments = repComments[labelColor];
-        const groupDiv = document.createElement("div");
-        groupDiv.style.marginBottom = "30px";
-
-        // Section header with colored circle
-        const title = document.createElement("h3");
-        title.style.display = "flex";
-        title.style.alignItems = "center";
-        title.style.gap = "10px";
-
-        const circle = document.createElement("span");
-        circle.style.display = "inline-block";
-        circle.style.width = "16px";
-        circle.style.height = "16px";
-        circle.style.borderRadius = "50%";
-        circle.style.backgroundColor = labelColor;
-        circle.style.border = "1px solid #999";
-
         const UNGROUPED_LABEL = "Ungrouped";
 
         const labelIndex = AppState.selection.colorToLabelIndex[labelColor];
-        const letter =
-            labelIndex !== undefined
-                ? labelIndexToLetter(labelIndex)
-                : UNGROUPED_LABEL;
+        const letter = labelIndex !== undefined
+            ? labelIndexToLetter(labelIndex)
+            : UNGROUPED_LABEL;
 
         const groupSize = groupSizes[labelColor];
+        const tabId = `group-tab-${labelColor.replace('#', '')}`;
+        const contentId = `group-content-${labelColor.replace('#', '')}`;
 
-        const text = document.createElement("span");
-        text.textContent = `Group ${letter} (${groupSize} participants)`;
+        // Create tab button
+        const tab = document.createElement("button");
+        tab.id = `tab-${contentId}`;
+        tab.setAttribute("role", "tab");
+        tab.setAttribute("aria-controls", contentId);
+        tab.setAttribute("aria-selected", index === 0 ? "true" : "false");
+        tab.className = `flex items-center px-4 py-2 font-medium text-sm border-b-2 focus:outline-none ${index === 0
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:border-gray-300'
+            }`;
 
-        title.appendChild(circle);
-        title.appendChild(text);
-        groupDiv.appendChild(title);
+        // Create colored circle for tab
+        const circle = document.createElement("span");
+        circle.className = "inline-block w-3 h-3 rounded-full mr-2";
+        circle.style.backgroundColor = labelColor;
+        circle.style.border = "1px solid #999";
 
+        // Add tab text
+        const tabText = document.createElement("span");
+        tabText.textContent = `Group ${letter} (${groupSize})`;
+
+        tab.appendChild(circle);
+        tab.appendChild(tabText);
+
+        // Add click event to switch tabs
+        tab.addEventListener("click", () => switchTab(contentId));
+
+        // Add tab to navigation
+        tabNav.appendChild(tab);
+
+        // Create tab content panel
+        const contentPanel = document.createElement("div");
+        contentPanel.id = contentId;
+        contentPanel.setAttribute("role", "tabpanel");
+        contentPanel.setAttribute("aria-labelledby", `tab-${contentId}`);
+        contentPanel.className = index === 0 ? "" : "hidden";
+
+        // Create table for this group
         const table = document.createElement("table");
-        table.style.borderCollapse = "collapse";
-        table.style.width = "100%";
+        table.className = "w-full border-collapse";
 
         // Create header row
         const headerRow = document.createElement("tr");
@@ -1001,9 +1068,7 @@ function renderRepCommentsTable(repComments) {
         basicHeaders.forEach((h) => {
             const th = document.createElement("th");
             th.textContent = h;
-            th.style.borderBottom = "2px solid #ccc";
-            th.style.padding = "6px 10px";
-            th.style.textAlign = "left";
+            th.className = "border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600";
             headerRow.appendChild(th);
         });
 
@@ -1016,23 +1081,15 @@ function renderRepCommentsTable(repComments) {
                     : UNGROUPED_LABEL;
 
                 const th = document.createElement("th");
-                th.style.borderBottom = "2px solid #ccc";
-                th.style.padding = "6px 10px";
-                th.style.textAlign = "center";
+                th.className = "border-b-2 border-gray-200 py-2 px-3 text-center font-medium text-gray-600";
 
                 // Create a container for the circle and text
                 const container = document.createElement("div");
-                container.style.display = "flex";
-                container.style.alignItems = "center";
-                container.style.justifyContent = "center";
-                container.style.gap = "5px";
+                container.className = "flex items-center justify-center gap-1";
 
                 // Create colored circle similar to section header
                 const circle = document.createElement("span");
-                circle.style.display = "inline-block";
-                circle.style.width = "12px";
-                circle.style.height = "12px";
-                circle.style.borderRadius = "50%";
+                circle.className = "inline-block w-3 h-3 rounded-full";
                 circle.style.backgroundColor = color;
                 circle.style.border = "1px solid #999";
 
@@ -1049,8 +1106,7 @@ function renderRepCommentsTable(repComments) {
 
                 // Highlight the current group's column
                 if (color === labelColor) {
-                    th.style.fontWeight = "bold";
-                    th.style.backgroundColor = "#f0f0f0";
+                    th.classList.add("font-bold", "bg-gray-100");
                 } else {
                     th.style.opacity = "0.8";
                 }
@@ -1061,18 +1117,14 @@ function renderRepCommentsTable(repComments) {
             // Just add a single chart column if comparison is disabled
             const th = document.createElement("th");
             th.textContent = "";
-            th.style.borderBottom = "2px solid #ccc";
-            th.style.padding = "6px 10px";
-            th.style.textAlign = "left";
+            th.className = "border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600";
             headerRow.appendChild(th);
         }
 
         // Statement column
         const thStatement = document.createElement("th");
         thStatement.textContent = "Statement";
-        thStatement.style.borderBottom = "2px solid #ccc";
-        thStatement.style.padding = "6px 10px";
-        thStatement.style.textAlign = "left";
+        thStatement.className = "border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600";
         headerRow.appendChild(thStatement);
 
         table.appendChild(headerRow);
@@ -1097,29 +1149,26 @@ function renderRepCommentsTable(repComments) {
                 commentText = `<span style="color: red;">${commentText}(moderated)</span>`;
             }
 
-            const metaLine = `<div style="font-size: 0.85em; color: #666; margin-top: 4px;">
-    Agree: ${c.n_agree}, Disagree: ${c.n_disagree}, Pass: ${c.n_pass}, Total: ${c.n_trials}
-        </div>`;
+            const metaLine = `<div class="text-sm text-gray-500 mt-1">
+                Agree: ${c.n_agree}, Disagree: ${c.n_disagree}, Pass: ${c.n_pass}, Total: ${c.n_trials}
+            </div>`;
 
             // Comment ID
             const tdId = document.createElement("td");
             tdId.textContent = c.tid;
-            tdId.style.padding = "6px 10px";
-            tdId.style.borderBottom = "1px solid #eee";
+            tdId.className = "py-2 px-3 border-b border-gray-200";
             tr.appendChild(tdId);
 
             // Rep Type
             const tdRep = document.createElement("td");
-            tdRep.innerHTML = `<span style="color: ${repColor}; font-weight: bold;"> ${c.repful_for}</span> `;
-            tdRep.style.padding = "6px 10px";
-            tdRep.style.borderBottom = "1px solid #eee";
+            tdRep.innerHTML = `<span style="color: ${repColor}; font-weight: bold;">${c.repful_for}</span>`;
+            tdRep.className = "py-2 px-3 border-b border-gray-200";
             tr.appendChild(tdRep);
 
             // % Support
             const tdPct = document.createElement("td");
-            tdPct.textContent = `${Math.round((c.n_success / c.n_trials) * 100)}% `;
-            tdPct.style.padding = "6px 10px";
-            tdPct.style.borderBottom = "1px solid #eee";
+            tdPct.textContent = `${Math.round((c.n_success / c.n_trials) * 100)}%`;
+            tdPct.className = "py-2 px-3 border-b border-gray-200";
             tr.appendChild(tdPct);
 
             // Add bar charts for each group if comparison is enabled
@@ -1192,9 +1241,7 @@ function renderRepCommentsTable(repComments) {
                 // Create a bar chart for each group
                 allGroupColors.forEach(color => {
                     const tdChart = document.createElement("td");
-                    tdChart.style.padding = "6px 10px";
-                    tdChart.style.borderBottom = "1px solid #eee";
-                    tdChart.style.textAlign = "center";
+                    tdChart.className = "py-2 px-3 border-b border-gray-200 text-center";
 
                     const voteData = groupVoteData[color];
 
@@ -1211,7 +1258,7 @@ function renderRepCommentsTable(repComments) {
 
                     // Highlight current group's column
                     if (color === labelColor) {
-                        tdChart.style.backgroundColor = "#f0f0f0";
+                        tdChart.classList.add("bg-gray-100");
                     } else {
                         tdChart.style.opacity = "0.7";
                     }
@@ -1222,8 +1269,7 @@ function renderRepCommentsTable(repComments) {
             } else {
                 // Just add a single chart if comparison is disabled
                 const tdChart = document.createElement("td");
-                tdChart.style.padding = "6px 10px";
-                tdChart.style.borderBottom = "1px solid #eee";
+                tdChart.className = "py-2 px-3 border-b border-gray-200";
 
                 const barChart = createCompactBarChart({
                     voteCounts: {
@@ -1241,17 +1287,24 @@ function renderRepCommentsTable(repComments) {
 
             // Statement + meta
             const tdStatement = document.createElement("td");
-            tdStatement.innerHTML = `<div class="comment-text"> ${commentText}</div> ${metaLine} `;
-            tdStatement.style.padding = "6px 10px";
-            tdStatement.style.borderBottom = "1px solid #eee";
+            tdStatement.innerHTML = `<div class="comment-text">${commentText}</div>${metaLine}`;
+            tdStatement.className = "py-2 px-3 border-b border-gray-200";
             tr.appendChild(tdStatement);
 
             table.appendChild(tr);
         });
 
-        groupDiv.appendChild(table);
-        container.appendChild(groupDiv);
+        contentPanel.appendChild(table);
+        tabContent.appendChild(contentPanel);
+
+        // Set the first tab as active
+        if (index === 0) {
+            activeTabId = contentId;
+        }
     });
+
+    // Add the tab container to the main container
+    container.appendChild(tabContainer);
 }
 
 /**
