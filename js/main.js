@@ -413,7 +413,7 @@ async function applyGroupAnalysis() {
   showPlotLoader();
 
   output.innerHTML = `
-  < div class="spinner-container" >
+    <div class="spinner-container">
       <div class="spinner"></div>
       <span>Analyzing groups…</span>
     </div >
