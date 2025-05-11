@@ -77,17 +77,25 @@ function applySharedState({
     labelIndices,
     flipX: fx = false,
     flipY: fy = false,
+    opacity = Config.dotOpacity,
+    dotSize = Config.dotSize
 }) {
     // Update AppState
     AppState.preferences.convoSlug = dataset;
     AppState.preferences.flipX = fx;
     AppState.preferences.flipY = fy;
+    AppState.ui.dotOpacity = opacity;
+    AppState.ui.dotSize = dotSize;
 
 
     // Update UI
     document.getElementById("dataset").value = dataset;
     document.getElementById("flip-x-checkbox").checked = fx;
     document.getElementById("flip-y-checkbox").checked = fy;
+    document.getElementById("opacity-slider").value = opacity;
+    document.getElementById("opacity-value").textContent = opacity;
+    document.getElementById("dot-size-slider").value = dotSize;
+    document.getElementById("dot-size-value").textContent = dotSize;
 
     // Save to session storage
     saveState("dataset", dataset);
@@ -132,6 +140,8 @@ function encodeShareState() {
         labelIndices,
         flipX: AppState.preferences.flipX,
         flipY: AppState.preferences.flipY,
+        opacity: AppState.ui.dotOpacity,
+        dotSize: AppState.ui.dotSize
     };
     return btoa(JSON.stringify(payload));
 }
@@ -159,6 +169,8 @@ function decodeShareState(base64) {
             labelIndices: parsed.labelIndices || [],
             flipX: parsed.flipX || false,
             flipY: parsed.flipY || false,
+            opacity: parsed.opacity || Config.dotOpacity,
+            dotSize: parsed.dotSize || Config.dotSize
         };
     } catch (e) {
         console.warn("Invalid share state", e);
