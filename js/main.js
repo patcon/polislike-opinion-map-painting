@@ -405,19 +405,31 @@ async function applyGroupAnalysis() {
   // Count distinct labels, excluding nulls
   const uniqueLabels = new Set(labelArray.filter((x) => x !== null));
   if (uniqueLabels.size < 2) {
-    output.innerHTML = `< p style = "color: #c00; font-weight: bold;" > Need at least two groups to analyze.</p > `;
+    output.innerHTML = `<p style="color: #c00; font-weight: bold;">Need at least two groups to analyze.</p>`;
     return;
   }
 
   // 👉 SHOW loader before starting analysis, because freezes plots.
   showPlotLoader();
 
-  output.innerHTML = `
-    <div class="spinner-container">
-      <div class="spinner"></div>
-      <span>Analyzing groups…</span>
-    </div >
+  // Create a loading overlay instead of replacing content
+  const loadingOverlay = document.createElement("div");
+  loadingOverlay.className = "absolute inset-0 bg-white bg-opacity-80 z-10";
+  loadingOverlay.id = "analysis-loader";
+  loadingOverlay.innerHTML = `
+    <div class="sticky top-0 left-0 w-full bg-primary-100 p-2 flex items-center justify-center space-x-3 shadow-md">
+      <div class="w-5 h-5 border-3 border-primary-300 border-t-primary-600 rounded-full animate-spin"></div>
+      <span class="font-medium text-primary-800">Analyzing groups…</span>
+    </div>
   `;
+
+  // Make sure the output container has relative positioning for the absolute overlay
+  if (window.getComputedStyle(output).position === 'static') {
+    output.style.position = 'relative';
+  }
+
+  // Add the overlay to the output container
+  output.appendChild(loadingOverlay);
 
   // 🔥 FORCE a DOM paint before continuing with long task
   await preworkRenderPipelinePauseHelper();
@@ -425,6 +437,14 @@ async function applyGroupAnalysis() {
   const db = await loadVotesDB(AppState.preferences.convoSlug);
   let commentTexts;
   const rep = await analyzePaintedClusters(db, labelArray, commentTexts);
+
+  // Remove the loading overlay
+  const loader = document.getElementById("analysis-loader");
+  if (loader) {
+    loader.remove();
+  }
+
+  // Now render the new content
   renderRepCommentsTable(rep);
 
   // 👉 HIDE loader after analysis and render complete
