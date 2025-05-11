@@ -116,6 +116,30 @@ describe('Utility functions', () => {
             );
         });
     });
+
+    describe('labelIndexToLetter', () => {
+        test('converts index 0 to A', () => {
+            const labelIndexToLetter = require('../config').labelIndexToLetter;
+            expect(labelIndexToLetter(0)).toBe('A');
+        });
+
+        test('converts index 1 to B', () => {
+            const labelIndexToLetter = require('../config').labelIndexToLetter;
+            expect(labelIndexToLetter(1)).toBe('B');
+        });
+
+        test('converts index 25 to Z', () => {
+            const labelIndexToLetter = require('../config').labelIndexToLetter;
+            expect(labelIndexToLetter(25)).toBe('Z');
+        });
+
+        test('converts large indices correctly', () => {
+            const labelIndexToLetter = require('../config').labelIndexToLetter;
+            // This should wrap around the alphabet
+            expect(labelIndexToLetter(26)).toBe('[');  // ASCII after 'Z'
+            expect(labelIndexToLetter(27)).toBe('\\'); // ASCII after '['
+        });
+    });
 });
 
 describe('DOM manipulation', () => {
@@ -144,6 +168,58 @@ describe('DOM manipulation', () => {
         // Check if AppState dimensions were updated correctly
         expect(AppState.dimensions.width).toBe(280); // (900 / 3) - 20
         expect(AppState.dimensions.height).toBe(280);
+    });
+
+    describe('Plot loader functions', () => {
+        beforeEach(() => {
+            // Set up the DOM with plot-loader element
+            document.body.innerHTML = `
+                <div id="plot-loader" style="display: none;"></div>
+            `;
+        });
+
+        test('showPlotLoader sets display to flex', () => {
+            const showPlotLoader = require('../config').showPlotLoader;
+
+            // Call the function
+            showPlotLoader();
+
+            // Check if the display style was updated correctly
+            const loaderElement = document.getElementById('plot-loader');
+            expect(loaderElement.style.display).toBe('flex');
+        });
+
+        test('hidePlotLoader sets display to none', () => {
+            const hidePlotLoader = require('../config').hidePlotLoader;
+
+            // Set initial display to something other than none
+            const loaderElement = document.getElementById('plot-loader');
+            loaderElement.style.display = 'flex';
+
+            // Call the function
+            hidePlotLoader();
+
+            // Check if the display style was updated correctly
+            expect(loaderElement.style.display).toBe('none');
+        });
+
+        test('showPlotLoader and hidePlotLoader work together', () => {
+            const showPlotLoader = require('../config').showPlotLoader;
+            const hidePlotLoader = require('../config').hidePlotLoader;
+
+            const loaderElement = document.getElementById('plot-loader');
+
+            // Initially hidden
+            expect(loaderElement.style.display).toBe('none');
+
+            // Show loader
+            showPlotLoader();
+            expect(loaderElement.style.display).toBe('flex');
+
+            // Hide loader
+            hidePlotLoader();
+            expect(loaderElement.style.display).toBe('none');
+        });
     });
 });
 

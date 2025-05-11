@@ -194,6 +194,7 @@ function hidePlotLoader() {
 }
 
 // For testing purposes, export objects and functions
+/* istanbul ignore next */
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         Config,
@@ -201,6 +202,9 @@ if (typeof module !== 'undefined' && module.exports) {
         getQueryParam,
         loadState,
         saveState,
+        labelIndexToLetter,
+        showPlotLoader,
+        hidePlotLoader,
         // Add other functions you want to test
     };
 }
