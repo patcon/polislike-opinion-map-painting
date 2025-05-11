@@ -614,6 +614,7 @@ function renderColorPalette() {
         const span = document.createElement("span");
         span.classList.add("palette-color");
         span.setAttribute("data-color", color); // Needed for selection logic
+        span.setAttribute("translate", "no"); // Prevent automatic translation
         span.style = `
         display:inline-block; width:24px; height:24px;
         background:${color}; border:1px solid #888;
@@ -674,7 +675,7 @@ function updateLabelCounts() {
                     const letter = labelIndex !== undefined ? labelIndexToLetter(labelIndex) : "";
                     return `
     <span style="margin-right: 12px;">
-        <span style="display:inline-block; width:18px; height:18px; background:${color}; border:1px solid #aaa; margin-right:5px; vertical-align:middle; border-radius:50%; text-align:center; line-height:17px; font-size:11px; color:white; font-family:sans-serif;">${letter}</span>
+        <span translate="no" style="display:inline-block; width:18px; height:18px; background:${color}; border:1px solid #aaa; margin-right:5px; vertical-align:middle; border-radius:50%; text-align:center; line-height:17px; font-size:11px; color:white; font-family:sans-serif;">${letter}</span>
         <span style="vertical-align:middle;">${count}</span>
     </span > `;
                 }
@@ -1098,6 +1099,7 @@ function renderRepCommentsTable(repComments) {
 
                 // Create text element
                 const text = document.createElement("span");
+                text.setAttribute("translate", "no"); // Prevent automatic translation
                 text.textContent = `${groupLetter}`;
 
                 // Add circle and text to container
