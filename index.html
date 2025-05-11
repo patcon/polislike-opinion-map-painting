@@ -149,10 +149,37 @@
 
     <!-- Share controls -->
     <div class="flex flex-wrap items-center gap-3 mt-4">
-      <button id="share-button"
-        class="bg-primary-600 hover:bg-primary-700 text-white py-1.5 px-4 rounded-md text-sm transition-colors">
-        Share painted labels
-      </button>
+      <div class="relative inline-flex">
+        <!-- Main share button -->
+        <button id="share-button"
+          class="bg-primary-600 hover:bg-primary-700 text-white py-1.5 px-4 rounded-l-md text-sm transition-colors w-44 text-center whitespace-nowrap">
+          Share with paint
+        </button>
+
+        <!-- Dropdown button - ensure same height as main button -->
+        <button id="share-options-button"
+          class="bg-primary-600 hover:bg-primary-700 text-white py-1.5 px-2 rounded-r-md text-sm transition-colors border-l border-primary-500 flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        <!-- Dropdown menu (hidden by default) -->
+        <div id="share-dropdown"
+          class="hidden absolute left-0 top-full mt-1 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+          <div class="py-1">
+            <button id="share-with-paint"
+              class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+              Share with paint
+            </button>
+            <button id="share-without-paint"
+              class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+              Share without paint
+            </button>
+          </div>
+        </div>
+      </div>
+
       <input id="share-url" readonly
         class="flex-1 min-w-[200px] text-sm py-1.5 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
         placeholder="Shareable link will appear here" />

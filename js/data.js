@@ -130,11 +130,13 @@ function applySharedState({
  * Encode the current state for sharing
  * @returns {string} - Base64 encoded state
  */
-function encodeShareState() {
+/**
+ * Encode the current state for sharing
+ * @param {boolean} includePaint - Whether to include painted labels in the shared state
+ * @returns {string} - Base64 encoded state
+ */
+function encodeShareState(includePaint = true) {
     const dataset = AppState.preferences.convoSlug;
-
-    // Check if any participants are painted
-    const hasPaintedParticipants = AppState.selection.selectedIndices.size > 0;
 
     // Create the base payload with settings
     const payload = {
@@ -145,8 +147,8 @@ function encodeShareState() {
         dotSize: AppState.ui.dotSize
     };
 
-    // Only include labelIndices if there are painted participants
-    if (hasPaintedParticipants) {
+    // Only include labelIndices if includePaint is true and there are painted participants
+    if (includePaint && AppState.selection.selectedIndices.size > 0) {
         payload.labelIndices = AppState.selection.colorByIndex.map((c) =>
             c == null ? null : AppState.selection.colorToLabelIndex[c]
         );

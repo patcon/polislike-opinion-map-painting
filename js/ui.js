@@ -33,14 +33,50 @@ function initializeUI() {
  * Set up all event listeners
  */
 function setupEventListeners() {
-    // Share button
+    // Initialize the share button text
+    window.addEventListener("DOMContentLoaded", () => {
+        updateShareButtonText();
+    });
+
+    // Share button (uses current mode)
     document.getElementById("share-button").addEventListener("click", () => {
-        const encoded = encodeShareState();
-        const url = `${location.origin}${location.pathname}#${encoded}`;
-        const input = document.getElementById("share-url");
-        input.value = url;
-        input.select();
-        document.execCommand("copy");
+        if (shareWithPaintMode) {
+            shareWithPaint();
+        } else {
+            shareWithoutPaint();
+        }
+    });
+
+    // Share dropdown toggle
+    document.getElementById("share-options-button").addEventListener("click", (e) => {
+        e.stopPropagation(); // Prevent event from bubbling up
+        const dropdown = document.getElementById("share-dropdown");
+        dropdown.classList.toggle("hidden");
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+        const dropdown = document.getElementById("share-dropdown");
+        const button = document.getElementById("share-options-button");
+
+        // Only close if dropdown is visible and click is outside dropdown and button
+        if (!dropdown.classList.contains("hidden") &&
+            !dropdown.contains(e.target) &&
+            e.target !== button) {
+            dropdown.classList.add("hidden");
+        }
+    });
+
+    // Share with paint option
+    document.getElementById("share-with-paint").addEventListener("click", () => {
+        shareWithPaint();
+        document.getElementById("share-dropdown").classList.add("hidden");
+    });
+
+    // Share without paint option
+    document.getElementById("share-without-paint").addEventListener("click", () => {
+        shareWithoutPaint();
+        document.getElementById("share-dropdown").classList.add("hidden");
     });
 
     // Dataset selection
@@ -1372,6 +1408,86 @@ function findIndicesWithinRadius(data, mouseX, mouseY, scales, radius = null) {
         }
     });
     return indices;
+}
+
+// Track the current share mode
+let shareWithPaintMode = true;
+
+/**
+ * Share the current state with painted labels
+ */
+function shareWithPaint() {
+    // Update the button text if needed
+    if (!shareWithPaintMode) {
+        shareWithPaintMode = true;
+        updateShareButtonText();
+    }
+
+    const encoded = encodeShareState(true);
+    const url = `${location.origin}${location.pathname}#${encoded}`;
+    const input = document.getElementById("share-url");
+    input.value = url;
+    input.select();
+    document.execCommand("copy");
+
+    // Show a temporary tooltip or notification
+    showShareNotification("Link copied with paint data!");
+}
+
+/**
+ * Share the current state without painted labels
+ */
+function shareWithoutPaint() {
+    // Update the button text if needed
+    if (shareWithPaintMode) {
+        shareWithPaintMode = false;
+        updateShareButtonText();
+    }
+
+    const encoded = encodeShareState(false);
+    const url = `${location.origin}${location.pathname}#${encoded}`;
+    const input = document.getElementById("share-url");
+    input.value = url;
+    input.select();
+    document.execCommand("copy");
+
+    // Show a temporary tooltip or notification
+    showShareNotification("Link copied without paint data!");
+}
+
+/**
+ * Update the share button text based on the current mode
+ */
+function updateShareButtonText() {
+    const shareButton = document.getElementById("share-button");
+    shareButton.textContent = shareWithPaintMode ? "Share with paint" : "Share without paint";
+}
+
+/**
+ * Show a temporary notification after sharing
+ * @param {string} message - The notification message
+ */
+function showShareNotification(message) {
+    // Check if a notification already exists and remove it
+    const existingNotification = document.getElementById("share-notification");
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+
+    // Create a new notification
+    const notification = document.createElement("div");
+    notification.id = "share-notification";
+    notification.className = "fixed bottom-4 right-4 bg-primary-600 text-white px-4 py-2 rounded-md shadow-lg z-50";
+    notification.textContent = message;
+
+    // Add to the document
+    document.body.appendChild(notification);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.classList.add("opacity-0", "transition-opacity", "duration-500");
+        setTimeout(() => notification.remove(), 500);
+    }, 3000);
 }
 
 // For testing purposes, export objects and functions
