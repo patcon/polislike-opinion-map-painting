@@ -301,12 +301,13 @@ function loadDatasetList() {
 // For testing purposes, export objects and functions
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
-        AppState,
-        loadState,
-        saveState,
-        getScales,
-        pointInPolygon,
-        updateDimensions,
-        // Add other functions you want to test
+        loadAndRenderData,
+        applySharedState,
+        encodeShareState,
+        decodeShareState,
+        loadVotesDB,
+        getParticipantVoteSummary,
+        calculateOpacityScaleFactor,
+        loadDatasetList
     };
 }

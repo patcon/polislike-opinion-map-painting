@@ -1,6 +1,8 @@
 module.exports = {
     testEnvironment: 'jsdom',
     setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+    // Only run files with .test.js extension as tests
+    testMatch: ['**/__tests__/**/*.test.js'],
     moduleNameMapper: {
         // Mock CSS and other static assets
         '\\.(css|less|scss|sass)$': '<rootDir>/__mocks__/styleMock.js',

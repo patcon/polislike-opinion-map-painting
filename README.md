@@ -100,8 +100,8 @@ Demo of label painting import: [`https://patcon.github.io/polislike-opinion-map-
    ```
 
 2. An entry will be automatically added to `datasets.json`. (Edit "label" as desired.)
-3. Run in terminal: `python -m http.server 8000`
-4. Open `https://localhost:8000` (may need to open you browser's Developer Tools to force cache clearing)
+3. Run in terminal: `npm install` and `npm start`
+4. Open `https://localhost:5000` (may need to open you browser's Developer Tools to force cache clearing)
 
 Other CLI features:
 
