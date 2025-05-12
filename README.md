@@ -74,6 +74,8 @@ Demo of label painting import: [`https://patcon.github.io/polislike-opinion-map-
 - [ ] opacity slider at 100% should be fully opaque
 - [ ] Add an "eraser" color to unselect
 - [ ] Add undo/redo buttons
+- [ ] Add group labels to plot
+- [ ] Add ability to share custom label names
 
 </details>
 
