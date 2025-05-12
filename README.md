@@ -63,6 +63,11 @@ Demo of label painting import: [`https://patcon.github.io/polislike-opinion-map-
 - Sliders to reveal proportion of participants
   - [ ] uniformly with participant ID (first vote order)
   - [ ] uniformly with time (first vote time order)
+- "include moderated statements" checkbox
+  - [ ] auto-refresh report
+  - [ ] save to "share" state
+- [ ] add option to render vote-scaling as color gradient (not just opacity)
+- [ ] opacity slider at 100% should be fully opaque
 
 ## Usage
 
