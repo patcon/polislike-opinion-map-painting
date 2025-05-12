@@ -73,6 +73,7 @@ Demo of label painting import: [`https://patcon.github.io/polislike-opinion-map-
 - [ ] add option to render vote-scaling as color gradient (not just opacity)
 - [ ] opacity slider at 100% should be fully opaque
 - [ ] Add an "eraser" color to unselect
+- [ ] Add undo/redo buttons
 
 </details>
 
