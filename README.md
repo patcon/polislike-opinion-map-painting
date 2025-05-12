@@ -76,6 +76,7 @@ Demo of label painting import: [`https://patcon.github.io/polislike-opinion-map-
 - [ ] Add undo/redo buttons
 - [ ] Add group labels to plot
 - [ ] Add ability to share custom label names
+- [ ] BUG: Only show labels in UI after used once
 
 </details>
 
