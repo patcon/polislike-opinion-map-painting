@@ -19,6 +19,10 @@ Demo of label painting import: [`https://patcon.github.io/polislike-opinion-map-
 
 ## Roadmap
 
+<details>
+
+<summary>Click to show roadmap items...</summary>
+
 - [x] Render demo data
 - [x] Support painting clusters
 - [x] Support painting with multiple colors at once
@@ -68,6 +72,9 @@ Demo of label painting import: [`https://patcon.github.io/polislike-opinion-map-
   - [ ] save to "share" state
 - [ ] add option to render vote-scaling as color gradient (not just opacity)
 - [ ] opacity slider at 100% should be fully opaque
+- [ ] Add an "eraser" color to unselect
+
+</details>
 
 ## Usage
 
