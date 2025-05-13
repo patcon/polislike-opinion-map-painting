@@ -135,11 +135,8 @@ function setupEventListeners() {
     // Color selection
     document.getElementById("color").addEventListener("input", (e) => {
         const selectedColor = e.target.value;
-        if (!(selectedColor in AppState.selection.colorToLabelIndex)) {
-            Config.colors.tab10.push(selectedColor); // Add to end
-            AppState.selection.colorToLabelIndex[selectedColor] = Config.colors.tab10.length - 1;
-            renderColorPalette(); // Refresh palette
-        }
+        // Don't add to palette yet, just update the color picker value
+        // The color will be added to the palette when a selection is made
     });
 
     // Keyboard shortcuts
@@ -613,6 +610,9 @@ function makeLassoDragHandler(svg, data, scales) {
                 (sourceEvent.shiftKey || sourceEvent.metaKey || sourceEvent.ctrlKey);
             const additive = AppState.preferences.isAdditive || modifierHeld;
 
+            // Check if any points were selected
+            let pointsSelected = false;
+
             if (!additive) {
                 AppState.selection.colorByIndex.fill(null);
                 AppState.selection.selectedIndices.clear();
@@ -624,8 +624,16 @@ function makeLassoDragHandler(svg, data, scales) {
                 if (pointInPolygon([cx, cy], coords)) {
                     AppState.selection.colorByIndex[i] = selectedColor;
                     AppState.selection.selectedIndices.add(i);
+                    pointsSelected = true;
                 }
             });
+
+            // Only add the color to the palette if points were selected
+            if (pointsSelected && !(selectedColor in AppState.selection.colorToLabelIndex)) {
+                Config.colors.tab10.push(selectedColor); // Add to end
+                AppState.selection.colorToLabelIndex[selectedColor] = Config.colors.tab10.length - 1;
+                renderColorPalette(); // Refresh palette
+            }
 
             AppState.ui.isDragging = false;
             renderAllPlots();
