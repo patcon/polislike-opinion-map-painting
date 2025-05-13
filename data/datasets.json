@@ -1,46 +1,58 @@
 [
   {
     "slug": "vtaiwan-uber",
-    "label": "vTaiwan: Uber"
+    "label": "[2015] vTaiwan: Uber (5,000 ptpts)"
   },
   {
     "slug": "dna-embryo-mod",
-    "label": "Kennislink: Embryo DNA editting"
+    "label": "[2023] Embryo DNA edits (450 ptpts)"
   },
   {
     "slug": "aufstehen-de-4uf4hkunf3",
-    "label": "Aufstehen.de (33,000 ptpt)"
+    "label": "[2018] Aufstehen.de (33,000 ptpts)"
   },
   {
     "slug": "bg2050",
-    "label": "Bowling Green 2050"
+    "label": "[2025] Bowling Green 2050 (6,000 ptpts)"
   },
   {
     "slug": "jean-lou",
-    "label": "Jean-Lou AI convo"
+    "label": "[2025] Jean-Lou AI convo (200 ptpts)"
   },
   {
     "slug": "demdis-eu-9usurb2mmh",
-    "label": "DemDis: EU isolation"
+    "label": "[2023] DemDis: EU isolation (2,000 ptpts)"
   },
   {
     "slug": "cardano-nft",
-    "label": "Cardano NFT"
+    "label": "[2022] Cardano NFT (50 ptpts)"
   },
   {
     "slug": "can-election-reform",
-    "label": "Canadian Election Reform (2016)"
+    "label": "[2016] Canadian Election Reform (500 ptpts)"
   },
   {
     "slug": "yoronchizu2024",
-    "label": "Yoron Chizu 2024"
+    "label": "[2024] Japan Yoron Chizu (4,500 ptpts)"
   },
   {
-    "slug": "5r7cbwb9cv",
-    "label": "YourGreenbelt.ca"
+    "slug": "greenbelt-5r7cbwb9cv",
+    "label": "[2023] YourGreenbelt.ca (200 ptpts)"
   },
   {
-    "slug": "7sr92cbewf",
-    "label": "AuckLand at 15"
+    "slug": "auckland-7sr92cbewf",
+    "label": "[2025] Auckland at 15 (550 ptpts)"
+  },
+  {
+    "slug": "chile-3hfmicmybc",
+    "label": "[2019] #ChileDespert\u00f3 protests (2,800 ptpts)"
+  },
+  {
+    "slug": "nz-transport-7rwhn7cp8d",
+    "label": "[2022] NZ: Transport Revenue (440 ptpts)"
+  },
+  {
+    "slug": "hacklab-2yscmwabsf",
+    "label": "[2017] HackLab.TO darkroom (22 ptpts)"
   }
 ]
