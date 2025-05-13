@@ -74,9 +74,9 @@ Demo of label painting import: [`https://patcon.github.io/polislike-opinion-map-
 - [ ] opacity slider at 100% should be fully opaque
 - [ ] Add an "eraser" color to unselect
 - [ ] Add undo/redo buttons
-- [ ] Add group labels to plot
-- [ ] Add ability to share custom label names
-- [ ] BUG: Only show labels in UI after used once
+- [x] Add group labels to plot
+- [x] Add ability to share custom label names
+- [x] BUG: Only show labels in UI after used once
 - [ ] BUG: why disagree type showing for Group D [here](https://patcon.github.io/polislike-opinion-map-painting/#eyJkYXRhc2V0IjoiNXI3Y2J3YjljdiIsImZsaXBYIjpmYWxzZSwiZmxpcFkiOmZhbHNlLCJvcGFjaXR5IjoxLCJkb3RTaXplIjozLCJsYWJlbEluZGljZXMiOltudWxsLG51bGwsbnVsbCxudWxsLDMsbnVsbCwyLDEsMiwxLG51bGwsMixudWxsLDIsMCxudWxsLDIsMywwLG51bGwsMCwzLDAsMiwyLDIsMiwxLDIsMiwzLDEsMywzLDMsMiwxLDIsMSwyLDEsMywzLDEsMywzLDEsMixudWxsLG51bGwsMCwzLDIsMCwyLDAsMSwxLDEsMiwxLDIsMCwzLDMsMywyLDIsMSwzLDIsMiwzLDMsMSwyLDMsMSwzLDIsMiwyLDIsMywwLDIsMCwwLDMsMCwyLDIsMiwyLDIsMywyLDIsMSwzLDMsMSwyLDIsMiwyLDMsMCwyLDIsMSwzLDMsMiwyLDEsMiwyLDIsMSwzLDIsMSwzLDIsMiwzLDIsMiwzLDMsMSwyLDIsMiwyLDIsbnVsbCwyLDAsMCwxLDIsMywyLDIsMiwyLDIsMSwyLDEsMiwwLDIsMiwyLDJdfQ==)?
 
 </details>

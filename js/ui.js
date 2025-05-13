@@ -464,7 +464,26 @@ function addGroupLabelOverlays(svg, data, scales) {
         }
     }
 
-    // Add label for each group
+    // Create a temporary text element to measure text width accurately
+    const textMeasurer = svg.append("text")
+        .attr("font-size", "14px")
+        .attr("font-weight", "bold")
+        .style("opacity", 0); // Make it invisible
+
+    // Function to measure text width accurately
+    const getTextWidth = (text) => {
+        textMeasurer.text(text);
+        return textMeasurer.node().getComputedTextLength();
+    };
+
+    // Calculate label positions and dimensions for collision detection
+    const labelPositions = [];
+    const maxLabelWidth = 120; // Maximum width for text wrapping
+    const lineHeight = 16; // Height of each line of text
+    const svgWidth = AppState.dimensions.width;
+    const svgHeight = AppState.dimensions.height;
+
+    // First pass: calculate initial positions and prepare for collision detection
     Object.entries(colorGroups).forEach(([color, group]) => {
         if (group.points.length === 0) return;
 
@@ -474,25 +493,177 @@ function addGroupLabelOverlays(svg, data, scales) {
         const centerX = sumX / group.points.length;
         const centerY = sumY / group.points.length;
 
+        // Split label into words for wrapping
+        const words = group.label.split(/\s+/);
+        const lines = [];
+        let currentLine = words[0];
+
+        // More accurate text wrapping algorithm using actual text measurements
+        for (let i = 1; i < words.length; i++) {
+            const word = words[i];
+            const testLine = currentLine + " " + word;
+            const testWidth = getTextWidth(testLine);
+
+            if (testWidth < maxLabelWidth) {
+                currentLine = testLine;
+            } else {
+                lines.push(currentLine);
+                currentLine = word;
+            }
+        }
+        lines.push(currentLine);
+
+        // Calculate label height based on number of lines
+        const labelHeight = lines.length * lineHeight;
+
+        // Calculate actual width of the widest line
+        let actualWidth = 0;
+        lines.forEach(line => {
+            const lineWidth = getTextWidth(line);
+            actualWidth = Math.max(actualWidth, lineWidth);
+        });
+
+        // Store position and dimensions for collision detection
+        labelPositions.push({
+            x: scales.x(centerX),
+            y: scales.y(centerY),
+            width: actualWidth + 10, // Add some padding
+            height: labelHeight,
+            lines: lines,
+            color: color,
+            originalX: scales.x(centerX),
+            originalY: scales.y(centerY),
+            dataX: centerX,
+            dataY: centerY,
+            needsLeaderLine: false
+        });
+    });
+
+    // Remove the temporary text measurer
+    textMeasurer.remove();
+
+    // Enhanced collision resolution with boundary constraints
+    const resolveCollisions = () => {
+        let hasCollision = true;
+        const padding = 10; // Padding between labels
+        const maxIterations = 100; // Prevent infinite loops
+        let iterations = 0;
+
+        // Boundary constraints (with some margin)
+        const margin = 10;
+        const minX = margin;
+        const minY = margin;
+        const maxX = svgWidth - margin;
+        const maxY = svgHeight - margin;
+
+        while (hasCollision && iterations < maxIterations) {
+            hasCollision = false;
+            iterations++;
+
+            // Check each pair of labels for collision
+            for (let i = 0; i < labelPositions.length; i++) {
+                for (let j = i + 1; j < labelPositions.length; j++) {
+                    const a = labelPositions[i];
+                    const b = labelPositions[j];
+
+                    // Rectangular collision detection
+                    if (a.x - a.width / 2 < b.x + b.width / 2 + padding &&
+                        a.x + a.width / 2 + padding > b.x - b.width / 2 &&
+                        a.y - a.height / 2 < b.y + b.height / 2 + padding &&
+                        a.y + a.height / 2 + padding > b.y - b.height / 2) {
+
+                        hasCollision = true;
+
+                        // Calculate vector between centers
+                        const dx = a.x - b.x;
+                        const dy = a.y - b.y;
+
+                        // Normalize and apply adjustment
+                        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                        const moveX = (dx / dist) * Math.min(5, a.width / 4); // Limit movement
+                        const moveY = (dy / dist) * Math.min(5, a.height / 4);
+
+                        // Move labels apart
+                        a.x += moveX;
+                        a.y += moveY;
+                        b.x -= moveX;
+                        b.y -= moveY;
+                    }
+                }
+            }
+
+            // Keep labels within bounds
+            for (const label of labelPositions) {
+                // Check if label would go out of bounds
+                if (label.x - label.width / 2 < minX) label.x = minX + label.width / 2;
+                if (label.x + label.width / 2 > maxX) label.x = maxX - label.width / 2;
+                if (label.y - label.height / 2 < minY) label.y = minY + label.height / 2;
+                if (label.y + label.height / 2 > maxY) label.y = maxY - label.height / 2;
+
+                // Check if label has moved significantly from its original position
+                const dx = label.x - label.originalX;
+                const dy = label.y - label.originalY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                // If moved more than a threshold, mark for leader line
+                if (distance > 30) {
+                    label.needsLeaderLine = true;
+                }
+            }
+        }
+    };
+
+    // Resolve collisions before rendering
+    resolveCollisions();
+
+    // Second pass: render labels with adjusted positions
+    labelPositions.forEach(label => {
         // Create a group for the label to ensure it's on top
         const labelGroup = svg.append("g")
             .attr("class", "label-group")
             .attr("pointer-events", "none"); // Make entire group non-interactable
 
-        // Add text with black fill and thick white stroke
-        labelGroup.append("text")
-            .attr("x", scales.x(centerX))
-            .attr("y", scales.y(centerY))
+        // Add leader line if the label has been moved significantly
+        if (label.needsLeaderLine) {
+            labelGroup.append("line")
+                .attr("x1", label.originalX)
+                .attr("y1", label.originalY)
+                .attr("x2", label.x)
+                .attr("y2", label.y)
+                .attr("stroke", label.color)
+                .attr("stroke-width", 1)
+                .attr("stroke-dasharray", "3,2")
+                .attr("opacity", 0.7);
+
+            // Add a small dot at the original position
+            labelGroup.append("circle")
+                .attr("cx", label.originalX)
+                .attr("cy", label.originalY)
+                .attr("r", 3)
+                .attr("fill", label.color)
+                .attr("opacity", 0.7);
+        }
+
+        // Add multi-line text with white stroke for better visibility against any background
+        const text = labelGroup.append("text")
+            .attr("x", label.x)
+            .attr("y", label.y - (label.lines.length - 1) * lineHeight / 2)
             .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "middle")
             .attr("fill", "black")
             .attr("stroke", "white")
             .attr("stroke-width", "3px")
             .attr("paint-order", "stroke")
             .attr("font-weight", "bold")
             .attr("font-size", "14px")
-            .attr("user-select", "none")
-            .text(group.label);
+            .attr("user-select", "none");
+
+        // Add each line as a tspan element
+        label.lines.forEach((line, i) => {
+            text.append("tspan")
+                .attr("x", label.x)
+                .attr("dy", i === 0 ? 0 : lineHeight)
+                .text(line);
+        });
     });
 }
 
