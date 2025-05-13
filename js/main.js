@@ -476,6 +476,13 @@ function initializeApp() {
       if (hash) {
         const shared = decodeShareState(hash);
         if (shared) {
+          // Explicitly handle custom labels if they exist in the shared state
+          if (shared.customLabels && Object.keys(shared.customLabels).length > 0) {
+            console.log("Found custom labels in shared state:", shared.customLabels);
+            AppState.selection.customLabels = shared.customLabels;
+            saveState("customLabels", shared.customLabels);
+          }
+
           applySharedState(shared);
           return; // ✅ Don't run normal startup; already handled
         }

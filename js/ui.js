@@ -1092,6 +1092,14 @@ function createMoreCompactBarChart({ voteCounts, nMembers, voteColors, boldLarge
  * @param {Object} repComments - Representative comments by group
  */
 function renderRepCommentsTable(repComments) {
+    // Store the repComments in AppState for reuse when updating labels
+    if (repComments) {
+        AppState.data.repComments = repComments;
+    } else if (AppState.data.repComments) {
+        // Use stored repComments if none provided
+        repComments = AppState.data.repComments;
+    }
+
     const container = document.getElementById("rep-comments-output");
     container.innerHTML = "";
 
@@ -1120,10 +1128,27 @@ function renderRepCommentsTable(repComments) {
     const tabContainer = document.createElement("div");
     tabContainer.className = "mb-6";
 
+    // Create tab navigation with wrapper for tabs and edit button
+    const tabNavWrapper = document.createElement("div");
+    tabNavWrapper.className = "flex justify-between items-center";
+    tabContainer.appendChild(tabNavWrapper);
+
     // Create tab navigation
     const tabNav = document.createElement("div");
     tabNav.className = "flex flex-wrap border-b border-gray-200";
-    tabContainer.appendChild(tabNav);
+    tabNavWrapper.appendChild(tabNav);
+
+    // Create edit button
+    const editButton = document.createElement("button");
+    editButton.className = "ml-2 p-1 text-gray-500 hover:text-primary-600 focus:outline-none";
+    editButton.title = "Edit group labels";
+    editButton.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+      </svg>
+    `;
+    editButton.addEventListener("click", () => openLabelEditor(allGroupColors));
+    tabNavWrapper.appendChild(editButton);
 
     // Create tab content container
     const tabContent = document.createElement("div");
@@ -1199,7 +1224,17 @@ function renderRepCommentsTable(repComments) {
 
         // Add tab text
         const tabText = document.createElement("span");
-        tabText.innerHTML = `<span class="hidden sm:inline">Group </span>${letter} (${groupSize})`;
+
+        // Check if there's a custom label for this color
+        const customLabel = AppState.selection.customLabels[labelColor];
+
+        if (customLabel) {
+            // Display custom label with group letter
+            tabText.innerHTML = `${letter}: ${customLabel} (${groupSize})`;
+        } else {
+            // Display default label
+            tabText.innerHTML = `<span class="hidden sm:inline">Group </span>${letter} (${groupSize})`;
+        }
 
         tab.appendChild(circle);
         tab.appendChild(tabText);
@@ -1612,6 +1647,161 @@ function showShareNotification(message) {
 }
 
 // For testing purposes, export objects and functions
+/**
+ * Open the label editor dialog
+ * @param {Array} groupColors - Array of group colors to edit
+ */
+function openLabelEditor(groupColors) {
+    // Remove any existing dialog
+    const existingDialog = document.getElementById("label-editor-dialog");
+    if (existingDialog) {
+        existingDialog.remove();
+    }
+
+    // Create dialog backdrop
+    const backdrop = document.createElement("div");
+    backdrop.className = "fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center";
+    backdrop.id = "label-editor-backdrop";
+
+    // Create dialog
+    const dialog = document.createElement("div");
+    dialog.className = "bg-white rounded-lg shadow-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto";
+    dialog.id = "label-editor-dialog";
+
+    // Create dialog header
+    const header = document.createElement("div");
+    header.className = "flex justify-between items-center mb-4";
+
+    const title = document.createElement("h3");
+    title.className = "text-lg font-bold text-gray-900";
+    title.textContent = "Edit Group Labels";
+    header.appendChild(title);
+
+    const closeButton = document.createElement("button");
+    closeButton.className = "text-gray-500 hover:text-gray-700";
+    closeButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+    `;
+    closeButton.addEventListener("click", () => {
+        backdrop.remove();
+    });
+    header.appendChild(closeButton);
+
+    dialog.appendChild(header);
+
+    // Create form
+    const form = document.createElement("form");
+    form.className = "space-y-4";
+    form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        saveLabels();
+    });
+
+    // Add input fields for each group
+    groupColors.forEach(color => {
+        const labelIndex = AppState.selection.colorToLabelIndex[color];
+        if (labelIndex === undefined) return;
+
+        const letter = labelIndexToLetter(labelIndex);
+        const currentLabel = AppState.selection.customLabels[color] || "";
+
+        const formGroup = document.createElement("div");
+        formGroup.className = "flex items-center space-x-3";
+
+        // Color circle
+        const colorCircle = document.createElement("div");
+        colorCircle.className = "w-6 h-6 rounded-full flex-shrink-0";
+        colorCircle.style.backgroundColor = color;
+        colorCircle.style.border = "1px solid #999";
+        formGroup.appendChild(colorCircle);
+
+        // Group letter
+        const groupLetter = document.createElement("span");
+        groupLetter.className = "font-medium w-6";
+        groupLetter.textContent = letter;
+        formGroup.appendChild(groupLetter);
+
+        // Input field
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500";
+        input.placeholder = `Label for Group ${letter}`;
+        input.value = currentLabel;
+        input.dataset.color = color;
+        input.id = `group-label-${color.replace('#', '')}`;
+        formGroup.appendChild(input);
+
+        // Clear button
+        if (currentLabel) {
+            const clearButton = document.createElement("button");
+            clearButton.type = "button";
+            clearButton.className = "text-gray-400 hover:text-gray-600";
+            clearButton.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            `;
+            clearButton.addEventListener("click", () => {
+                input.value = "";
+            });
+            formGroup.appendChild(clearButton);
+        }
+
+        form.appendChild(formGroup);
+    });
+
+    // Add buttons
+    const buttons = document.createElement("div");
+    buttons.className = "flex justify-end space-x-3 mt-6";
+
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.className = "px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50";
+    cancelButton.textContent = "Cancel";
+    cancelButton.addEventListener("click", () => {
+        backdrop.remove();
+    });
+    buttons.appendChild(cancelButton);
+
+    const saveButton = document.createElement("button");
+    saveButton.type = "submit";
+    saveButton.className = "px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700";
+    saveButton.textContent = "Save";
+    buttons.appendChild(saveButton);
+
+    form.appendChild(buttons);
+    dialog.appendChild(form);
+    backdrop.appendChild(dialog);
+    document.body.appendChild(backdrop);
+
+    // Function to save labels
+    function saveLabels() {
+        const newLabels = {};
+
+        groupColors.forEach(color => {
+            const input = document.getElementById(`group-label-${color.replace('#', '')}`);
+            if (input && input.value.trim()) {
+                newLabels[color] = input.value.trim();
+            }
+        });
+
+        // Update AppState
+        AppState.selection.customLabels = newLabels;
+
+        // Save to session storage
+        saveState("customLabels", newLabels);
+
+        // Update the UI without running analysis again
+        renderRepCommentsTable(); // This will use the stored repComments
+
+        // Close dialog
+        backdrop.remove();
+    }
+}
+
+// For testing purposes, export objects and functions
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         AppState,
@@ -1620,6 +1810,7 @@ if (typeof module !== 'undefined' && module.exports) {
         getScales,
         pointInPolygon,
         updateDimensions,
+        openLabelEditor,
         // Add other functions you want to test
     };
 }

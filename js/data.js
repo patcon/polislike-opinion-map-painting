@@ -11,9 +11,9 @@
  * @param {string} slug - Dataset identifier
  * @returns {Promise} - Resolves when data is loaded and rendered
  */
-function loadAndRenderData(slug) {
+function loadAndRenderData(slug, preserveCustomLabels = false) {
     // Reset data state for a new dataset
-    AppState.resetDataState();
+    AppState.resetDataState(preserveCustomLabels);
 
     return new Promise((resolve) => {
         Promise.all([
@@ -76,6 +76,7 @@ function applySharedState({
     dataset,
     labelIndices,
     customColors = [],
+    customLabels = {},
     flipX: fx = false,
     flipY: fy = false,
     opacity = Config.dotOpacity,
@@ -108,6 +109,10 @@ function applySharedState({
         renderColorPalette();
     }
 
+    // Always set customLabels (even if empty) to ensure it's properly initialized
+    AppState.selection.customLabels = customLabels || {};
+    saveState("customLabels", AppState.selection.customLabels);
+
     // Update UI
     document.getElementById("dataset").value = dataset;
     document.getElementById("flip-x-checkbox").checked = fx;
@@ -122,7 +127,11 @@ function applySharedState({
     saveState("flipX", fx);
     saveState("flipY", fy);
 
-    return loadAndRenderData(dataset).then(() => {
+    // Ensure custom labels are set before loading data
+    AppState.selection.customLabels = customLabels || {};
+    saveState("customLabels", AppState.selection.customLabels);
+
+    return loadAndRenderData(dataset, true).then(() => {
         // Update selection state
         AppState.selection.colorByIndex.length = labelIndices.length;
         AppState.selection.selectedIndices.clear();
@@ -139,8 +148,8 @@ function applySharedState({
         renderAllPlots();
         updateLabelCounts();
 
-        // If auto-analyze is enabled and we have painted groups, run analysis automatically
-        if (document.getElementById("auto-analyze-checkbox").checked && AppState.selection.selectedIndices.size > 0) {
+        // Always run analysis if we have painted groups to ensure custom labels are displayed
+        if (AppState.selection.selectedIndices.size > 0) {
             applyGroupAnalysis();
         }
     });
@@ -164,7 +173,8 @@ function encodeShareState(includePaint = true) {
         flipX: AppState.preferences.flipX,
         flipY: AppState.preferences.flipY,
         opacity: AppState.ui.dotOpacity,
-        dotSize: AppState.ui.dotSize
+        dotSize: AppState.ui.dotSize,
+        customLabels: AppState.selection.customLabels
     };
 
     // Only include labelIndices if includePaint is true and there are painted participants
@@ -184,6 +194,11 @@ function encodeShareState(includePaint = true) {
 
         if (customColors.length > 0) {
             payload.customColors = customColors;
+        }
+
+        // Include custom labels if they exist
+        if (Object.keys(AppState.selection.customLabels).length > 0) {
+            payload.customLabels = AppState.selection.customLabels;
         }
     }
 
@@ -212,6 +227,7 @@ function decodeShareState(base64) {
             dataset: parsed.dataset,
             labelIndices: parsed.labelIndices || [],
             customColors: parsed.customColors || [],
+            customLabels: parsed.customLabels || {},
             flipX: parsed.flipX || false,
             flipY: parsed.flipY || false,
             opacity: parsed.opacity || Config.dotOpacity,

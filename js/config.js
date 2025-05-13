@@ -81,7 +81,8 @@ const AppState = {
     selection: {
         colorToLabelIndex: {}, // hex -> int
         colorByIndex: [],
-        selectedIndices: new Set()
+        selectedIndices: new Set(),
+        customLabels: {} // Store custom labels for groups (color -> label)
     },
 
     // Preferences
@@ -112,6 +113,9 @@ const AppState = {
         this.preferences.showGroupComparison = loadState("showGroupComparison", true);
         this.ui.dotOpacity = Config.dotOpacity;
         this.ui.dotSize = Config.dotSize;
+
+        // Load custom labels from session storage
+        this.selection.customLabels = loadState("customLabels", {});
     },
 
     /**
@@ -127,12 +131,18 @@ const AppState = {
     /**
      * Reset data state for a new dataset
      */
-    resetDataState() {
+    resetDataState(preserveCustomLabels = false) {
         this.data.dbInstance = null;
         this.data.commentTexts = null;
         this.data.repComments = null;
         this.ui.opacityFactorCache = {}; // Clear opacity cache when changing datasets
         document.getElementById("rep-comments-output").innerHTML = "";
+
+        // Reset custom labels when changing datasets, unless preserveCustomLabels is true
+        if (!preserveCustomLabels) {
+            this.selection.customLabels = {};
+            saveState("customLabels", {});
+        }
     }
 };
 
