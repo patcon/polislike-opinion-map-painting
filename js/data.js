@@ -75,6 +75,7 @@ function loadAndRenderData(slug) {
 function applySharedState({
     dataset,
     labelIndices,
+    customColors = [],
     flipX: fx = false,
     flipY: fy = false,
     opacity = Config.dotOpacity,
@@ -87,6 +88,25 @@ function applySharedState({
     AppState.ui.dotOpacity = opacity;
     AppState.ui.dotSize = dotSize;
 
+    // Add custom colors to the palette if they exist
+    if (customColors.length > 0) {
+        // Get the default palette length
+        const defaultPaletteLength = 10; // The original tab10 has 10 colors
+
+        // Reset the palette to the default first
+        Config.colors.tab10 = Config.colors.tab10.slice(0, defaultPaletteLength);
+
+        // Add custom colors
+        customColors.forEach(color => {
+            if (!Config.colors.tab10.includes(color)) {
+                Config.colors.tab10.push(color);
+                AppState.selection.colorToLabelIndex[color] = Config.colors.tab10.length - 1;
+            }
+        });
+
+        // Refresh the color palette
+        renderColorPalette();
+    }
 
     // Update UI
     document.getElementById("dataset").value = dataset;
@@ -152,6 +172,19 @@ function encodeShareState(includePaint = true) {
         payload.labelIndices = AppState.selection.colorByIndex.map((c) =>
             c == null ? null : AppState.selection.colorToLabelIndex[c]
         );
+
+        // Include custom colors that aren't in the default palette
+        const customColors = [];
+        Config.colors.tab10.forEach((color, index) => {
+            // Only include colors beyond the default palette (index >= 10)
+            if (index >= 10) {
+                customColors.push(color);
+            }
+        });
+
+        if (customColors.length > 0) {
+            payload.customColors = customColors;
+        }
     }
 
     return btoa(JSON.stringify(payload));
@@ -178,6 +211,7 @@ function decodeShareState(base64) {
         return {
             dataset: parsed.dataset,
             labelIndices: parsed.labelIndices || [],
+            customColors: parsed.customColors || [],
             flipX: parsed.flipX || false,
             flipY: parsed.flipY || false,
             opacity: parsed.opacity || Config.dotOpacity,
