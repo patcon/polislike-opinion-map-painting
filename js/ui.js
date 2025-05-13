@@ -418,6 +418,65 @@ function renderPlot(svgId, data, title) {
         AppState.ui.hoveredIndices.clear();
         applyHoverStyles();
     });
+
+    // Add custom label overlays for each group LAST to ensure they're on top
+    addGroupLabelOverlays(svg, data, scales);
+}
+
+/**
+ * Add custom label overlays to the SVG for each group
+ * @param {Object} svg - D3 selection of the SVG element
+ * @param {Array} data - Data points
+ * @param {Object} scales - x and y scales
+ */
+function addGroupLabelOverlays(svg, data, scales) {
+    // Get unique colors with custom labels
+    const colorGroups = {};
+
+    // Group data points by color
+    for (let i = 0; i < AppState.selection.colorByIndex.length; i++) {
+        const color = AppState.selection.colorByIndex[i];
+        if (color && AppState.selection.customLabels[color]) {
+            if (!colorGroups[color]) {
+                colorGroups[color] = {
+                    points: [],
+                    label: AppState.selection.customLabels[color]
+                };
+            }
+            colorGroups[color].points.push(data[i]);
+        }
+    }
+
+    // Add label for each group
+    Object.entries(colorGroups).forEach(([color, group]) => {
+        if (group.points.length === 0) return;
+
+        // Calculate center of the group
+        const sumX = group.points.reduce((sum, point) => sum + point[0], 0);
+        const sumY = group.points.reduce((sum, point) => sum + point[1], 0);
+        const centerX = sumX / group.points.length;
+        const centerY = sumY / group.points.length;
+
+        // Create a group for the label to ensure it's on top
+        const labelGroup = svg.append("g")
+            .attr("class", "label-group")
+            .attr("pointer-events", "none"); // Make entire group non-interactable
+
+        // Add text with black fill and thick white stroke
+        labelGroup.append("text")
+            .attr("x", scales.x(centerX))
+            .attr("y", scales.y(centerY))
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "middle")
+            .attr("fill", "black")
+            .attr("stroke", "white")
+            .attr("stroke-width", "3px")
+            .attr("paint-order", "stroke")
+            .attr("font-weight", "bold")
+            .attr("font-size", "14px")
+            .attr("user-select", "none")
+            .text(group.label);
+    });
 }
 
 /**
@@ -702,6 +761,9 @@ function applyHoverStyles() {
             }
         }
     });
+
+    // Always re-raise all label groups to ensure they stay on top
+    d3.selectAll(".label-group").raise();
 }
 
 
@@ -1792,6 +1854,9 @@ function openLabelEditor(groupColors) {
 
         // Save to session storage
         saveState("customLabels", newLabels);
+
+        // Update the plots to show the new labels
+        renderAllPlots();
 
         // Update the UI without running analysis again
         renderRepCommentsTable(); // This will use the stored repComments
