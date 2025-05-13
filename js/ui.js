@@ -20,6 +20,7 @@ function initializeUI() {
     document.getElementById("flip-x-checkbox").checked = AppState.preferences.flipX;
     document.getElementById("flip-y-checkbox").checked = AppState.preferences.flipY;
     document.getElementById("show-group-comparison-checkbox").checked = AppState.preferences.showGroupComparison;
+    document.getElementById("show-group-labels-checkbox").checked = AppState.preferences.showGroupLabels;
 
     // Initialize sliders
     document.getElementById("opacity-slider").value = AppState.ui.dotOpacity;
@@ -211,6 +212,13 @@ function setupEventListeners() {
         if (document.getElementById("rep-comments-output").innerHTML !== "") {
             applyGroupAnalysis();
         }
+    });
+
+    // Show group labels checkbox
+    document.getElementById("show-group-labels-checkbox").addEventListener("change", (e) => {
+        AppState.preferences.showGroupLabels = e.target.checked;
+        saveState("showGroupLabels", AppState.preferences.showGroupLabels);
+        renderAllPlots(); // Rerender plots to show/hide labels
     });
 
     // Run analysis button
@@ -430,17 +438,26 @@ function renderPlot(svgId, data, title) {
  * @param {Object} scales - x and y scales
  */
 function addGroupLabelOverlays(svg, data, scales) {
-    // Get unique colors with custom labels
+    // If group labels are disabled, don't add any labels
+    if (!AppState.preferences.showGroupLabels) {
+        return;
+    }
+
+    // Get unique colors with labels (custom or default)
     const colorGroups = {};
 
     // Group data points by color
     for (let i = 0; i < AppState.selection.colorByIndex.length; i++) {
         const color = AppState.selection.colorByIndex[i];
-        if (color && AppState.selection.customLabels[color]) {
+        if (color) {
+            // Get the label - either custom label or default letter
+            const colorIndex = AppState.selection.colorToLabelIndex[color];
+            const label = AppState.selection.customLabels[color] || labelIndexToLetter(colorIndex);
+
             if (!colorGroups[color]) {
                 colorGroups[color] = {
                     points: [],
-                    label: AppState.selection.customLabels[color]
+                    label: label
                 };
             }
             colorGroups[color].points.push(data[i]);
