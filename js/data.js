@@ -80,12 +80,14 @@ function applySharedState({
     flipX: fx = false,
     flipY: fy = false,
     opacity = Config.dotOpacity,
-    dotSize = Config.dotSize
+    dotSize = Config.dotSize,
+    showGroupLabels = false
 }) {
     // Update AppState
     AppState.preferences.convoSlug = dataset;
     AppState.preferences.flipX = fx;
     AppState.preferences.flipY = fy;
+    AppState.preferences.showGroupLabels = showGroupLabels;
     AppState.ui.dotOpacity = opacity;
     AppState.ui.dotSize = dotSize;
 
@@ -117,6 +119,7 @@ function applySharedState({
     document.getElementById("dataset").value = dataset;
     document.getElementById("flip-x-checkbox").checked = fx;
     document.getElementById("flip-y-checkbox").checked = fy;
+    document.getElementById("show-group-labels-checkbox").checked = showGroupLabels;
     document.getElementById("opacity-slider").value = opacity;
     document.getElementById("opacity-value").textContent = opacity;
     document.getElementById("dot-size-slider").value = dotSize;
@@ -126,6 +129,7 @@ function applySharedState({
     saveState("dataset", dataset);
     saveState("flipX", fx);
     saveState("flipY", fy);
+    saveState("showGroupLabels", showGroupLabels);
 
     // Ensure custom labels are set before loading data
     AppState.selection.customLabels = customLabels || {};
@@ -172,6 +176,7 @@ function encodeShareState(includePaint = true) {
         dataset,
         flipX: AppState.preferences.flipX,
         flipY: AppState.preferences.flipY,
+        showGroupLabels: AppState.preferences.showGroupLabels,
         opacity: AppState.ui.dotOpacity,
         dotSize: AppState.ui.dotSize,
         customLabels: AppState.selection.customLabels
@@ -230,6 +235,7 @@ function decodeShareState(base64) {
             customLabels: parsed.customLabels || {},
             flipX: parsed.flipX || false,
             flipY: parsed.flipY || false,
+            showGroupLabels: parsed.showGroupLabels || false,
             opacity: parsed.opacity || Config.dotOpacity,
             dotSize: parsed.dotSize || Config.dotSize
         };
