@@ -865,12 +865,12 @@ function makeLassoDragHandler(svg, data, scales) {
                 AppState.selection.selectedIndices.clear();
             }
 
-            svg.selectAll("circle").each(function ({ d, i }) {
-                const cx = scales.x(d[0]);
-                const cy = scales.y(d[1]);
+            svg.selectAll("circle").each(function (d) {
+                const cx = scales.x(d.d[0]);
+                const cy = scales.y(d.d[1]);
                 if (pointInPolygon([cx, cy], coords)) {
-                    AppState.selection.colorByIndex[i] = selectedColor;
-                    AppState.selection.selectedIndices.add(i);
+                    AppState.selection.colorByIndex[d.i] = selectedColor;
+                    AppState.selection.selectedIndices.add(d.i);
                     pointsSelected = true;
                 }
             });
