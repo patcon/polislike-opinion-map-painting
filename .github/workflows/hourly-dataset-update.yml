@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python and uv
         uses: astral-sh/setup-uv@v6
@@ -65,7 +65,7 @@ jobs:
           fi
 
       - name: Commit and push changes
-        uses: stefanzweifel/git-auto-commit-action@v4
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Auto-update dataset: ${{ env.POLIS_DATASET_SLUG }} [skip ci]"
           file_pattern: "data/**/*"
@@ -74,4 +74,4 @@ jobs:
           commit_author: "GitHub Actions <github-actions[bot]@users.noreply.github.com>"
           skip_dirty_check: false # Only commit if there are changes
           # Ignore whitespace changes to reduce noise from formatting differences
-          commit_options: "--no-verify --signoff --ignore-space-change"
+          commit_options: "--no-verify --signoff --ignore-whitespace"
