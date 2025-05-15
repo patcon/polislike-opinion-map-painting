@@ -9,6 +9,7 @@ import argparse
 import os
 import json
 import sqlite3
+import types
 from pathlib import Path
 
 from reddwarf.data_loader import Loader
@@ -41,7 +42,12 @@ def parse_args():
     parser.add_argument(
         "--import-dir", help="Directory with previously downloaded data", default=None
     )
-    parser.add_argument("--slug", help="Dataset slug to create or update")
+    parser.add_argument(
+        "--slug",
+        "--slugs",
+        dest="slug",
+        help="Dataset slug(s) to create or update (comma-separated for multiple)",
+    )
     parser.add_argument(
         "--polis-base-url",
         default="https://pol.is",
@@ -149,9 +155,29 @@ def get_url_from_meta(slug):
 
 
 # --- Main Logic ---
-def main():
-    args = parse_args()
+def process_single_dataset(
+    slug=None,
+    url=None,
+    report_id=None,
+    convo_id=None,
+    import_dir=None,
+    polis_base_url="https://pol.is",
+    ca_bundle=None,
+):
+    """Process a single dataset with the given parameters"""
     update_mode = False
+    args_dict = {
+        "slug": slug,
+        "url": url,
+        "report_id": report_id,
+        "convo_id": convo_id,
+        "import_dir": import_dir,
+        "polis_base_url": polis_base_url,
+        "ca_bundle": ca_bundle,
+    }
+
+    # Create a namespace object that mimics argparse.Namespace
+    args = types.SimpleNamespace(**args_dict)
 
     # Handle update mode when only slug is provided
     if args.slug and not (
@@ -332,6 +358,43 @@ def main():
         with open(datasets_path, "w") as f:
             json.dump(datasets, f, indent=2)
             print("📘 Updated datasets.json")
+
+
+def main():
+    args = parse_args()
+
+    # Handle multiple slugs if provided as comma-separated list
+    if (
+        args.slug
+        and "," in args.slug
+        and not (args.url or args.report_id or args.convo_id or args.import_dir)
+    ):
+        slugs = [s.strip() for s in args.slug.split(",")]
+        print(
+            f"🔄 Batch update mode: Processing {len(slugs)} slugs: {', '.join(slugs)}"
+        )
+
+        for i, slug in enumerate(slugs):
+            print(f"\n{'=' * 50}")
+            print(f"Processing slug {i + 1}/{len(slugs)}: {slug}")
+            print(f"{'=' * 50}\n")
+            process_single_dataset(
+                slug=slug, polis_base_url=args.polis_base_url, ca_bundle=args.ca_bundle
+            )
+
+        print(f"\n✅ Batch processing complete for {len(slugs)} datasets")
+        return
+
+    # Process a single dataset
+    process_single_dataset(
+        slug=args.slug,
+        url=args.url,
+        report_id=args.report_id,
+        convo_id=args.convo_id,
+        import_dir=args.import_dir,
+        polis_base_url=args.polis_base_url,
+        ca_bundle=args.ca_bundle,
+    )
 
 
 if __name__ == "__main__":
