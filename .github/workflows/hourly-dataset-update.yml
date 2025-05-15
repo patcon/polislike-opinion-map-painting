@@ -1,0 +1,50 @@
+name: Hourly Dataset Update
+
+on:
+  schedule:
+    # Run every hour
+    - cron: "0 * * * *"
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: "Dataset slug to update (overrides default)"
+        required: false
+        default: ""
+
+jobs:
+  update-dataset:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python and uv
+        uses: astral-sh/setup-uv-action@v1
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          uv sync
+
+      - name: Update dataset
+        env:
+          # Set the default slug to update - change this to your preferred dataset
+          POLIS_DATASET_SLUG: ${{ github.event.inputs.slug || 'demdis-eu-9usurb2mmh' }}
+        run: |
+          echo "Updating dataset: $POLIS_DATASET_SLUG"
+          uv run python generate.py
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "Auto-update dataset: ${{ env.POLIS_DATASET_SLUG }} [skip ci]"
+          file_pattern: "data/**/*"
+          commit_user_name: "github-actions[bot]"
+          commit_user_email: "github-actions[bot]@users.noreply.github.com"
+          commit_author: "GitHub Actions <github-actions[bot]@users.noreply.github.com>"
+          skip_dirty_check: false # Only commit if there are changes
+          # Ignore whitespace changes to reduce noise from formatting differences
+          commit_options: "--no-verify --signoff --ignore-space-change"
