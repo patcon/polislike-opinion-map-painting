@@ -44,7 +44,7 @@ jobs:
           echo "Updating dataset: $POLIS_DATASET_SLUG"
           uv run python generate.py
 
-      - name: Selectively revert votes.db changes
+      - name: Check for last_vote changes in meta.json
         run: |
           # Get all changed files
           CHANGED_FILES=$(git diff --name-only)
@@ -52,29 +52,51 @@ jobs:
           # Get all dataset directories with changes
           DATASET_DIRS=$(echo "$CHANGED_FILES" | grep "data/datasets/" | cut -d'/' -f1-3 | sort | uniq)
 
+          # Flag to track if any last_vote fields have changed
+          LAST_VOTE_CHANGED=false
+
           # Process each dataset directory
           for DIR in $DATASET_DIRS; do
-            # Check if any non-votes.db files have changed in this directory
-            if echo "$CHANGED_FILES" | grep "^$DIR/" | grep -v "votes\.db$" | grep -q .; then
-              echo "Directory $DIR has non-votes.db changes - keeping all changes"
+            # Check if meta.json exists in this directory
+            if [ -f "$DIR/meta.json" ]; then
+              # Check if the last_vote field has changed in meta.json
+              if git diff -U0 "$DIR/meta.json" | grep -q '^\+.*"last_vote":'; then
+                echo "Directory $DIR has last_vote changes in meta.json - keeping all changes"
+                LAST_VOTE_CHANGED=true
+              else
+                echo "Directory $DIR has no last_vote changes - reverting entire directory"
+                git checkout -- "$DIR"
+              fi
             else
-              echo "Directory $DIR only has votes.db changes - reverting entire directory"
-              git checkout -- "$DIR"
+              # If meta.json doesn't exist, this might be a new dataset
+              if echo "$CHANGED_FILES" | grep -q "^$DIR/meta.json$"; then
+                echo "Directory $DIR has a new meta.json file - keeping all changes"
+                LAST_VOTE_CHANGED=true
+              else
+                echo "Directory $DIR has no meta.json - reverting entire directory"
+                git checkout -- "$DIR"
+              fi
             fi
           done
 
+          # Also check if datasets.json has changed
+          if echo "$CHANGED_FILES" | grep -q "data/datasets.json"; then
+            echo "datasets.json has changed - keeping this change"
+            LAST_VOTE_CHANGED=true
+          fi
+
           # Check if we still have any changes to commit
-          if git diff --quiet; then
-            echo "No significant changes to commit after reverting votes.db-only directories"
+          if [ "$LAST_VOTE_CHANGED" = "false" ]; then
+            echo "No last_vote changes detected - nothing to commit"
             exit 0
           else
-            echo "Significant changes remain - proceeding with commit"
+            echo "Last vote changes detected - proceeding with commit"
           fi
 
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Auto-update dataset: ${{ env.POLIS_DATASET_SLUG }} [skip ci]"
+          commit_message: "Auto-update dataset: ${{ env.POLIS_DATASET_SLUG }} - new votes detected [skip ci]"
           file_pattern: "data/**/*"
           commit_user_name: "github-actions[bot]"
           commit_user_email: "github-actions[bot]@users.noreply.github.com"

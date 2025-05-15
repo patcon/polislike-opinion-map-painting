@@ -263,6 +263,16 @@ def process_single_dataset(
 
     # Process votes
     _, _, mod_out_statement_ids, _ = process_statements(loader.comments_data)
+
+    # Extract the latest vote timestamp
+    latest_vote_timestamp = None
+    if loader.votes_data and len(loader.votes_data) > 0:
+        # Find the maximum 'modified' timestamp in the votes data
+        latest_vote_timestamp = max(
+            vote.get("modified", 0) for vote in loader.votes_data
+        )
+        print(f"📅 Latest vote timestamp: {latest_vote_timestamp}")
+
     raw_vote_matrix = generate_raw_matrix(loader.votes_data)
     filtered_vote_matrix = simple_filter_matrix(raw_vote_matrix, mod_out_statement_ids)
 
@@ -322,6 +332,7 @@ def process_single_dataset(
                 "about_url": None,
                 "conversation_url": f"{args.polis_base_url.rstrip('/')}/{loader.conversation_id}",
                 "report_url": None,
+                "last_vote": None,  # Initialize last_vote as None for new datasets
             }
             print("📝 Creating new meta.json")
 
@@ -332,6 +343,20 @@ def process_single_dataset(
             meta["report_url"] = (
                 f"{args.polis_base_url.rstrip('/')}/report/{args.report_id}"
             )
+
+        # Update the last_vote timestamp if we have a new one
+        if latest_vote_timestamp is not None:
+            old_timestamp = meta.get("last_vote")
+            meta["last_vote"] = latest_vote_timestamp
+
+            if old_timestamp != latest_vote_timestamp:
+                print(
+                    f"📊 Updated last_vote timestamp: {old_timestamp} -> {latest_vote_timestamp}"
+                )
+            else:
+                print(
+                    f"📊 No new votes since last update (timestamp: {latest_vote_timestamp})"
+                )
 
         with open(meta_path, "w") as f:
             json.dump(meta, f, indent=2)
