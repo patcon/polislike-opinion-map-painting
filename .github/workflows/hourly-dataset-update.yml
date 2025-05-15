@@ -73,5 +73,3 @@ jobs:
           commit_user_email: "github-actions[bot]@users.noreply.github.com"
           commit_author: "GitHub Actions <github-actions[bot]@users.noreply.github.com>"
           skip_dirty_check: false # Only commit if there are changes
-          # Ignore whitespace changes to reduce noise from formatting differences
-          commit_options: "--no-verify --signoff --ignore-whitespace"
