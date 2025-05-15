@@ -11,6 +11,7 @@ import json
 import sqlite3
 import types
 from pathlib import Path
+from typing import Optional
 
 from reddwarf.data_loader import Loader
 from reddwarf.utils.matrix import (
@@ -42,11 +43,15 @@ def parse_args():
     parser.add_argument(
         "--import-dir", help="Directory with previously downloaded data", default=None
     )
+
+    # Get slug from environment variable if available
+    default_slug = os.environ.get("POLIS_DATASET_SLUG")
     parser.add_argument(
         "--slug",
         "--slugs",
         dest="slug",
-        help="Dataset slug(s) to create or update (comma-separated for multiple)",
+        default=default_slug,
+        help="Dataset slug(s) to create or update (comma-separated). Can also be set with POLIS_DATASET_SLUG env var.",
     )
     parser.add_argument(
         "--polis-base-url",
