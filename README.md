@@ -80,6 +80,7 @@ Demo of label painting import: [`https://patcon.github.io/polislike-opinion-map-
 - [ ] BUG: why disagree type showing for Group D [here](https://patcon.github.io/polislike-opinion-map-painting/#eyJkYXRhc2V0IjoiNXI3Y2J3YjljdiIsImZsaXBYIjpmYWxzZSwiZmxpcFkiOmZhbHNlLCJvcGFjaXR5IjoxLCJkb3RTaXplIjozLCJsYWJlbEluZGljZXMiOltudWxsLG51bGwsbnVsbCxudWxsLDMsbnVsbCwyLDEsMiwxLG51bGwsMixudWxsLDIsMCxudWxsLDIsMywwLG51bGwsMCwzLDAsMiwyLDIsMiwxLDIsMiwzLDEsMywzLDMsMiwxLDIsMSwyLDEsMywzLDEsMywzLDEsMixudWxsLG51bGwsMCwzLDIsMCwyLDAsMSwxLDEsMiwxLDIsMCwzLDMsMywyLDIsMSwzLDIsMiwzLDMsMSwyLDMsMSwzLDIsMiwyLDIsMywwLDIsMCwwLDMsMCwyLDIsMiwyLDIsMywyLDIsMSwzLDMsMSwyLDIsMiwyLDMsMCwyLDIsMSwzLDMsMiwyLDEsMiwyLDIsMSwzLDIsMSwzLDIsMiwzLDIsMiwzLDMsMSwyLDIsMiwyLDIsbnVsbCwyLDAsMCwxLDIsMywyLDIsMiwyLDIsMSwyLDEsMiwwLDIsMiwyLDJdfQ==)?
 - [ ] Show two empty tabs until groups selected.
 - [ ] add auto-group widgets
+- [ ] Fix lasso select bug when labels aren't disappearing when there's an url hash
 
 </details>
 
