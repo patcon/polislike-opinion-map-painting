@@ -41,7 +41,7 @@ def parse_args():
     parser.add_argument(
         "--import-dir", help="Directory with previously downloaded data", default=None
     )
-    parser.add_argument("--slug", help="Optional directory name override")
+    parser.add_argument("--slug", help="Dataset slug to create or update")
     parser.add_argument(
         "--polis-base-url",
         default="https://pol.is",
@@ -126,9 +126,41 @@ def save_votes_db(raw_vote_matrix, participant_ids, outpath):
     print(f"✅ Saved votes.db with {len(long_df)} rows")
 
 
+# --- Update Mode Helpers ---
+def get_url_from_meta(slug):
+    """Extract report_url or conversation_url from meta.json for a given slug"""
+    meta_path = Path("data/datasets") / slug / "meta.json"
+
+    if not meta_path.exists():
+        raise ValueError(f"No meta.json found for slug: {slug}")
+
+    with open(meta_path, "r") as f:
+        meta = json.load(f)
+
+    # Prefer report_url if available, otherwise use conversation_url
+    if meta.get("report_url"):
+        return meta["report_url"]
+    elif meta.get("conversation_url"):
+        return meta["conversation_url"]
+    else:
+        raise ValueError(
+            f"No report_url or conversation_url found in meta.json for slug: {slug}"
+        )
+
+
 # --- Main Logic ---
 def main():
     args = parse_args()
+    update_mode = False
+
+    # Handle update mode when only slug is provided
+    if args.slug and not (
+        args.url or args.report_id or args.convo_id or args.import_dir
+    ):
+        print(f"🔄 Update mode: Looking up URL for provided slug '{args.slug}'")
+        args.url = get_url_from_meta(args.slug)
+        print(f"🌐 Found URL: {args.url}")
+        update_mode = True
 
     # Infer from --url if provided
     if args.url:
@@ -138,9 +170,9 @@ def main():
         args.report_id = parsed.get("report_id")
         args.convo_id = parsed.get("convo_id")
 
-    if not (args.convo_id or args.report_id or args.import_dir):
+    if not (args.convo_id or args.report_id or args.import_dir or args.url):
         raise ValueError(
-            "You must pass one of --convo-id, --report-id, --url, or --import-dir"
+            "You must pass one of --convo-id, --report-id, --url, --import-dir, or a valid --slug for update"
         )
 
     if args.ca_bundle:
@@ -180,14 +212,20 @@ def main():
         )
         loader = Loader(polis_instance_url=base_url, polis_id=args.convo_id)
 
+    # Ensure slug is a string
     slug = args.slug or loader.conversation_id
-    outdir = Path("data/datasets") / slug
+    if slug is None:
+        raise ValueError(
+            "Could not determine slug - neither --slug nor conversation_id available"
+        )
+
+    outdir = Path("data/datasets") / str(slug)
     outdir.mkdir(parents=True, exist_ok=True)
     print(f"📁 Output directory: {outdir}")
 
     # Dump raw input files for reuse
     if not args.import_dir:
-        dump_dir = Path(".dumps") / slug
+        dump_dir = Path(".dumps") / str(slug)
         dump_dir.mkdir(parents=True, exist_ok=True)
         print(f"🧾 Dumping raw Polis data to {dump_dir}")
         loader.dump_data(output_dir=str(dump_dir))
@@ -240,16 +278,23 @@ def main():
 
     # --- Generate or preserve meta.json ---
     meta_path = outdir / "meta.json"
-    if meta_path.exists():
+    if meta_path.exists() and not update_mode:
         print("📄 meta.json already exists — preserving it")
     else:
-        print("📝 Creating meta.json")
-        meta = {
-            "about_url": None,
-            "conversation_url": f"{args.polis_base_url.rstrip('/')}/{loader.conversation_id}",
-            "report_url": None,
-        }
+        # If updating, load existing meta.json first
+        if meta_path.exists() and update_mode:
+            with open(meta_path, "r") as f:
+                meta = json.load(f)
+            print("🔄 Updating existing meta.json")
+        else:
+            meta = {
+                "about_url": None,
+                "conversation_url": f"{args.polis_base_url.rstrip('/')}/{loader.conversation_id}",
+                "report_url": None,
+            }
+            print("📝 Creating new meta.json")
 
+        # Update URLs if we have new information
         if hasattr(loader, "report_data") and "report_url" in loader.report_data:
             meta["report_url"] = loader.report_data["report_url"]
         elif args.report_id:
@@ -276,7 +321,7 @@ def main():
         existing_slugs = {entry["slug"] for entry in datasets}
         if slug not in existing_slugs:
             # Auto-generate label from slug: title case + space-separated
-            label = slug.replace("-", " ").title()
+            label = str(slug).replace("-", " ").title()
             new_entry = {"slug": slug, "label": label}
             datasets.append(new_entry)
             print(f"➕ Added new dataset entry: {new_entry}")
