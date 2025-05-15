@@ -37,6 +37,33 @@ jobs:
           echo "Updating dataset: $POLIS_DATASET_SLUG"
           uv run python generate.py
 
+      - name: Selectively revert votes.db changes
+        run: |
+          # Get all changed files
+          CHANGED_FILES=$(git diff --name-only)
+
+          # Get all dataset directories with changes
+          DATASET_DIRS=$(echo "$CHANGED_FILES" | grep "data/datasets/" | cut -d'/' -f1-3 | sort | uniq)
+
+          # Process each dataset directory
+          for DIR in $DATASET_DIRS; do
+            # Check if any non-votes.db files have changed in this directory
+            if echo "$CHANGED_FILES" | grep "^$DIR/" | grep -v "votes\.db$" | grep -q .; then
+              echo "Directory $DIR has non-votes.db changes - keeping all changes"
+            else
+              echo "Directory $DIR only has votes.db changes - reverting entire directory"
+              git checkout -- "$DIR"
+            fi
+          done
+
+          # Check if we still have any changes to commit
+          if git diff --quiet; then
+            echo "No significant changes to commit after reverting votes.db-only directories"
+            exit 0
+          else
+            echo "Significant changes remain - proceeding with commit"
+          fi
+
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v4
         with:

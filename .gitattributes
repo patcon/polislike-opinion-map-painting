@@ -1,0 +1,2 @@
+# Mark votes.db files as binary to exclude them from diffs
+data/datasets/*/votes.db binary -diff
