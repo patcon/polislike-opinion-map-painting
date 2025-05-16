@@ -36,10 +36,15 @@ jobs:
         run: |
           uv sync
 
+      - name: Set POLIS_DATASET_SLUG
+        run: |
+          if [ -n "${{ github.event.inputs.slug }}" ]; then
+            echo "POLIS_DATASET_SLUG=${{ github.event.inputs.slug }}" >> $GITHUB_ENV
+          else
+            echo "POLIS_DATASET_SLUG=${{ env.POLIS_DATASET_SLUG }}" >> $GITHUB_ENV
+          fi
+
       - name: Update dataset
-        env:
-          # Set the default slug to update - change this to your preferred dataset
-          POLIS_DATASET_SLUG: ${{ github.event.inputs.slug != '' && github.event.inputs.slug || env.POLIS_DATASET_SLUG }}
         run: |
           echo "Updating dataset: $POLIS_DATASET_SLUG"
           uv run python generate.py
