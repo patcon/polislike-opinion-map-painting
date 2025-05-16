@@ -41,7 +41,7 @@ jobs:
           if [ -n "${{ github.event.inputs.slug }}" ]; then
             echo "POLIS_DATASET_SLUG=${{ github.event.inputs.slug }}" >> $GITHUB_ENV
           else
-            echo "POLIS_DATASET_SLUG=${{ env.POLIS_DATASET_SLUG }}" >> $GITHUB_ENV
+            echo "POLIS_DATASET_SLUG=${{ vars.POLIS_DATASET_SLUG }}" >> $GITHUB_ENV
           fi
 
       - name: Update dataset
