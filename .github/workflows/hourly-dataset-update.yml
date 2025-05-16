@@ -39,7 +39,7 @@ jobs:
       - name: Update dataset
         env:
           # Set the default slug to update - change this to your preferred dataset
-          POLIS_DATASET_SLUG: ${{ github.event.inputs.slug || env.POLIS_DATASET_SLUG }}
+          POLIS_DATASET_SLUG: ${{ github.event.inputs.slug != '' && github.event.inputs.slug || env.POLIS_DATASET_SLUG }}
         run: |
           echo "Updating dataset: $POLIS_DATASET_SLUG"
           uv run python generate.py
