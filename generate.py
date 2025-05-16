@@ -86,6 +86,10 @@ def parse_url_metadata(url: str):
 # --- Projection Helpers ---
 def run_projection(name, data, seed, raw_vote_matrix):
     pipe = None
+    # Setting n_neighbors to None defaults to 10 below 10,000 samples, and
+    # slowly increases it according to a formula beyond that.
+    # See: https://github.com/YingfanWang/PaCMAP?tab=readme-ov-file#parameters
+    N_NEIGHBORS = None
     if name == "PCA":
         pipe = Pipeline(
             [
@@ -98,14 +102,15 @@ def run_projection(name, data, seed, raw_vote_matrix):
         pipe = Pipeline(
             [
                 ("impute", SimpleImputer(missing_values=np.nan, strategy="mean")),
-                ("pacmap", PaCMAP(n_components=2, random_state=seed)),
+                # Seeing n_neigh
+                ("pacmap", PaCMAP(n_components=2, random_state=seed, n_neighbors=N_NEIGHBORS)),
             ]
         )
     elif name == "LocalMAP":
         pipe = Pipeline(
             [
                 ("impute", SimpleImputer(missing_values=np.nan, strategy="mean")),
-                ("localmap", LocalMAP(n_components=2, random_state=seed)),
+                ("localmap", LocalMAP(n_components=2, random_state=seed, n_neighbors=N_NEIGHBORS)),
             ]
         )
     else:
