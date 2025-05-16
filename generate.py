@@ -266,12 +266,23 @@ def process_single_dataset(
 
     # Extract the latest vote timestamp
     latest_vote_timestamp = None
-    if loader.votes_data and len(loader.votes_data) > 0:
+
+    # First try to get lastVoteTimestamp from math_data if available
+    if (
+        hasattr(loader, "math_data")
+        and loader.math_data
+        and "lastVoteTimestamp" in loader.math_data
+    ):
+        latest_vote_timestamp = loader.math_data["lastVoteTimestamp"]
+        print(f"📅 Latest vote timestamp from math_data: {latest_vote_timestamp}")
+    # Fall back to extracting from votes_data if math_data isn't available
+    elif loader.votes_data and len(loader.votes_data) > 0:
         # Find the maximum 'modified' timestamp in the votes data
-        latest_vote_timestamp = max(
-            vote.get("modified", 0) for vote in loader.votes_data
+        # Ensure it's in the same format as lastVoteTimestamp (milliseconds since epoch)
+        latest_vote_timestamp = int(
+            max(vote.get("modified", 0) for vote in loader.votes_data) * 1000
         )
-        print(f"📅 Latest vote timestamp: {latest_vote_timestamp}")
+        print(f"📅 Latest vote timestamp from votes_data: {latest_vote_timestamp}")
 
     raw_vote_matrix = generate_raw_matrix(loader.votes_data)
     filtered_vote_matrix = simple_filter_matrix(raw_vote_matrix, mod_out_statement_ids)
