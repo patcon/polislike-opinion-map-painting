@@ -1130,7 +1130,7 @@
     "lang": null,
     "participant_id": 36,
     "velocity": 1,
-    "moderated": 0,
+    "moderated": 1,
     "active": true,
     "agree_count": 1,
     "disagree_count": 1,
