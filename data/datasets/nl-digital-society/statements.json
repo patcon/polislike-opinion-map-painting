@@ -560,6 +560,26 @@
     "datetime": null
   },
   {
+    "txt": "De Provincie zou een digitaal platform moeten hebben om mij om hulp te vragen.",
+    "statement_id": 66,
+    "created": "2025-05-17T19:51:36.313000Z",
+    "tweet_id": null,
+    "quote_src_url": null,
+    "is_seed": false,
+    "is_meta": false,
+    "lang": null,
+    "participant_id": 36,
+    "velocity": 1,
+    "moderated": 0,
+    "active": true,
+    "agree_count": 1,
+    "disagree_count": 0,
+    "pass_count": 0,
+    "count": 1,
+    "conversation_id": "8t9kfsbbwp",
+    "datetime": null
+  },
+  {
     "txt": "Er moet een website komen waar je als inwoners werk van de overheid kunt overnemen als je het beter kunt (right to challenge).",
     "statement_id": 50,
     "created": "2025-05-16T17:30:23.019000Z",
