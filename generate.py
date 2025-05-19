@@ -230,18 +230,30 @@ def process_single_dataset(
         )
         loader.conversation_id = loader.conversation_data["conversation_id"]
     elif args.report_id:
-        print(
-            f"🔍 Loading via report ID: {args.polis_base_url.rstrip('/')}/report/{args.report_id}"
-        )
-        loader = Loader(
-            polis_instance_url=base_url,
-            polis_id=args.report_id,
-            data_source="csv_export",
-        )
-        loader.load_api_data_report()
-        loader.conversation_id = loader.report_data["conversation_id"]
-        loader.load_api_data_math()
-        loader.load_api_data_conversation()
+        # TODO: Loader should handle this logic on its own.
+        try:
+            print(
+                f"🔍 Loading via report ID: {args.polis_base_url.rstrip('/')}/report/{args.report_id}"
+            )
+            loader = Loader(
+                polis_instance_url=base_url,
+                polis_id=args.report_id,
+                data_source="csv_export",
+            )
+            loader.load_api_data_report()
+            loader.conversation_id = loader.report_data["conversation_id"]
+            loader.load_api_data_math()
+            loader.load_api_data_conversation()
+        except:
+            print(f"❌ Fetching CSV Export failed. (Likely old server). Attempting slower API fetch...")
+            loader = Loader(
+                polis_instance_url=base_url,
+                polis_id=args.report_id,
+                data_source="api",
+            )
+            print(
+                f"🔍 Loading via conversation ID: {args.polis_base_url.rstrip('/')}/{loader.conversation_id}"
+            )
     else:
         print(
             f"🔍 Loading via conversation ID: {args.polis_base_url.rstrip('/')}/{args.convo_id}"
