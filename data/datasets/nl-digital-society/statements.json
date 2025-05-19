@@ -1014,8 +1014,8 @@
     "active": true,
     "agree_count": 1,
     "disagree_count": 0,
-    "pass_count": 3,
-    "count": 4,
+    "pass_count": 4,
+    "count": 5,
     "conversation_id": "8t9kfsbbwp",
     "datetime": null
   },
@@ -1213,9 +1213,9 @@
     "moderated": 1,
     "active": true,
     "agree_count": 6,
-    "disagree_count": 3,
+    "disagree_count": 4,
     "pass_count": 2,
-    "count": 11,
+    "count": 12,
     "conversation_id": "8t9kfsbbwp",
     "datetime": null
   },
