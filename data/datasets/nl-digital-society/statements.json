@@ -1558,5 +1558,25 @@
     "count": 1,
     "conversation_id": "8t9kfsbbwp",
     "datetime": null
+  },
+  {
+    "txt": "Over het algemeen vind ik dat de overheid al genoeg te doen heeft, zonder dat er nog meer verantwoordelijkheden bijkomen.",
+    "statement_id": 78,
+    "created": "2025-05-19T18:14:28.444000Z",
+    "tweet_id": null,
+    "quote_src_url": null,
+    "is_seed": false,
+    "is_meta": false,
+    "lang": null,
+    "participant_id": 81,
+    "velocity": 1,
+    "moderated": 0,
+    "active": true,
+    "agree_count": 1,
+    "disagree_count": 0,
+    "pass_count": 0,
+    "count": 1,
+    "conversation_id": "8t9kfsbbwp",
+    "datetime": null
   }
 ]
