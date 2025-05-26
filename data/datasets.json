@@ -62,5 +62,21 @@
   {
     "slug": "nl-digital-society",
     "label": "[2025] NL: Digital Society"
+  },
+  {
+    "slug": "dust-poland",
+    "label": "DUST: Poland"
+  },
+  {
+    "slug": "dust-bulgaria",
+    "label": "DUST: Bulgaria"
+  },
+  {
+    "slug": "vtaiwan-gen-ai",
+    "label": "vTaiwan: GenAI"
+  },
+  {
+    "slug": "bajour-academic-freedom",
+    "label": "Bajour: Academic Freedom"
   }
 ]
