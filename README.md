@@ -52,6 +52,9 @@ Demo of label painting import: [`https://patcon.github.io/polislike-opinion-map-
 - [x] add option to scale opacity with: vote count
   - participant voting on all statement = full opacity (proxy for engagement)
 - [ ] add option to scale opacity with: participant ID (proxy for time of arrival)
+- [ ] add option to scale opacity with "% finished at last vote", to see low engagement
+- [ ] add option to render scaling as color gradient (not just opacity)
+- [ ] add option to invert scaling factor
 - [x] Add slider for max opacity and dot size (adjustment allows suitability for large and small convos)
 - [x] allow toggling inclusion of moderated statements in analysis
 - [ ] BUG: fix group stats for moderated statements
@@ -70,7 +73,6 @@ Demo of label painting import: [`https://patcon.github.io/polislike-opinion-map-
 - "include moderated statements" checkbox
   - [ ] auto-refresh report
   - [ ] save to "share" state
-- [ ] add option to render vote-scaling as color gradient (not just opacity)
 - [ ] opacity slider at 100% should be fully opaque
 - [ ] Add an "eraser" color to unselect
 - [ ] Add undo/redo buttons
