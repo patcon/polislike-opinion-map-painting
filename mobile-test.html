@@ -131,7 +131,9 @@
                     return false;
                 })
                 .on("zoom", (event) => {
+                    const { k } = event.transform;
                     container.attr("transform", event.transform);
+                    container.selectAll("circle").attr("r", BASE_RADIUS / k);
                 });
 
             svg.call(zoom);
