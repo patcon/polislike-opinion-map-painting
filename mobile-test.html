@@ -155,9 +155,11 @@
                 .on("end", () => {
                     if (!coords.length) return;
 
+                    const transform = d3.zoomTransform(container.node());
+
                     circles.classed("selected", d => {
-                        const sx = xScale(d.x);
-                        const sy = yScale(d.y);
+                        const sx = transform.applyX(xScale(d.x));
+                        const sy = transform.applyY(yScale(d.y));
                         return pointInPolygon([sx, sy], coords);
                     });
 
