@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <title>Auto-Scaled Lasso Select with Localmap</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             margin: 0;
@@ -24,7 +25,6 @@
 
         circle.selected {
             fill: orange;
-            stroke: black;
             stroke-width: 1;
         }
 
@@ -47,12 +47,15 @@
 </head>
 
 <body>
+    <div class="p-4 bg-white shadow-md z-10 absolute top-0 left-0 w-full">
+        <label for="dataset" class="mr-2 font-medium text-gray-700">Dataset:</label>
+        <select id="dataset" class="w-full sm:w-auto px-3 py-2 border rounded text-sm">
+            <option value="" disabled selected>Select a dataset</option>
+        </select>
+    </div>
     <svg></svg>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script>
-        const slug = "nl-nudes-sexting"; // <-- Replace with your dataset slug
-        const path = `data/datasets/${slug}/localmap.json`;
-
         const width = window.innerWidth;
         const height = window.innerHeight;
         const margin = 20;
@@ -73,105 +76,141 @@
             if (e.touches.length === 1) e.preventDefault();
         }, { passive: false });
 
-        d3.json(path).then(raw => {
-            const data = raw.map(([i, [x, y]]) => ({ i, x, y }));
+        const datasetSelect = document.getElementById("dataset");
 
-            const xExtent = d3.extent(data, d => d.x);
-            const yExtent = d3.extent(data, d => d.y);
-
-            const dataWidth = xExtent[1] - xExtent[0];
-            const dataHeight = yExtent[1] - yExtent[0];
-            const dataAspect = dataWidth / dataHeight;
-
-            const screenWidth = width - 2 * margin;
-            const screenHeight = height - 2 * margin;
-            const screenAspect = screenWidth / screenHeight;
-
-            // Determine fit mode and adjust range
-            let xRange, yRange;
-
-            if (dataAspect > screenAspect) {
-                // Fit width, center vertically
-                const scaledHeight = screenWidth / dataAspect;
-                const yOffset = (screenHeight - scaledHeight) / 2;
-                xRange = [margin, width - margin];
-                yRange = [height - margin - yOffset, margin + yOffset];
-            } else {
-                // Fit height, center horizontally
-                const scaledWidth = screenHeight * dataAspect;
-                const xOffset = (screenWidth - scaledWidth) / 2;
-                xRange = [margin + xOffset, width - margin - xOffset];
-                yRange = [height - margin, margin];
+        // Load datasets list
+        d3.json("data/datasets.json").then(datasetList => {
+            const firstSlug = datasetList[0]?.slug;
+            if (firstSlug) {
+                datasetSelect.value = firstSlug;
+                loadDataset(firstSlug);
             }
 
-            // Now define the scales
-            xScale = d3.scaleLinear().domain(xExtent).range(xRange);
-            yScale = d3.scaleLinear().domain(yExtent).range(yRange);
+            datasetList.forEach(({ slug, label }) => {
+                const option = document.createElement("option");
+                option.value = slug;
+                option.textContent = label;
+                datasetSelect.appendChild(option);
+            });
 
-            const circles = container.selectAll("circle")
-                .data(data)
-                .enter()
-                .append("circle")
-                .attr("cx", d => xScale(d.x))
-                .attr("cy", d => yScale(d.y))
-                .attr("r", BASE_RADIUS);
-
-            const zoom = d3.zoom()
-                .scaleExtent([0.5, 10])
-                .filter((event) => {
-                    // Allow wheel zoom (trackpad or mouse wheel)
-                    if (event.type === "wheel") return true;
-
-                    // Allow 2-finger touch zoom
-                    if (event.type === "touchstart") {
-                        return event.touches && event.touches.length >= 2;
-                    }
-
-                    // Disallow drag-to-zoom on single-touch or mouse
-                    return false;
-                })
-                .on("zoom", (event) => {
-                    const { k } = event.transform;
-                    container.attr("transform", event.transform);
-                    container.selectAll("circle").attr("r", BASE_RADIUS / k);
-                });
-
-            svg.call(zoom);
-
-            svg.call(d3.drag()
-                .on("start", (event) => {
-                    const isMultiTouch =
-                        event.sourceEvent.type.startsWith("touch") &&
-                        event.sourceEvent.touches &&
-                        event.sourceEvent.touches.length > 1;
-
-                    if (isMultiTouch) return;
-                    coords = [];
-                    if (lassoPath) lassoPath.remove();
-                    lassoPath = svg.append("path").attr("class", "lasso");
-                })
-                .on("drag", (event) => {
-                    coords.push([event.x, event.y]);
-                    if (lassoPath) lassoPath.attr("d", d3.line()(coords));
-                })
-                .on("end", () => {
-                    if (!coords.length) return;
-
-                    const transform = d3.zoomTransform(container.node());
-
-                    circles.classed("selected", d => {
-                        const sx = transform.applyX(xScale(d.x));
-                        const sy = transform.applyY(yScale(d.y));
-                        return pointInPolygon([sx, sy], coords);
-                    });
-
-                    if (lassoPath) {
-                        lassoPath.remove();
-                        lassoPath = null;
-                    }
-                    coords = [];
-                }));
+            datasetSelect.addEventListener("change", (e) => {
+                const selectedSlug = e.target.value;
+                loadDataset(selectedSlug); // Your plot loader
+            });
         });
+
+        const zoom = d3.zoom()
+            .scaleExtent([0.5, 10])
+            .filter((event) => {
+                // Allow wheel zoom (trackpad or mouse wheel)
+                if (event.type === "wheel") return true;
+
+                // Allow 2-finger touch zoom
+                if (event.type === "touchstart") {
+                    return event.touches && event.touches.length >= 2;
+                }
+
+                // Disallow drag-to-zoom on single-touch or mouse
+                return false;
+            })
+            .on("zoom", (event) => {
+                const { k } = event.transform;
+                container.attr("transform", event.transform);
+                container.selectAll("circle").attr("r", BASE_RADIUS / k);
+            });
+
+        svg.call(zoom);
+
+        function loadDataset(slug) {
+            const path = `data/datasets/${slug}/localmap.json`;
+
+            d3.json(path).then(raw => {
+                // Clear previous plot
+                container.selectAll("*").remove();
+
+                const data = raw.map(([i, [x, y]]) => ({ i, x, y }));
+
+                const xExtent = d3.extent(data, d => d.x);
+                const yExtent = d3.extent(data, d => d.y);
+
+                const dataWidth = xExtent[1] - xExtent[0];
+                const dataHeight = yExtent[1] - yExtent[0];
+                const dataAspect = dataWidth / dataHeight;
+
+                const topOffset = 64;
+                const usableHeight = height - topOffset;
+
+                const screenWidth = width - 2 * margin;
+                const screenHeight = usableHeight - 2 * margin;
+                const screenAspect = screenWidth / screenHeight;
+
+                // Determine fit mode and adjust range
+                let xRange, yRange;
+
+                if (dataAspect > screenAspect) {
+                    // Fit width, center vertically
+                    const scaledHeight = screenWidth / dataAspect;
+                    const yOffset = (screenHeight - scaledHeight) / 2;
+                    xRange = [margin, width - margin];
+                    yRange = [usableHeight - margin - yOffset + topOffset, margin + yOffset + topOffset];
+                } else {
+                    // Fit height, center horizontally
+                    const scaledWidth = screenHeight * dataAspect;
+                    const xOffset = (screenWidth - scaledWidth) / 2;
+                    xRange = [margin + xOffset, width - margin - xOffset];
+                    yRange = [usableHeight - margin + topOffset, margin + topOffset];
+                }
+
+                // Now define the scales
+                xScale = d3.scaleLinear().domain(xExtent).range(xRange);
+                yScale = d3.scaleLinear().domain(yExtent).range(yRange);
+
+                const circles = container.selectAll("circle")
+                    .data(data)
+                    .enter()
+                    .append("circle")
+                    .attr("cx", d => xScale(d.x))
+                    .attr("cy", d => yScale(d.y))
+                    .attr("r", BASE_RADIUS);
+
+                // ✅ Reset zoom to identity (unzoomed) state
+                svg.call(zoom.transform, d3.zoomIdentity);
+
+                svg.call(d3.drag()
+                    .on("start", (event) => {
+                        const isMultiTouch =
+                            event.sourceEvent.type.startsWith("touch") &&
+                            event.sourceEvent.touches &&
+                            event.sourceEvent.touches.length > 1;
+
+                        if (isMultiTouch) return;
+                        coords = [];
+                        if (lassoPath) lassoPath.remove();
+                        lassoPath = svg.append("path").attr("class", "lasso");
+                    })
+                    .on("drag", (event) => {
+                        coords.push([event.x, event.y]);
+                        if (lassoPath) lassoPath.attr("d", d3.line()(coords));
+                    })
+                    .on("end", () => {
+                        if (!coords.length) return;
+
+                        const transform = d3.zoomTransform(container.node());
+
+                        circles.classed("selected", d => {
+                            const sx = transform.applyX(xScale(d.x));
+                            const sy = transform.applyY(yScale(d.y));
+                            return pointInPolygon([sx, sy], coords);
+                        });
+
+                        if (lassoPath) {
+                            lassoPath.remove();
+                            lassoPath = null;
+                        }
+                        coords = [];
+                    }));
+            });
+        }
 
         function pointInPolygon([x, y], vs) {
             let inside = false;
