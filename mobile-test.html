@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Polygonal Lasso + Zoom + Marching Ants</title>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        svg {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            background-color: #f0f0f0;
+            touch-action: none;
+        }
+
+        circle {
+            fill: steelblue;
+            opacity: 0.7;
+        }
+
+        circle.selected {
+            fill: orange;
+            stroke: black;
+            stroke-width: 1;
+        }
+
+        path.lasso {
+            fill: rgba(0, 0, 0, 0.1);
+            stroke: #666;
+            stroke-width: 1.5;
+            stroke-dasharray: 4 2;
+            stroke-dashoffset: 0;
+            animation: march 1s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes march {
+            to {
+                stroke-dashoffset: -6;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <svg></svg>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        const DPR = window.devicePixelRatio || 1;
+        const BASE_RADIUS = 5 * DPR;
+
+        const svg = d3.select("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        const container = svg.append("g");
+
+        const extent = 3;
+        const data = d3.range(1000).map(() => ({
+            x: (Math.random() - 0.5) * extent * width,
+            y: (Math.random() - 0.5) * extent * height
+        }));
+
+        const circles = container.selectAll("circle")
+            .data(data)
+            .enter()
+            .append("circle")
+            .attr("cx", d => d.x)
+            .attr("cy", d => d.y)
+            .attr("r", BASE_RADIUS)
+
+        const zoom = d3.zoom()
+            .scaleExtent([0.5, 10])
+            .filter((event) => {
+                if (event.type === "wheel") return true;
+                if (event.type === "touchstart") return event.touches.length >= 2;
+                return false;
+            })
+            .on("zoom", (event) => {
+                const { k } = event.transform; // zoom scale
+                container.attr("transform", event.transform);
+                container.selectAll("circle").attr("r", BASE_RADIUS / k); // keep fixed screen size
+            });
+
+        svg.call(zoom);
+
+        // Lasso state
+        let lassoPath = null;
+        let coords = [];
+
+        const drag = d3.drag()
+            .on("start", (event) => {
+                if (event.sourceEvent.touches && event.sourceEvent.touches.length > 1) return;
+
+                coords = [];
+                if (lassoPath) lassoPath.remove();
+
+                lassoPath = svg.append("path")
+                    .attr("class", "lasso");
+            })
+            .on("drag", (event) => {
+                coords.push([event.x, event.y]);
+                lassoPath.attr("d", d3.line()(coords));
+            })
+            .on("end", () => {
+                const transform = d3.zoomTransform(container.node());
+
+                circles.classed("selected", d => {
+                    const [x, y] = [transform.applyX(d.x), transform.applyY(d.y)];
+                    return pointInPolygon([x, y], coords);
+                });
+
+                if (lassoPath) {
+                    lassoPath.remove();
+                    lassoPath = null;
+                }
+
+                coords = [];
+            });
+
+        svg.call(drag);
+
+        function pointInPolygon([x, y], vs) {
+            let inside = false;
+            for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+                const [xi, yi] = vs[i], [xj, yj] = vs[j];
+                const intersect =
+                    yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+    </script>
+</body>
+
+</html>
