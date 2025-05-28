@@ -43,6 +43,11 @@
                 stroke-dashoffset: -6;
             }
         }
+
+        .origin-axis {
+            stroke-dasharray: 4 2;
+            opacity: 0.6;
+        }
     </style>
 </head>
 
@@ -60,6 +65,7 @@
         const height = window.innerHeight;
         const margin = 20;
         const BASE_RADIUS = 5 * (window.devicePixelRatio || 1);
+        const BASE_LINE_WIDTH = 1 * (window.devicePixelRatio || 1);
 
         const svg = d3.select("svg")
             .attr("width", width)
@@ -70,6 +76,42 @@
         let xScale, yScale;
         let lassoPath = null;
         let coords = [];
+        let circles;
+
+        function lassoStart(event) {
+            const isMultiTouch =
+                event.sourceEvent.type.startsWith("touch") &&
+                event.sourceEvent.touches &&
+                event.sourceEvent.touches.length > 1;
+
+            if (isMultiTouch) return;
+            coords = [];
+            if (lassoPath) lassoPath.remove();
+            lassoPath = svg.append("path").attr("class", "lasso");
+        }
+
+        function lassoDrag(event) {
+            coords.push([event.x, event.y]);
+            if (lassoPath) lassoPath.attr("d", d3.line()(coords));
+        }
+
+        function lassoEnd() {
+            if (!coords.length) return;
+
+            const transform = d3.zoomTransform(container.node());
+
+            circles.classed("selected", d => {
+                const sx = transform.applyX(xScale(d.x));
+                const sy = transform.applyY(yScale(d.y));
+                return pointInPolygon([sx, sy], coords);
+            });
+
+            if (lassoPath) {
+                lassoPath.remove();
+                lassoPath = null;
+            }
+            coords = [];
+        }
 
         // Prevent native scroll from interrupting lasso on mobile
         svg.node().addEventListener("touchstart", function (e) {
@@ -117,6 +159,7 @@
                 const { k } = event.transform;
                 container.attr("transform", event.transform);
                 container.selectAll("circle").attr("r", BASE_RADIUS / k);
+                container.selectAll("line").attr("stroke-width", BASE_LINE_WIDTH / k);
             });
 
         svg.call(zoom);
@@ -165,7 +208,26 @@
                 xScale = d3.scaleLinear().domain(xExtent).range(xRange);
                 yScale = d3.scaleLinear().domain(yExtent).range(yRange);
 
-                const circles = container.selectAll("circle")
+                // Add origin axes lines
+                const xOriginLine = container.append("line")
+                    .attr("class", "origin-axis")
+                    .attr("stroke", "gray")
+                    .attr("stroke-width", BASE_LINE_WIDTH)
+                    .attr("x1", xScale.range()[0])
+                    .attr("x2", xScale.range()[1])
+                    .attr("y1", yScale(0))
+                    .attr("y2", yScale(0));
+
+                const yOriginLine = container.append("line")
+                    .attr("class", "origin-axis")
+                    .attr("stroke", "gray")
+                    .attr("stroke-width", BASE_LINE_WIDTH)
+                    .attr("x1", xScale(0))
+                    .attr("x2", xScale(0))
+                    .attr("y1", yScale.range()[0])
+                    .attr("y2", yScale.range()[1]);
+
+                circles = container.selectAll("circle")
                     .data(data)
                     .enter()
                     .append("circle")
@@ -177,38 +239,9 @@
                 svg.call(zoom.transform, d3.zoomIdentity);
 
                 svg.call(d3.drag()
-                    .on("start", (event) => {
-                        const isMultiTouch =
-                            event.sourceEvent.type.startsWith("touch") &&
-                            event.sourceEvent.touches &&
-                            event.sourceEvent.touches.length > 1;
-
-                        if (isMultiTouch) return;
-                        coords = [];
-                        if (lassoPath) lassoPath.remove();
-                        lassoPath = svg.append("path").attr("class", "lasso");
-                    })
-                    .on("drag", (event) => {
-                        coords.push([event.x, event.y]);
-                        if (lassoPath) lassoPath.attr("d", d3.line()(coords));
-                    })
-                    .on("end", () => {
-                        if (!coords.length) return;
-
-                        const transform = d3.zoomTransform(container.node());
-
-                        circles.classed("selected", d => {
-                            const sx = transform.applyX(xScale(d.x));
-                            const sy = transform.applyY(yScale(d.y));
-                            return pointInPolygon([sx, sy], coords);
-                        });
-
-                        if (lassoPath) {
-                            lassoPath.remove();
-                            lassoPath = null;
-                        }
-                        coords = [];
-                    }));
+                    .on("start", lassoStart)
+                    .on("drag", lassoDrag)
+                    .on("end", lassoEnd));
             });
         }
 
