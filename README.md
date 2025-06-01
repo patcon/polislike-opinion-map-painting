@@ -49,15 +49,24 @@ Demo of label painting import: [`https://patcon.github.io/polislike-opinion-map-
 - [x] add links to Polis convo and report when applicable
 - [x] Clean up interface
 - [x] Add columns to more easily compare statement stats between groups
-- [x] add option to scale opacity with: vote count
-  - participant voting on all statement = full opacity (proxy for engagement)
-- [ ] add option to scale opacity with: participant ID (proxy for time of arrival)
-- [ ] add option to scale opacity with "% finished at last vote", to see low engagement
+- [ ] add option to scale opacity with arbitrary values:
+    - [x] vote count (proxy for engagement)
+    - [ ] "% finished at last vote" (better proxy for engagement)
+    - [ ] participant ID (proxy for time of arrival)
+    - [ ] "% passed", to see spectators who aren't thinking
+    - [ ] "% agree", to see straight-voters (not real)
+    - [ ] "% disagree", to see straight-voters (not real)
+    - [ ] "% agree/disagree", to see how opinionated
+- [ ] allow inclusion of groups who are representative for "pass"?
+    - Group is confused or disengaged by something in a statement.
+- [ ] allow ability to submit new topologies or map layers
 - [ ] add option to render scaling as color gradient (not just opacity)
 - [ ] add option to invert scaling factor
 - [x] Add slider for max opacity and dot size (adjustment allows suitability for large and small convos)
 - [x] allow toggling inclusion of moderated statements in analysis
 - [ ] BUG: fix group stats for moderated statements
+- [ ] BUG: Investigate why #5 statement in oprah convo has group A/B reversed.
+    - http://localhost:5000/#eyJkYXRhc2V0Ijoib3ByYWgtZm9yLXByZXoiLCJmbGlwWCI6ZmFsc2UsImZsaXBZIjpmYWxzZSwic2hvd0dyb3VwTGFiZWxzIjpmYWxzZSwib3BhY2l0eSI6MSwiZG90U2l6ZSI6NSwiY3VzdG9tTGFiZWxzIjp7fSwibGFiZWxJbmRpY2VzIjpbMCwxLDEsMiwyLDMsMywyLDIsMiwyLDAsMiwxLDIsMCwyLDAsMiwwLDIsMCwzLDMsMywyLDEsMiwxLDIsMCwwLDMsMCwwLDAsMSwyLDMsMCwzLDAsMSwyLDAsMSwyLDIsMSwxLDMsMywyLDIsMywxLDMsMywzLDIsMiwwLDIsMywxLDEsMywzLDIsMCwyLDAsMiwzLDEsMywwLDAsMywzLDIsMywyLDIsMiwwLDAsMCwxLDEsMywwLDAsMCwyLDIsMCwyLDIsMiwyLDIsMSwzLDAsMiwwLDIsMSwyLDIsMywyLDIsMSwyLDIsMSwxLDMsMiwyLDIsMiwyLDIsMiwzLDAsMiwyLDEsMCwzLDAsMCwyLDAsMSwyLDIsMiwwLDIsMywyLDEsMiwxLDIsMywwLDMsMSwwLDIsMywyLDIsMCwxLDIsMywwLDIsMCwwLDAsMywyLDMsMywwLDMsMSwzLDIsMiwyLDMsMywzLDIsMiwyLDEsMywwLDEsMSwzLDAsMywzLDIsMSwzLDMsMSwzLDAsMiwxLDMsMSwzLDIsM119
 - [ ] Add option to view side-by-side vs single large view
 - [ ] Add feature to animate transitions between algo projects in single view mode.
 - [ ] Add true "paint" style selection.
