@@ -160,13 +160,9 @@ function applySharedState({
 }
 
 /**
- * Encode the current state for sharing
- * @returns {string} - Base64 encoded state
- */
-/**
- * Encode the current state for sharing
+ * Encode the current state for sharing using pako compression
  * @param {boolean} includePaint - Whether to include painted labels in the shared state
- * @returns {string} - Base64 encoded state
+ * @returns {string} - Pako compressed and base64 encoded state with "pako:" prefix
  */
 function encodeShareState(includePaint = true) {
     const dataset = AppState.preferences.convoSlug;
@@ -207,18 +203,50 @@ function encodeShareState(includePaint = true) {
         }
     }
 
-    return btoa(JSON.stringify(payload));
+    // Convert to JSON string
+    const jsonString = JSON.stringify(payload);
+
+    // Compress with pako
+    const compressed = pako.deflate(jsonString);
+
+    // Convert to base64 and add pako prefix
+    const base64 = btoa(String.fromCharCode.apply(null, compressed));
+
+    return `pako:${base64}`;
 }
 
 /**
- * Decode a shared state from base64
- * @param {string} base64 - Base64 encoded state
+ * Decode a shared state from either pako compressed or legacy base64 format
+ * @param {string} hashString - Hash string that may have "pako:" prefix or be legacy base64
  * @returns {Object|null} - Decoded state or null if invalid
  */
-function decodeShareState(base64) {
+function decodeShareState(hashString) {
     try {
-        const json = atob(base64);
-        const parsed = JSON.parse(json);
+        let jsonString;
+
+        // Check if this is a pako compressed string
+        if (hashString.startsWith('pako:')) {
+            // Remove the "pako:" prefix
+            const base64Data = hashString.slice(5);
+
+            // Decode from base64
+            const compressedData = atob(base64Data);
+
+            // Convert string back to Uint8Array
+            const uint8Array = new Uint8Array(compressedData.length);
+            for (let i = 0; i < compressedData.length; i++) {
+                uint8Array[i] = compressedData.charCodeAt(i);
+            }
+
+            // Decompress with pako
+            const decompressed = pako.inflate(uint8Array, { to: 'string' });
+            jsonString = decompressed;
+        } else {
+            // Legacy format: direct base64 encoded JSON
+            jsonString = atob(hashString);
+        }
+
+        const parsed = JSON.parse(jsonString);
 
         // Backward compatibility: if old `labels` format is used
         if (parsed.labels) {
