@@ -81,7 +81,8 @@ function applySharedState({
     flipY: fy = false,
     opacity = Config.dotOpacity,
     dotSize = Config.dotSize,
-    showGroupLabels = false
+    showGroupLabels = false,
+    includeUnpainted = false
 }) {
     // Update AppState
     AppState.preferences.convoSlug = dataset;
@@ -90,6 +91,7 @@ function applySharedState({
     AppState.preferences.showGroupLabels = showGroupLabels;
     AppState.ui.dotOpacity = opacity;
     AppState.ui.dotSize = dotSize;
+    AppState.selection.includeUnpainted = includeUnpainted;
 
     // Add custom colors to the palette if they exist
     if (customColors.length > 0) {
@@ -120,6 +122,7 @@ function applySharedState({
     document.getElementById("flip-x-checkbox").checked = fx;
     document.getElementById("flip-y-checkbox").checked = fy;
     document.getElementById("show-group-labels-checkbox").checked = showGroupLabels;
+    document.getElementById("include-unpainted").checked = includeUnpainted;
     document.getElementById("opacity-slider").value = opacity;
     document.getElementById("opacity-value").textContent = opacity;
     document.getElementById("dot-size-slider").value = dotSize;
@@ -130,6 +133,7 @@ function applySharedState({
     saveState("flipX", fx);
     saveState("flipY", fy);
     saveState("showGroupLabels", showGroupLabels);
+    saveState("includeUnpainted", includeUnpainted);
 
     // Ensure custom labels are set before loading data
     AppState.selection.customLabels = customLabels || {};
@@ -175,7 +179,8 @@ function encodeShareState(includePaint = true) {
         showGroupLabels: AppState.preferences.showGroupLabels,
         opacity: AppState.ui.dotOpacity,
         dotSize: AppState.ui.dotSize,
-        customLabels: AppState.selection.customLabels
+        customLabels: AppState.selection.customLabels,
+        includeUnpainted: AppState.selection.includeUnpainted
     };
 
     // Only include labelIndices if includePaint is true and there are painted participants
@@ -265,7 +270,8 @@ function decodeShareState(hashString) {
             flipY: parsed.flipY || false,
             showGroupLabels: parsed.showGroupLabels || false,
             opacity: parsed.opacity || Config.dotOpacity,
-            dotSize: parsed.dotSize || Config.dotSize
+            dotSize: parsed.dotSize || Config.dotSize,
+            includeUnpainted: parsed.includeUnpainted || false
         };
     } catch (e) {
         console.warn("Invalid share state", e);

@@ -13,7 +13,7 @@
 function initializeUI() {
     document.getElementById("dataset").value = AppState.preferences.convoSlug;
     document.getElementById("toggle-additive").checked = AppState.preferences.isAdditive;
-    document.getElementById("include-unpainted").checked = loadState("includeUnpainted", false);
+    document.getElementById("include-unpainted").checked = AppState.selection.includeUnpainted;
     document.getElementById("auto-analyze-checkbox").checked = loadState("autoAnalyze", true);
     document.getElementById("include-moderated-checkbox").checked = loadState("includeModerated", false);
     document.getElementById("scale-opacity-checkbox").checked = AppState.preferences.scaleOpacityWithVotes;
@@ -100,6 +100,7 @@ function setupEventListeners() {
     // Include unpainted points
     document.getElementById("include-unpainted").addEventListener("change", (e) => {
         const includeUnpainted = e.target.checked;
+        AppState.selection.includeUnpainted = includeUnpainted;
         saveState("includeUnpainted", includeUnpainted);
         updateLabelCounts();
         if (document.getElementById("auto-analyze-checkbox").checked) {

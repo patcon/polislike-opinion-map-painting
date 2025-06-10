@@ -82,7 +82,8 @@ const AppState = {
         colorToLabelIndex: {}, // hex -> int
         colorByIndex: [],
         selectedIndices: new Set(),
-        customLabels: {} // Store custom labels for groups (color -> label)
+        customLabels: {}, // Store custom labels for groups (color -> label)
+        includeUnpainted: false // Whether to include unpainted points as a group in analysis
     },
 
     // Preferences
@@ -116,8 +117,9 @@ const AppState = {
         this.ui.dotOpacity = Config.dotOpacity;
         this.ui.dotSize = Config.dotSize;
 
-        // Load custom labels from session storage
+        // Load custom labels and selection preferences from session storage
         this.selection.customLabels = loadState("customLabels", {});
+        this.selection.includeUnpainted = loadState("includeUnpainted", false);
     },
 
     /**
