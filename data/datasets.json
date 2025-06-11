@@ -106,5 +106,17 @@
   {
     "slug": "plural-research-mev",
     "label": "Plural Research: MEV"
+  },
+  {
+    "slug": "zke-participation",
+    "label": "zKe: Public Participation"
+  },
+  {
+    "slug": "zke-tax-law",
+    "label": "zKe: Tax Law Amendment"
+  },
+  {
+    "slug": "zke-youth-bill",
+    "label": "zKe: Youth Bill"
   }
 ]
