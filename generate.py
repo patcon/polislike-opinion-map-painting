@@ -103,14 +103,22 @@ def run_projection(name, data, seed, raw_vote_matrix):
             [
                 ("impute", SimpleImputer(missing_values=np.nan, strategy="mean")),
                 # Seeing n_neigh
-                ("pacmap", PaCMAP(n_components=2, random_state=seed, n_neighbors=N_NEIGHBORS)),
+                (
+                    "pacmap",
+                    PaCMAP(n_components=2, random_state=seed, n_neighbors=N_NEIGHBORS),
+                ),
             ]
         )
     elif name == "LocalMAP":
         pipe = Pipeline(
             [
                 ("impute", SimpleImputer(missing_values=np.nan, strategy="mean")),
-                ("localmap", LocalMAP(n_components=2, random_state=seed, n_neighbors=N_NEIGHBORS)),
+                (
+                    "localmap",
+                    LocalMAP(
+                        n_components=2, random_state=seed, n_neighbors=N_NEIGHBORS
+                    ),
+                ),
             ]
         )
     else:
@@ -245,7 +253,9 @@ def process_single_dataset(
             loader.load_api_data_math()
             loader.load_api_data_conversation()
         except:
-            print(f"❌ Fetching CSV Export failed. (Likely old server). Attempting slower API fetch...")
+            print(
+                f"❌ Fetching CSV Export failed. (Likely old server). Attempting slower API fetch..."
+            )
             loader = Loader(
                 polis_instance_url=base_url,
                 polis_id=args.report_id,
