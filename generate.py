@@ -84,12 +84,14 @@ def parse_url_metadata(url: str):
 
 
 # --- Projection Helpers ---
-def run_projection(name, data, seed, raw_vote_matrix):
+def run_projection(name, data, seed, raw_vote_matrix, n_neighbors=None):
     pipe = None
     # Setting n_neighbors to None defaults to 10 below 10,000 samples, and
     # slowly increases it according to a formula beyond that.
     # See: https://github.com/YingfanWang/PaCMAP?tab=readme-ov-file#parameters
-    N_NEIGHBORS = None
+    # Use override when set.
+    # TODO: Intelligently scale this for small polis conversations.
+    N_NEIGHBORS = n_neighbors
     if name == "PCA":
         pipe = Pipeline(
             [
@@ -332,6 +334,21 @@ def process_single_dataset(
     # Apply cluster_mask for saving only clustered participants
     cluster_mask = [pid in clustered_pids for pid in raw_vote_matrix.index]
 
+    # Load existing meta.json to get n_neighbors if available
+    meta_path = outdir / "meta.json"
+    existing_n_neighbors = None
+    if meta_path.exists():
+        try:
+            with open(meta_path, "r") as f:
+                existing_meta = json.load(f)
+            existing_n_neighbors = existing_meta.get("n_neighbors")
+            if existing_n_neighbors is not None:
+                print(
+                    f"🔧 Using n_neighbors={existing_n_neighbors} from existing meta.json"
+                )
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"⚠️  Could not read existing meta.json: {e}")
+
     # Save projections
     projections = {}
     for name in ["PCA", "PaCMAP", "LocalMAP"]:
@@ -341,6 +358,7 @@ def process_single_dataset(
             filtered_vote_matrix.values,
             seed=607642,
             raw_vote_matrix=raw_vote_matrix,
+            n_neighbors=existing_n_neighbors,
         )
         X_filtered = X[cluster_mask]
 
@@ -371,6 +389,7 @@ def process_single_dataset(
                 "conversation_url": f"{args.polis_base_url.rstrip('/')}/{loader.conversation_id}",
                 "report_url": None,
                 "last_vote": None,  # Initialize last_vote as None for new datasets
+                "n_neighbors": None,
             }
             print("📝 Creating new meta.json")
 

@@ -49,6 +49,7 @@ Demo (with labels): [`https://patcon.github.io/polislike-opinion-map-painting/#p
 - [x] add links to Polis convo and report when applicable
 - [x] Clean up interface
 - [x] Add columns to more easily compare statement stats between groups
+- [x] Allow setting custom per-dataset `n_neighbors`.
 - [ ] add option to scale opacity with arbitrary values:
     - [x] vote count (proxy for engagement)
     - [ ] "% finished at last vote" (better proxy for engagement)
