@@ -9,3 +9,6 @@ dependencies = [
     "red-dwarf>=0.3.0",
     "requests>=2.32.3",
 ]
+
+[tool.uv.sources]
+red-dwarf = { git = "https://github.com/polis-community/red-dwarf.git", rev = "main" }
