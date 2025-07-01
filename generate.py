@@ -11,7 +11,6 @@ import json
 import sqlite3
 import types
 from pathlib import Path
-from typing import Optional
 
 from reddwarf.data_loader import Loader
 from reddwarf.utils.matrix import (
@@ -19,7 +18,6 @@ from reddwarf.utils.matrix import (
     get_clusterable_participant_ids,
     simple_filter_matrix,
 )
-from reddwarf.utils.polismath import extract_data_from_polismath
 from reddwarf.utils.statements import process_statements
 
 
@@ -30,8 +28,6 @@ from reddwarf.sklearn.transformers import SparsityAwareScaler
 from pacmap import PaCMAP, LocalMAP
 from urllib.parse import urlparse
 import numpy as np
-import requests
-import os
 
 
 # --- CLI Handling ---
@@ -321,9 +317,11 @@ def process_single_dataset(
         json.dump(loader.comments_data, f, indent=2)
     print("✅ Saved statements.json from loader")
 
-    try:
-        clustered_pids, _ = extract_data_from_polismath(loader.math_data)
-    except:
+    # Whether to use the active participant IDs from the platform rather than recalculate.
+    USE_POLIS_PARTICIPANT_IDS = True
+    if USE_POLIS_PARTICIPANT_IDS:
+        clustered_pids = loader.math_data["in-conv"]
+    else:
         # If math-pca2.json or conversation.json aren't available, fallback.
         clustered_pids = get_clusterable_participant_ids(
             raw_vote_matrix, vote_threshold=7
