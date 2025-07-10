@@ -411,6 +411,81 @@ function loadDatasetList() {
         });
 }
 
+/**
+ * Load clustering results for a specific dataset and projection
+ * @param {string} slug - Dataset identifier
+ * @param {string} clusterer - Clustering algorithm (e.g., "hdbscan")
+ * @param {string} projection - Projection type (e.g., "pca", "pacmap", "localmap")
+ * @returns {Promise<Array>} - Array of [participant_id, cluster_label] pairs
+ */
+async function loadClusteringResults(slug, clusterer, projection) {
+    try {
+        const response = await fetch(`data/datasets/${slug}/labels.${clusterer}.${projection}.json`);
+        if (!response.ok) {
+            throw new Error(`Failed to load clustering results: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Error loading clustering results for ${clusterer} on ${projection}:`, error);
+        return null;
+    }
+}
+
+/**
+ * Apply clustering labels to the current selection
+ * @param {Array} clusteringResults - Array of [participant_id, cluster_label] pairs
+ * @param {string} projection - Projection type for logging
+ */
+function applyClusteringLabels(clusteringResults, projection) {
+    if (!clusteringResults) {
+        console.error(`No clustering results available for ${projection}`);
+        return;
+    }
+
+    // Clear current selection
+    AppState.selection.colorByIndex.fill(null);
+    AppState.selection.selectedIndices.clear();
+
+    // Create a map from participant_id to cluster_label
+    const clusterMap = new Map(clusteringResults);
+
+    // Get unique cluster labels (excluding noise points, typically labeled as -1)
+    const uniqueClusters = [...new Set(clusteringResults.map(([, label]) => label))].filter(label => label !== -1);
+
+    // Sort clusters to ensure consistent color assignment
+    uniqueClusters.sort((a, b) => a - b);
+
+    console.log(`Found ${uniqueClusters.length} clusters in ${projection}:`, uniqueClusters);
+
+    // Apply cluster labels to participants
+    AppState.data.participants.forEach((participantId, index) => {
+        const clusterLabel = clusterMap.get(participantId);
+
+        if (clusterLabel !== undefined && clusterLabel !== -1) {
+            // Find the index of this cluster in our sorted unique clusters
+            const clusterIndex = uniqueClusters.indexOf(clusterLabel);
+
+            if (clusterIndex !== -1 && clusterIndex < Config.colors.tab10.length) {
+                const color = Config.colors.tab10[clusterIndex];
+                AppState.selection.colorByIndex[index] = color;
+                AppState.selection.selectedIndices.add(index);
+            }
+        }
+    });
+
+    // Update UI
+    renderAllPlots();
+    updateLabelCounts();
+
+    // Run analysis if auto-analyze is enabled
+    const autoAnalyze = document.getElementById("auto-analyze-checkbox")?.checked;
+    if (autoAnalyze) {
+        applyGroupAnalysis();
+    }
+
+    console.log(`Applied ${AppState.selection.selectedIndices.size} clustered points from ${projection}`);
+}
+
 // For testing purposes, export objects and functions
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -421,6 +496,8 @@ if (typeof module !== 'undefined' && module.exports) {
         loadVotesDB,
         getParticipantVoteSummary,
         calculateOpacityScaleFactor,
-        loadDatasetList
+        loadDatasetList,
+        loadClusteringResults,
+        applyClusteringLabels
     };
 }

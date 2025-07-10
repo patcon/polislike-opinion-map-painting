@@ -224,6 +224,22 @@ function setupEventListeners() {
 
     // Run analysis button
     document.getElementById("run-analysis").addEventListener("click", applyGroupAnalysis);
+
+    // HDBSCAN clustering buttons
+    document.getElementById("apply-hdbscan-pca").addEventListener("click", async () => {
+        const clusteringResults = await loadClusteringResults(AppState.preferences.convoSlug, "hdbscan", "pca");
+        applyClusteringLabels(clusteringResults, "PCA");
+    });
+
+    document.getElementById("apply-hdbscan-pacmap").addEventListener("click", async () => {
+        const clusteringResults = await loadClusteringResults(AppState.preferences.convoSlug, "hdbscan", "pacmap");
+        applyClusteringLabels(clusteringResults, "PaCMAP");
+    });
+
+    document.getElementById("apply-hdbscan-localmap").addEventListener("click", async () => {
+        const clusteringResults = await loadClusteringResults(AppState.preferences.convoSlug, "hdbscan", "localmap");
+        applyClusteringLabels(clusteringResults, "LocalMAP");
+    });
 }
 
 // ============================================================================
