@@ -300,6 +300,7 @@ def process_single_dataset(
             votes=loader.votes_data,
             reducer=reducer_name,
             reducer_kwargs=reducer_kwargs,
+            clusterer="hdbscan",
             mod_out_statement_ids=mod_out_statement_ids,
             meta_statement_ids=meta_statement_ids,
             keep_participant_ids=keep_participant_ids,
@@ -315,6 +316,18 @@ def process_single_dataset(
 
         with open(outdir / f"{name.lower()}.json", "w") as f:
             json.dump(X_with_ids, f, indent=2)
+
+        # Extract and save HDBSCAN clustering labels
+        if hasattr(clustered_participants_df, 'cluster_id'):
+            clustering_labels = clustered_participants_df["cluster_id"].tolist()
+            labels_with_ids = list(zip(clustered_pids, clustering_labels))
+
+            with open(outdir / f"labels.hdbscan.{name.lower()}.json", "w") as f:
+                json.dump(labels_with_ids, f, indent=2)
+
+            print(f"✅ Saved HDBSCAN clustering results for {name}")
+        else:
+            print(f"⚠️  No clustering labels found for {name}")
 
         # Save votes.db
         # TODO: Don't do this redundantly for each pipeline
