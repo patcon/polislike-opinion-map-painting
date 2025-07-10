@@ -15,10 +15,6 @@ from typing import cast
 
 from reddwarf.data_loader import Loader
 from reddwarf.implementations.base import ReducerType, run_pipeline
-from reddwarf.utils.matrix import (
-    generate_raw_matrix,
-    get_clusterable_participant_ids,
-)
 from reddwarf.utils.statements import process_statements
 from urllib.parse import urlparse
 
@@ -257,8 +253,6 @@ def process_single_dataset(
         )
         print(f"📅 Latest vote timestamp from votes_data: {latest_vote_timestamp}")
 
-    raw_vote_matrix = generate_raw_matrix(loader.votes_data)
-
     # Save statements.json from loader.comments_data
     with open(outdir / "statements.json", "w") as f:
         json.dump(loader.comments_data, f, indent=2)
@@ -269,10 +263,7 @@ def process_single_dataset(
     if USE_POLIS_PARTICIPANT_IDS:
         keep_participant_ids = loader.math_data["in-conv"]
     else:
-        # If math-pca2.json or conversation.json aren't available, fallback.
-        keep_participant_ids = get_clusterable_participant_ids(
-            raw_vote_matrix, vote_threshold=7
-        )
+        keep_participant_ids = []
 
     # Load existing meta.json to get n_neighbors if available
     meta_path = outdir / "meta.json"
@@ -325,8 +316,9 @@ def process_single_dataset(
         with open(outdir / f"{name.lower()}.json", "w") as f:
             json.dump(X_with_ids, f, indent=2)
 
-    # Save votes.db
-    save_votes_db(raw_vote_matrix, clustered_pids, outdir / "votes.db")
+        # Save votes.db
+        # TODO: Don't do this redundantly for each pipeline
+        save_votes_db(result.raw_vote_matrix, clustered_pids, outdir / "votes.db")
 
     # --- Generate or preserve meta.json ---
     meta_path = outdir / "meta.json"
