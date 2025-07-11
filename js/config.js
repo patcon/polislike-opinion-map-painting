@@ -10,6 +10,8 @@ const Config = {
     dotOpacity: 0.3,
     // Default dot size
     dotSize: 3,
+    // Active color palette (tab10 or tab20)
+    activePalette: 'tab20',
 
     // Reference: https://matplotlib.org/stable/users/explain/colors/colormaps.html#qualitative
     colors: {
@@ -131,7 +133,7 @@ const AppState = {
      */
     init() {
         // Initialize color mapping
-        Config.colors.tab10.forEach((color, i) => {
+        Config.colors[Config.activePalette].forEach((color, i) => {
             this.selection.colorToLabelIndex[color] = i;
         });
 

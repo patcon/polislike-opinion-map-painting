@@ -148,8 +148,8 @@ function setupEventListeners() {
 
         const index = parseInt(e.key, 10);
 
-        if (!isNaN(index) && index < Config.colors.tab10.length) {
-            const color = Config.colors.tab10[index];
+        if (!isNaN(index) && index < Config.colors[Config.activePalette].length) {
+            const color = Config.colors[Config.activePalette][index];
             document.getElementById("color").value = color;
             highlightSelectedColor(color); // visually reflect the change
         }
@@ -897,8 +897,8 @@ function makeLassoDragHandler(svg, data, scales) {
 
             // Only add the color to the palette if points were selected
             if (pointsSelected && !(selectedColor in AppState.selection.colorToLabelIndex)) {
-                Config.colors.tab10.push(selectedColor); // Add to end
-                AppState.selection.colorToLabelIndex[selectedColor] = Config.colors.tab10.length - 1;
+                Config.colors[Config.activePalette].push(selectedColor); // Add to end
+                AppState.selection.colorToLabelIndex[selectedColor] = Config.colors[Config.activePalette].length - 1;
                 renderColorPalette(); // Refresh palette
             }
 
@@ -1034,7 +1034,7 @@ function renderColorPalette() {
     const container = document.getElementById("color-palette");
     container.innerHTML = "";
 
-    Config.colors.tab10.forEach((color, i) => {
+    Config.colors[Config.activePalette].forEach((color, i) => {
         AppState.selection.colorToLabelIndex[color] = i; // Assign label
         const letter = labelIndexToLetter(i);
 

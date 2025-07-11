@@ -96,16 +96,16 @@ function applySharedState({
     // Add custom colors to the palette if they exist
     if (customColors.length > 0) {
         // Get the default palette length
-        const defaultPaletteLength = 10; // The original tab10 has 10 colors
+        const defaultPaletteLength = Config.colors[Config.activePalette].length; // Get default length dynamically
 
         // Reset the palette to the default first
-        Config.colors.tab10 = Config.colors.tab10.slice(0, defaultPaletteLength);
+        Config.colors[Config.activePalette] = Config.colors[Config.activePalette].slice(0, defaultPaletteLength);
 
         // Add custom colors
         customColors.forEach(color => {
-            if (!Config.colors.tab10.includes(color)) {
-                Config.colors.tab10.push(color);
-                AppState.selection.colorToLabelIndex[color] = Config.colors.tab10.length - 1;
+            if (!Config.colors[Config.activePalette].includes(color)) {
+                Config.colors[Config.activePalette].push(color);
+                AppState.selection.colorToLabelIndex[color] = Config.colors[Config.activePalette].length - 1;
             }
         });
 
@@ -147,7 +147,7 @@ function applySharedState({
         for (let i = 0; i < labelIndices.length; i++) {
             const idx = labelIndices[i];
             if (idx != null) {
-                const color = Config.colors.tab10[idx];
+                const color = Config.colors[Config.activePalette][idx];
                 AppState.selection.colorByIndex[i] = color;
                 AppState.selection.selectedIndices.add(i);
             }
@@ -191,9 +191,10 @@ function encodeShareState(includePaint = true) {
 
         // Include custom colors that aren't in the default palette
         const customColors = [];
-        Config.colors.tab10.forEach((color, index) => {
-            // Only include colors beyond the default palette (index >= 10)
-            if (index >= 10) {
+        const defaultPaletteLength = Config.colors[Config.activePalette].length;
+        Config.colors[Config.activePalette].forEach((color, index) => {
+            // Only include colors beyond the default palette
+            if (index >= defaultPaletteLength) {
                 customColors.push(color);
             }
         });
@@ -465,8 +466,8 @@ function applyClusteringLabels(clusteringResults, projection) {
             // Find the index of this cluster in our sorted unique clusters
             const clusterIndex = uniqueClusters.indexOf(clusterLabel);
 
-            if (clusterIndex !== -1 && clusterIndex < Config.colors.tab10.length) {
-                const color = Config.colors.tab10[clusterIndex];
+            if (clusterIndex !== -1 && clusterIndex < Config.colors[Config.activePalette].length) {
+                const color = Config.colors[Config.activePalette][clusterIndex];
                 AppState.selection.colorByIndex[index] = color;
                 AppState.selection.selectedIndices.add(index);
             }
