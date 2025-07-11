@@ -11,7 +11,7 @@ const Config = {
     // Default dot size
     dotSize: 3,
     // Active color palette (tab10 or tab20)
-    activePalette: 'tab20',
+    activePalette: 'tab10',
 
     // Reference: https://matplotlib.org/stable/users/explain/colors/colormaps.html#qualitative
     colors: {

@@ -14,8 +14,9 @@ from pathlib import Path
 from typing import cast
 
 from reddwarf.data_loader import Loader
-from reddwarf.implementations.base import ReducerType, run_pipeline
+from reddwarf.implementations.base import ClustererType, ReducerType, run_pipeline
 from reddwarf.utils.statements import process_statements
+from reddwarf.utils.polismath import get_corrected_centroid_guesses
 from urllib.parse import urlparse
 
 
@@ -286,52 +287,77 @@ def process_single_dataset(
         except (json.JSONDecodeError, IOError) as e:
             print(f"⚠️  Could not read existing meta.json: {e}")
 
-    # Save projections
-    for name in {"PCA", "PaCMAP", "LocalMAP"}:
-        print(f"🔄 Running projection: {name}")
-        reducer_name = cast(ReducerType, name.lower())
+    # Save projections and clustering results
+    clustering_algorithms = ["HDBSCAN", "KMeans"]
+    votes_db_saved = False  # Track if votes.db has been saved to avoid redundancy
+
+    for reducer in ["PCA", "PaCMAP", "LocalMAP"]:
+        print(f"🔄 Running projection: {reducer}")
+        reducer_name = cast(ReducerType, reducer.lower())
 
         if reducer_name in {"pacmap", "localmap"}:
             reducer_kwargs = {"n_neighbors": existing_n_neighbors}
         else:
             reducer_kwargs = {}
 
-        result = run_pipeline(
-            votes=loader.votes_data,
-            reducer=reducer_name,
-            reducer_kwargs=reducer_kwargs,
-            clusterer="hdbscan",
-            mod_out_statement_ids=mod_out_statement_ids,
-            meta_statement_ids=meta_statement_ids,
-            keep_participant_ids=keep_participant_ids,
-            random_state=607642,
-        )
+        # Run clustering with each algorithm
+        for clusterer in clustering_algorithms:
+            print(f"🔄 Running {clusterer} clustering for {reducer}")
+            clusterer_name = cast(ClustererType, clusterer.lower())
 
-        clustered_participants_df = result.participants_df[result.participants_df["to_cluster"]]
-        X_clustered = clustered_participants_df.loc[:, ["x", "y"]].values
+            # Prepare clusterer kwargs
+            # clusterer_kwargs = {}
+            init_cluster_center_guesses = get_corrected_centroid_guesses(loader.math_data)
+            if clusterer_name == "kmeans" and reducer_name == "pca":
+                # For PCA + kmeans, use corrected centroid guesses as init_centers
+                init_cluster_center_guesses = get_corrected_centroid_guesses(loader.math_data, flip_x=True, flip_y=True)
+                print(f"🎯 Using {len(init_cluster_center_guesses)} initial cluster centers for PCA + kmeans")
+                # clusterer_kwargs = {"init_centers": init_cluster_center_guesses}
+            else:
+                init_cluster_center_guesses = None
 
-        # Get participant_ids matching filtered projection
-        clustered_pids = clustered_participants_df.index.tolist()
-        X_with_ids = list(zip(clustered_pids, X_clustered.tolist()))
+            result = run_pipeline(
+                votes=loader.votes_data,
+                reducer=reducer_name,
+                reducer_kwargs=reducer_kwargs,
+                clusterer=clusterer_name,
+                # clusterer_kwargs=clusterer_kwargs,
+                # TODO: Move this into cluster_kwargs.
+                init_centers=init_cluster_center_guesses if (clusterer_name == "kmeans" and reducer_name == "pca") else None,
+                mod_out_statement_ids=mod_out_statement_ids,
+                meta_statement_ids=meta_statement_ids,
+                keep_participant_ids=keep_participant_ids,
+                random_state=607642,
+            )
 
-        with open(outdir / f"{name.lower()}.json", "w") as f:
-            json.dump(X_with_ids, f, indent=2)
+            clustered_participants_df = result.participants_df[result.participants_df["to_cluster"]]
+            X_clustered = clustered_participants_df.loc[:, ["x", "y"]].values
 
-        # Extract and save HDBSCAN clustering labels
-        if hasattr(clustered_participants_df, 'cluster_id'):
-            clustering_labels = clustered_participants_df["cluster_id"].tolist()
-            labels_with_ids = list(zip(clustered_pids, clustering_labels))
+            # Get participant_ids matching filtered projection
+            clustered_pids = clustered_participants_df.index.tolist()
+            X_with_ids = list(zip(clustered_pids, X_clustered.tolist()))
 
-            with open(outdir / f"labels.hdbscan.{name.lower()}.json", "w") as f:
-                json.dump(labels_with_ids, f, indent=2)
+            # Save projection data only once per reducer (use first clusterer result)
+            if clusterer_name == clustering_algorithms[0]:
+                with open(outdir / f"{reducer_name}.json", "w") as f:
+                    json.dump(X_with_ids, f, indent=2)
 
-            print(f"✅ Saved HDBSCAN clustering results for {name}")
-        else:
-            print(f"⚠️  No clustering labels found for {name}")
+            # Extract and save clustering labels
+            if hasattr(clustered_participants_df, 'cluster_id'):
+                clustering_labels = clustered_participants_df["cluster_id"].tolist()
+                labels_with_ids = list(zip(clustered_pids, clustering_labels))
 
-        # Save votes.db
-        # TODO: Don't do this redundantly for each pipeline
-        save_votes_db(result.raw_vote_matrix, clustered_pids, outdir / "votes.db")
+                with open(outdir / f"labels.{clusterer_name}.{reducer_name}.json", "w") as f:
+                    json.dump(labels_with_ids, f, indent=2)
+
+                print(f"✅ Saved {clusterer} clustering results for {reducer}")
+            else:
+                print(f"⚠️  No clustering labels found for {clusterer} on {reducer}")
+
+            # Save votes.db only once to avoid redundancy
+            if not votes_db_saved:
+                save_votes_db(result.raw_vote_matrix, clustered_pids, outdir / "votes.db")
+                votes_db_saved = True
 
     # --- Generate or preserve meta.json ---
     meta_path = outdir / "meta.json"

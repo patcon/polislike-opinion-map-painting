@@ -225,6 +225,22 @@ function setupEventListeners() {
     // Run analysis button
     document.getElementById("run-analysis").addEventListener("click", applyGroupAnalysis);
 
+    // K-means clustering buttons
+    document.getElementById("apply-kmeans-pca").addEventListener("click", async () => {
+        const clusteringResults = await loadClusteringResults(AppState.preferences.convoSlug, "kmeans", "pca");
+        applyClusteringLabels(clusteringResults, "PCA");
+    });
+
+    document.getElementById("apply-kmeans-pacmap").addEventListener("click", async () => {
+        const clusteringResults = await loadClusteringResults(AppState.preferences.convoSlug, "kmeans", "pacmap");
+        applyClusteringLabels(clusteringResults, "PaCMAP");
+    });
+
+    document.getElementById("apply-kmeans-localmap").addEventListener("click", async () => {
+        const clusteringResults = await loadClusteringResults(AppState.preferences.convoSlug, "kmeans", "localmap");
+        applyClusteringLabels(clusteringResults, "LocalMAP");
+    });
+
     // HDBSCAN clustering buttons
     document.getElementById("apply-hdbscan-pca").addEventListener("click", async () => {
         const clusteringResults = await loadClusteringResults(AppState.preferences.convoSlug, "hdbscan", "pca");
