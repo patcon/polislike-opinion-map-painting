@@ -2,5 +2,9 @@
   "about_url": "https://www.pluralresearch.org/",
   "conversation_url": "https://pol.is/7rmh64wevr",
   "report_url": "https://pol.is/report/r7j6au3w3fhzcxawxadra",
+  "init_center_guesses": {
+    "flip_x": true,
+    "flip_y": true
+  },
   "last_vote": 1717165594797
 }
