@@ -305,7 +305,26 @@ def process_single_dataset(
             print(f"🔄 Running {clusterer} clustering for {reducer}")
             clusterer_name = cast(ClustererType, clusterer.lower())
 
-            polis_init_cluster_center_guesses = get_corrected_centroid_guesses(loader.math_data, flip_x=False, flip_y=False)
+            # Get flip_x and flip_y from meta.json if available, otherwise use defaults
+            flip_x = True  # Default value from get_corrected_centroid_guesses
+            flip_y = True  # Default value from get_corrected_centroid_guesses
+
+            # Try to read existing meta.json for init_center_guesses configuration
+            if meta_path.exists():
+                try:
+                    with open(meta_path, "r") as f:
+                        existing_meta = json.load(f)
+
+                    init_center_config = existing_meta.get("init_center_guesses", {})
+                    if "flip_x" in init_center_config:
+                        flip_x = init_center_config["flip_x"]
+                    if "flip_y" in init_center_config:
+                        flip_y = init_center_config["flip_y"]
+
+                except (json.JSONDecodeError, IOError) as e:
+                    print(f"⚠️  Could not read existing meta.json for init_center_guesses: {e}")
+
+            polis_init_cluster_center_guesses = get_corrected_centroid_guesses(loader.math_data, flip_x=flip_x, flip_y=flip_y)
 
             is_polis = (clusterer_name == "kmeans" and reducer_name == "pca")
             if is_polis:
@@ -371,6 +390,10 @@ def process_single_dataset(
                 "report_url": None,
                 "last_vote": None,  # Initialize last_vote as None for new datasets
                 "n_neighbors": None,
+                "init_center_guesses": { # defaults
+                    "flip_x": True,
+                    "flip_y": True,
+                },
             }
             print("📝 Creating new meta.json")
 
