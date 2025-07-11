@@ -2,5 +2,9 @@
   "about_url": null,
   "conversation_url": "https://pol.is/4asymkcrjf",
   "report_url": "https://pol.is/report/r4zdxrdscmukmkakmbz3k",
+  "init_center_guesses": {
+    "flip_x": false,
+    "flip_y": true
+  },
   "last_vote": 1716938661931
 }
