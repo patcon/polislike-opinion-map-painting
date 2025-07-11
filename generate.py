@@ -305,16 +305,11 @@ def process_single_dataset(
             print(f"🔄 Running {clusterer} clustering for {reducer}")
             clusterer_name = cast(ClustererType, clusterer.lower())
 
-            # Prepare clusterer kwargs
-            # clusterer_kwargs = {}
-            init_cluster_center_guesses = get_corrected_centroid_guesses(loader.math_data)
-            if clusterer_name == "kmeans" and reducer_name == "pca":
-                # For PCA + kmeans, use corrected centroid guesses as init_centers
-                init_cluster_center_guesses = get_corrected_centroid_guesses(loader.math_data, flip_x=True, flip_y=True)
-                print(f"🎯 Using {len(init_cluster_center_guesses)} initial cluster centers for PCA + kmeans")
-                # clusterer_kwargs = {"init_centers": init_cluster_center_guesses}
-            else:
-                init_cluster_center_guesses = None
+            polis_init_cluster_center_guesses = get_corrected_centroid_guesses(loader.math_data, flip_x=False, flip_y=False)
+
+            is_polis = (clusterer_name == "kmeans" and reducer_name == "pca")
+            if is_polis:
+                print(f"🎯 Using {len(polis_init_cluster_center_guesses)} initial cluster centers for PCA + kmeans")
 
             result = run_pipeline(
                 votes=loader.votes_data,
@@ -323,7 +318,7 @@ def process_single_dataset(
                 clusterer=clusterer_name,
                 # clusterer_kwargs=clusterer_kwargs,
                 # TODO: Move this into cluster_kwargs.
-                init_centers=init_cluster_center_guesses if (clusterer_name == "kmeans" and reducer_name == "pca") else None,
+                init_centers=polis_init_cluster_center_guesses if is_polis else None,
                 mod_out_statement_ids=mod_out_statement_ids,
                 meta_statement_ids=meta_statement_ids,
                 keep_participant_ids=keep_participant_ids,
