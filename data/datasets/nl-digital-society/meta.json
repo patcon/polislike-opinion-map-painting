@@ -3,5 +3,9 @@
   "conversation_url": "https://pzh-polis.polispilot.nl/8t9kfsbbwp",
   "report_url": "https://pzh-polis.polispilot.nl/report/r3hcufupx56wnzmwddkfw",
   "last_vote": 1748330955704,
+  "init_center_guesses": {
+    "flip_x": true,
+    "flip_y": false
+  },
   "n_neighbors": 5
 }
