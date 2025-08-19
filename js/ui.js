@@ -1451,14 +1451,17 @@ function renderConsensusContent(consensusStatements, allGroupColors, groupSizes)
                 }
 
                 if (groupTotal > 0) {
-                    // Create a simple bar chart representation
-                    const chartHtml = createConsensusBarChart({
-                        agrees: groupAgrees,
-                        disagrees: groupDisagrees,
-                        total: groupTotal,
-                        groupSize: groupSizes[color]
+                    // Create a compact bar chart using existing function
+                    const barChart = createMoreCompactBarChart({
+                        voteCounts: {
+                            A: groupAgrees,
+                            D: groupDisagrees,
+                            S: groupTotal
+                        },
+                        nMembers: groupSizes[color],
+                        voteColors: Config.voteColors
                     });
-                    html += chartHtml;
+                    html += barChart.outerHTML;
                 } else {
                     html += `<span class="text-gray-400 text-sm">No data</span>`;
                 }
@@ -1469,13 +1472,17 @@ function renderConsensusContent(consensusStatements, allGroupColors, groupSizes)
             // Single chart column
             html += `<td class="py-2 px-3 border-b border-gray-200">`;
             const totalParticipants = Object.values(groupSizes).reduce((sum, size) => sum + size, 0);
-            const chartHtml = createConsensusBarChart({
-                agrees: stmt.type === 'agree' ? stmt.n_success : 0,
-                disagrees: stmt.type === 'disagree' ? stmt.n_success : 0,
-                total: stmt.n_trials,
-                groupSize: totalParticipants
+            const passes = stmt.n_trials - stmt.n_success;
+            const barChart = createCompactBarChart({
+                voteCounts: {
+                    A: stmt.type === 'agree' ? stmt.n_success : 0,
+                    D: stmt.type === 'disagree' ? stmt.n_success : 0,
+                    S: stmt.n_trials
+                },
+                nMembers: totalParticipants,
+                voteColors: Config.voteColors
             });
-            html += chartHtml;
+            html += barChart.outerHTML;
             html += `</td>`;
         }
 
@@ -1495,30 +1502,6 @@ function renderConsensusContent(consensusStatements, allGroupColors, groupSizes)
     return html;
 }
 
-/**
- * Create a simple bar chart for consensus statements
- * @param {Object} options - Chart options
- * @returns {string} - HTML for the chart
- */
-function createConsensusBarChart({ agrees, disagrees, total, groupSize }) {
-    if (total === 0) return '<span class="text-gray-400 text-sm">No votes</span>';
-
-    const passes = total - agrees - disagrees;
-    const agreePercent = Math.round((agrees / total) * 100);
-    const disagreePercent = Math.round((disagrees / total) * 100);
-    const passPercent = Math.round((passes / total) * 100);
-
-    return `
-        <div class="inline-block text-center" style="min-width: 60px;">
-            <div class="text-xs mb-1">
-                <span style="color: ${Config.voteColors.agree};">${agreePercent}%</span> /
-                <span style="color: ${Config.voteColors.disagree};">${disagreePercent}%</span> /
-                <span style="color: #999;">${passPercent}%</span>
-            </div>
-            <div class="text-xs text-gray-500">(${total})</div>
-        </div>
-    `;
-}
 
 /**
  * Render the representative comments table
