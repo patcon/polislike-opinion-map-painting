@@ -1340,6 +1340,185 @@ function createMoreCompactBarChart({ voteCounts, nMembers, voteColors, boldLarge
     return container;
 }
 
+/**
+ * Render consensus statements content
+ * @param {Object} consensusStatements - Consensus statements with agree/disagree arrays
+ * @param {Array} allGroupColors - All group colors for comparison
+ * @param {Object} groupSizes - Group sizes by color
+ * @returns {string} - HTML content for consensus tab
+ */
+function renderConsensusContent(consensusStatements, allGroupColors, groupSizes) {
+    const { agree, disagree } = consensusStatements;
+
+    if (agree.length === 0 && disagree.length === 0) {
+        return `<div class="text-center py-8 text-gray-500">
+            <p>No consensus statements found that meet the significance criteria.</p>
+            <p class="text-sm mt-2">Try adjusting the analysis parameters or ensure you have sufficient data.</p>
+        </div>`;
+    }
+
+    let html = `
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">Consensus Statements</h3>
+            <p class="text-sm text-gray-600 mb-4">
+                These statements show broad agreement or disagreement across all groups,
+                representing areas of consensus that straddle group boundaries.
+            </p>
+        </div>
+    `;
+
+    // Create table
+    html += `<table class="w-full border-collapse">`;
+
+    // Create header row
+    html += `<tr>`;
+    html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600">ID</th>`;
+    html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600">Type</th>`;
+    html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600">%</th>`;
+
+    // Add group comparison columns if enabled
+    if (AppState.preferences.showGroupComparison) {
+        allGroupColors.forEach(color => {
+            const groupIndex = AppState.selection.colorToLabelIndex[color];
+            const groupLetter = groupIndex !== undefined
+                ? labelIndexToLetter(groupIndex)
+                : "Ungrouped";
+
+            html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-center font-medium text-gray-600">
+                <div class="flex items-center justify-center gap-1">
+                    <span class="inline-block w-3 h-3 rounded-full" style="background-color: ${color}; border: 1px solid #999;"></span>
+                    <span translate="no">${groupLetter}</span>
+                </div>
+            </th>`;
+        });
+    } else {
+        html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600"></th>`;
+    }
+
+    html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600">Statement</th>`;
+    html += `</tr>`;
+
+    // Combine and sort statements
+    const allStatements = [
+        ...agree.map(s => ({ ...s, type: 'agree', color: 'green' })),
+        ...disagree.map(s => ({ ...s, type: 'disagree', color: 'red' }))
+    ].sort((a, b) => {
+        // Sort by type first (agree before disagree), then by success rate
+        if (a.type !== b.type) {
+            return a.type === 'agree' ? -1 : 1;
+        }
+        return (b.n_success / b.n_trials) - (a.n_success / a.n_trials);
+    });
+
+    // Create rows for each statement
+    allStatements.forEach(stmt => {
+        const match = AppState.data.commentTextMap?.[stmt.tid];
+        const isModerated = match?.mod === "-1" || match?.mod === -1;
+        const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
+
+        let commentText = match?.txt || "<em>Missing</em>";
+        if (isModerated && includeModerated) {
+            commentText = `<span style="color: red;">${commentText} (moderated)</span>`;
+        }
+
+        const successRate = Math.round((stmt.n_success / stmt.n_trials) * 100);
+
+        html += `<tr>`;
+        html += `<td class="py-2 px-3 border-b border-gray-200">${stmt.tid}</td>`;
+        html += `<td class="py-2 px-3 border-b border-gray-200">
+            <span style="color: ${stmt.color}; font-weight: bold;">${stmt.type}</span>
+        </td>`;
+        html += `<td class="py-2 px-3 border-b border-gray-200">${successRate}%</td>`;
+
+        // Add group comparison charts if enabled
+        if (AppState.preferences.showGroupComparison && AppState.data.groupVotes) {
+            allGroupColors.forEach(color => {
+                html += `<td class="py-2 px-3 border-b border-gray-200 text-center">`;
+
+                // Calculate votes for this statement in this group
+                const groupMatrix = AppState.data.groupVotes[color];
+                let groupAgrees = 0, groupDisagrees = 0, groupTotal = 0;
+
+                if (groupMatrix) {
+                    Object.values(groupMatrix).forEach(participantVotes => {
+                        const vote = participantVotes[stmt.tid];
+                        if (vote !== undefined) {
+                            groupTotal++;
+                            if (vote === 1) groupAgrees++;
+                            else if (vote === -1) groupDisagrees++;
+                        }
+                    });
+                }
+
+                if (groupTotal > 0) {
+                    // Create a simple bar chart representation
+                    const chartHtml = createConsensusBarChart({
+                        agrees: groupAgrees,
+                        disagrees: groupDisagrees,
+                        total: groupTotal,
+                        groupSize: groupSizes[color]
+                    });
+                    html += chartHtml;
+                } else {
+                    html += `<span class="text-gray-400 text-sm">No data</span>`;
+                }
+
+                html += `</td>`;
+            });
+        } else {
+            // Single chart column
+            html += `<td class="py-2 px-3 border-b border-gray-200">`;
+            const totalParticipants = Object.values(groupSizes).reduce((sum, size) => sum + size, 0);
+            const chartHtml = createConsensusBarChart({
+                agrees: stmt.type === 'agree' ? stmt.n_success : 0,
+                disagrees: stmt.type === 'disagree' ? stmt.n_success : 0,
+                total: stmt.n_trials,
+                groupSize: totalParticipants
+            });
+            html += chartHtml;
+            html += `</td>`;
+        }
+
+        // Statement text with metadata
+        const metaLine = `<div class="text-sm text-gray-500 mt-1">
+            Total responses: ${stmt.n_trials}, Success rate: ${successRate}%
+        </div>`;
+
+        html += `<td class="py-2 px-3 border-b border-gray-200">
+            <div class="comment-text" lang="und">${commentText}</div>
+            ${metaLine}
+        </td>`;
+        html += `</tr>`;
+    });
+
+    html += `</table>`;
+    return html;
+}
+
+/**
+ * Create a simple bar chart for consensus statements
+ * @param {Object} options - Chart options
+ * @returns {string} - HTML for the chart
+ */
+function createConsensusBarChart({ agrees, disagrees, total, groupSize }) {
+    if (total === 0) return '<span class="text-gray-400 text-sm">No votes</span>';
+
+    const passes = total - agrees - disagrees;
+    const agreePercent = Math.round((agrees / total) * 100);
+    const disagreePercent = Math.round((disagrees / total) * 100);
+    const passPercent = Math.round((passes / total) * 100);
+
+    return `
+        <div class="inline-block text-center" style="min-width: 60px;">
+            <div class="text-xs mb-1">
+                <span style="color: ${Config.voteColors.agree};">${agreePercent}%</span> /
+                <span style="color: ${Config.voteColors.disagree};">${disagreePercent}%</span> /
+                <span style="color: #999;">${passPercent}%</span>
+            </div>
+            <div class="text-xs text-gray-500">(${total})</div>
+        </div>
+    `;
+}
 
 /**
  * Render the representative comments table
@@ -1445,8 +1624,53 @@ function renderRepCommentsTable(repComments) {
         activeTabId = tabId;
     };
 
+    // Add consensus tab if we have consensus statements
+    let tabIndex = 0;
+    if (AppState.data.consensusStatements &&
+        (AppState.data.consensusStatements.agree.length > 0 || AppState.data.consensusStatements.disagree.length > 0)) {
+
+        const consensusTabId = 'consensus-content';
+
+        // Create consensus tab button
+        const consensusTab = document.createElement("button");
+        consensusTab.id = `tab-${consensusTabId}`;
+        consensusTab.setAttribute("role", "tab");
+        consensusTab.setAttribute("aria-controls", consensusTabId);
+        consensusTab.setAttribute("aria-selected", "true"); // Make consensus tab active by default
+        consensusTab.className = `flex items-center px-4 py-2 font-medium text-sm border-b-2 focus:outline-none border-primary-500 text-primary-600`;
+
+        // Add consensus icon and text
+        consensusTab.innerHTML = `
+            <span class="mr-2">🤝</span>
+            <span>Consensus</span>
+        `;
+
+        // Add click event to switch tabs
+        consensusTab.addEventListener("click", () => switchTab(consensusTabId));
+
+        // Add tab to navigation
+        tabNav.appendChild(consensusTab);
+
+        // Create consensus content panel
+        const consensusPanel = document.createElement("div");
+        consensusPanel.id = consensusTabId;
+        consensusPanel.setAttribute("role", "tabpanel");
+        consensusPanel.setAttribute("aria-labelledby", `tab-${consensusTabId}`);
+        consensusPanel.className = ""; // Make it visible by default
+
+        // Create consensus content
+        consensusPanel.innerHTML = renderConsensusContent(AppState.data.consensusStatements, allGroupColors, groupSizes);
+
+        tabContent.appendChild(consensusPanel);
+        contentPanels.push(consensusPanel);
+
+        // Set consensus as active tab
+        activeTabId = consensusTabId;
+        tabIndex = 1; // Start group tabs from index 1
+    }
+
     // Process each group
-    allGroupColors.forEach((labelColor, index) => {
+    allGroupColors.forEach((labelColor, groupIndex) => {
         const comments = repComments[labelColor];
         const UNGROUPED_LABEL = "Ungrouped";
 
@@ -1458,14 +1682,15 @@ function renderRepCommentsTable(repComments) {
         const groupSize = groupSizes[labelColor];
         const tabId = `group-tab-${labelColor.replace('#', '')}`;
         const contentId = `group-content-${labelColor.replace('#', '')}`;
+        const index = tabIndex + groupIndex;
 
         // Create tab button
         const tab = document.createElement("button");
         tab.id = `tab-${contentId}`;
         tab.setAttribute("role", "tab");
         tab.setAttribute("aria-controls", contentId);
-        tab.setAttribute("aria-selected", index === 0 ? "true" : "false");
-        tab.className = `flex items-center px-4 py-2 font-medium text-sm border-b-2 focus:outline-none ${index === 0
+        tab.setAttribute("aria-selected", activeTabId === contentId ? "true" : "false");
+        tab.className = `flex items-center px-4 py-2 font-medium text-sm border-b-2 focus:outline-none ${activeTabId === contentId
             ? 'border-primary-500 text-primary-600'
             : 'border-transparent text-gray-500 hover:border-gray-300'
             }`;
@@ -1504,7 +1729,7 @@ function renderRepCommentsTable(repComments) {
         contentPanel.id = contentId;
         contentPanel.setAttribute("role", "tabpanel");
         contentPanel.setAttribute("aria-labelledby", `tab-${contentId}`);
-        contentPanel.className = index === 0 ? "" : "hidden";
+        contentPanel.className = activeTabId === contentId ? "" : "hidden";
 
         // Create table for this group
         const table = document.createElement("table");
@@ -1751,8 +1976,8 @@ function renderRepCommentsTable(repComments) {
         // Store the panel for later height calculation
         contentPanels.push(contentPanel);
 
-        // Set the first tab as active
-        if (index === 0) {
+        // Set the first group tab as active only if no consensus tab exists
+        if (groupIndex === 0 && !AppState.data.consensusStatements) {
             activeTabId = contentId;
         }
     });

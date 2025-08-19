@@ -355,6 +355,126 @@ function calculateRepresentativeComments(groupVotes, commentTexts) {
 }
 
 /**
+ * Check if a p-value is significant at the given confidence level
+ * @param {number} pValue - The p-value to test
+ * @param {number} confidence - Confidence level (default 0.9 for 90%)
+ * @returns {boolean} - True if significant
+ */
+function isSignificant(pValue, confidence = 0.9) {
+  // Convert confidence to z-score threshold
+  // For 90% confidence, z-threshold is approximately 1.645
+  const zThreshold = confidence === 0.9 ? 1.645 : 1.96; // 95% confidence
+  return Math.abs(pValue) > zThreshold;
+}
+
+/**
+ * Select consensus statements from vote data across all groups
+ * @param {Object} groupVotes - Vote matrices by group
+ * @param {Array} modOutStatementIds - Statement IDs to exclude (default: [])
+ * @param {number} pickMax - Maximum statements per direction (default: 5)
+ * @param {number} probThreshold - Probability threshold (default: 0.5)
+ * @param {number} confidence - Confidence level (default: 0.9)
+ * @returns {Object} - Object with agree and disagree consensus statements
+ */
+function selectConsensusStatements(
+  groupVotes,
+  modOutStatementIds = [],
+  pickMax = 5,
+  probThreshold = 0.5,
+  confidence = 0.9
+) {
+  // Get all unique comment IDs across all groups
+  const allCommentIds = new Set();
+  Object.values(groupVotes).forEach(groupMatrix => {
+    Object.values(groupMatrix).forEach(participantVotes => {
+      Object.keys(participantVotes).forEach(commentId => {
+        allCommentIds.add(parseInt(commentId));
+      });
+    });
+  });
+
+  // Convert to sorted array and filter out moderated statements
+  const commentIds = Array.from(allCommentIds)
+    .filter(id => !modOutStatementIds.includes(id))
+    .sort((a, b) => a - b);
+
+  const statements = [];
+
+  // Calculate statistics for each comment across all participants (mock group approach)
+  commentIds.forEach(commentId => {
+    let totalAgrees = 0;
+    let totalDisagrees = 0;
+    let totalSeen = 0;
+
+    // Aggregate votes across all groups
+    Object.values(groupVotes).forEach(groupMatrix => {
+      Object.values(groupMatrix).forEach(participantVotes => {
+        const vote = participantVotes[commentId];
+        if (vote !== undefined) {
+          totalSeen++;
+          if (vote === 1) totalAgrees++;
+          else if (vote === -1) totalDisagrees++;
+        }
+      });
+    });
+
+    if (totalSeen === 0) return; // Skip if no votes
+
+    // Calculate proportions (with Laplace smoothing)
+    const pa = (totalAgrees + 1) / (totalSeen + 2);
+    const pd = (totalDisagrees + 1) / (totalSeen + 2);
+
+    // Calculate z-scores using proportion test
+    const pat = propTest(totalAgrees, totalSeen);
+    const pdt = propTest(totalDisagrees, totalSeen);
+
+    // Calculate metrics (similar to Python's am and dm)
+    const agreeMetric = pa * pat;
+    const disagreeMetric = pd * pdt;
+
+    statements.push({
+      tid: commentId,
+      na: totalAgrees,
+      nd: totalDisagrees,
+      ns: totalSeen,
+      pa,
+      pd,
+      pat,
+      pdt,
+      agreeMetric,
+      disagreeMetric
+    });
+  });
+
+  // Filter and rank agree candidates
+  const agreeCandidates = statements
+    .filter(s => s.pa > probThreshold && isSignificant(s.pat, confidence))
+    .sort((a, b) => b.agreeMetric - a.agreeMetric)
+    .slice(0, pickMax);
+
+  // Filter and rank disagree candidates
+  const disagreeCandidates = statements
+    .filter(s => s.pd > probThreshold && isSignificant(s.pdt, confidence))
+    .sort((a, b) => b.disagreeMetric - a.disagreeMetric)
+    .slice(0, pickMax);
+
+  // Format results similar to Python output
+  const formatStatement = (stmt, isAgree) => ({
+    tid: stmt.tid,
+    n_success: isAgree ? stmt.na : stmt.nd,
+    n_trials: stmt.ns,
+    p_success: isAgree ? stmt.pa : stmt.pd,
+    p_test: isAgree ? stmt.pat : stmt.pdt,
+    cons_for: isAgree ? "agree" : "disagree"
+  });
+
+  return {
+    agree: agreeCandidates.map(s => formatStatement(s, true)),
+    disagree: disagreeCandidates.map(s => formatStatement(s, false))
+  };
+}
+
+/**
  * Get label array with optional ungrouped points
  * @returns {Array} - Label array
  */
@@ -389,6 +509,29 @@ async function analyzePaintedClusters(db, labelArray, commentTexts) {
 
   // Store the raw group votes data for use in the comparison view
   AppState.data.groupVotes = groupVotes;
+
+  // Calculate consensus statements if we have at least 2 groups
+  const uniqueGroups = Object.keys(groupVotes);
+  let consensusStatements = null;
+  if (uniqueGroups.length >= 2) {
+    // Get moderated statement IDs to exclude
+    const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
+    const modOutStatementIds = [];
+    if (!includeModerated && AppState.data.commentTexts) {
+      AppState.data.commentTexts.forEach(comment => {
+        const isModerated = comment?.mod === "-1" || comment?.mod === -1;
+        if (isModerated) {
+          modOutStatementIds.push(comment.tid);
+        }
+      });
+    }
+
+    consensusStatements = selectConsensusStatements(groupVotes, modOutStatementIds);
+    console.log("Consensus Statements:", consensusStatements);
+  }
+
+  // Store consensus statements for UI rendering
+  AppState.data.consensusStatements = consensusStatements;
 
   console.log("Representative Comments:", repComments);
   return repComments;
