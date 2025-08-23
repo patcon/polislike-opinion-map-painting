@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import cast
 
 from reddwarf.data_loader import Loader
-from reddwarf.implementations.base import ReducerType, run_pipeline
+from reddwarf.implementations.base import run_pipeline
 from reddwarf.utils.statements import process_statements
 from urllib.parse import urlparse
 
@@ -289,7 +289,7 @@ def process_single_dataset(
     # Save projections
     for name in {"PCA", "PaCMAP", "LocalMAP"}:
         print(f"🔄 Running projection: {name}")
-        reducer_name = cast(ReducerType, name.lower())
+        reducer_name = name.lower()
 
         if reducer_name in {"pacmap", "localmap"}:
             reducer_kwargs = {"n_neighbors": existing_n_neighbors}
