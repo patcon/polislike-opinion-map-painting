@@ -34,6 +34,13 @@ const Config = {
         pass: "#e6e6e6"
     },
 
+    // Alternative vote colors with highlighted pass votes
+    voteColorsHighlightPass: {
+        agree: "#2ecc71",
+        disagree: "#e74c3c",
+        pass: "#f1c40f"  // Yellow for highlighted pass votes
+    },
+
     // Statistical thresholds
     stats: {
         minVotes: 3,
@@ -97,6 +104,7 @@ const AppState = {
         showGroupComparison: true,
         showGroupLabels: false,
         showVotes: false,
+        highlightPassVotes: false,
     },
 
     /**
@@ -116,6 +124,7 @@ const AppState = {
         this.preferences.scaleOpacityWithVotes = loadState("scaleOpacityWithVotes", false);
         this.preferences.showGroupComparison = loadState("showGroupComparison", true);
         this.preferences.showGroupLabels = loadState("showGroupLabels", false);
+        this.preferences.highlightPassVotes = loadState("highlightPassVotes", false);
         this.ui.dotOpacity = Config.dotOpacity;
         this.ui.dotSize = Config.dotSize;
 

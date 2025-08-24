@@ -22,6 +22,7 @@ function initializeUI() {
     document.getElementById("show-group-comparison-checkbox").checked = AppState.preferences.showGroupComparison;
     document.getElementById("show-group-labels-checkbox").checked = AppState.preferences.showGroupLabels;
     document.getElementById("show-votes-checkbox").checked = AppState.preferences.showVotes;
+    document.getElementById("highlight-pass-votes-checkbox").checked = AppState.preferences.highlightPassVotes;
 
     // Initialize statement ID input with default value of 0
     document.getElementById("statement-id-input").value = "0";
@@ -241,6 +242,32 @@ function setupEventListeners() {
             toggleVoteColors(true);
         }
     });
+
+    // Highlight pass votes checkbox
+    document.getElementById("highlight-pass-votes-checkbox").addEventListener("change", (e) => {
+        AppState.preferences.highlightPassVotes = e.target.checked;
+        saveState("highlightPassVotes", AppState.preferences.highlightPassVotes);
+
+        // If votes are currently being shown, regenerate the vote colors with the new scheme
+        if (AppState.preferences.showVotes) {
+            toggleVoteColors(true); // This will regenerate vote colors and re-render plots
+        }
+
+        // If analysis results are displayed, rerun the analysis to update the charts with new colors
+        if (document.getElementById("rep-comments-output").innerHTML !== "") {
+            applyGroupAnalysis();
+        }
+    });
+}
+
+/**
+ * Get the current vote colors based on the highlight pass votes preference
+ * @returns {Object} - The appropriate vote colors object
+ */
+function getCurrentVoteColors() {
+    return AppState.preferences.highlightPassVotes
+        ? Config.voteColorsHighlightPass
+        : Config.voteColors;
 }
 
 /**
@@ -259,11 +286,12 @@ async function toggleVoteColors(showVotes) {
             showPlotLoader();
             try {
                 const votes = await getVotesForStatement(statementId);
+                const currentVoteColors = getCurrentVoteColors();
                 AppState.selection.voteColorByIndex = AppState.data.participants.map(pid => {
                     const vote = votes.get(String(pid));
-                    if (vote === 1) return Config.voteColors.agree;
-                    if (vote === -1) return Config.voteColors.disagree;
-                    if (vote === 0) return Config.voteColors.pass;
+                    if (vote === 1) return currentVoteColors.agree;
+                    if (vote === -1) return currentVoteColors.disagree;
+                    if (vote === 0) return currentVoteColors.pass;
                     return null;
                 });
             } catch (error) {
@@ -1215,7 +1243,11 @@ function updateLabelCounts() {
  * @param {Object} options - Chart options
  * @returns {HTMLElement} - Chart container
  */
-function createCompactBarChart({ voteCounts, nMembers, voteColors, boldLargest = true }) {
+function createCompactBarChart({ voteCounts, nMembers, voteColors = null, boldLargest = true }) {
+    // Use current vote colors if none provided
+    if (!voteColors) {
+        voteColors = getCurrentVoteColors();
+    }
     const container = document.createElement("div");
     container.style.display = "inline-block";
     container.style.verticalAlign = "middle";
@@ -1337,7 +1369,11 @@ function createCompactBarChart({ voteCounts, nMembers, voteColors, boldLargest =
  * @param {number} options.width - Width of the chart (default: 100)
  * @returns {HTMLElement} - Container element with the bar chart
  */
-function createMoreCompactBarChart({ voteCounts, nMembers, voteColors, boldLargest = true, width = 40 }) {
+function createMoreCompactBarChart({ voteCounts, nMembers, voteColors = null, boldLargest = true, width = 40 }) {
+    // Use current vote colors if none provided
+    if (!voteColors) {
+        voteColors = getCurrentVoteColors();
+    }
     const container = document.createElement("div");
     container.style.display = "inline-block";
     container.style.verticalAlign = "middle";
@@ -1575,7 +1611,7 @@ function renderConsensusContent(consensusStatements, allGroupColors, groupSizes)
                             S: groupTotal
                         },
                         nMembers: groupSizes[color],
-                        voteColors: Config.voteColors
+                        voteColors: getCurrentVoteColors()
                     });
                     html += barChart.outerHTML;
                 } else {
@@ -1596,7 +1632,7 @@ function renderConsensusContent(consensusStatements, allGroupColors, groupSizes)
                     S: stmt.n_trials
                 },
                 nMembers: totalParticipants,
-                voteColors: Config.voteColors
+                voteColors: getCurrentVoteColors()
             });
             html += barChart.outerHTML;
             html += `</td>`;
@@ -2028,7 +2064,7 @@ function renderRepCommentsTable(repComments) {
                             S: voteData.total
                         },
                         nMembers: groupSizes[color],
-                        voteColors: Config.voteColors
+                        voteColors: getCurrentVoteColors()
                     });
 
                     // Highlight current group's column
@@ -2053,7 +2089,7 @@ function renderRepCommentsTable(repComments) {
                         S: c.n_trials,
                     },
                     nMembers: groupSize,
-                    voteColors: Config.voteColors
+                    voteColors: getCurrentVoteColors()
                 });
 
                 tdChart.appendChild(barChart);
