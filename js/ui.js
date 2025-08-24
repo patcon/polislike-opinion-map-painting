@@ -29,8 +29,10 @@ function initializeUI() {
     document.getElementById("show-votes-checkbox").checked = AppState.preferences.showVotes;
     document.getElementById("highlight-pass-votes-checkbox").checked = AppState.preferences.highlightPassVotes;
 
-    // Initialize statement ID input with default value of 0
-    document.getElementById("statement-id-input").value = "0";
+    // Initialize statement ID input with saved value and enable/disable based on checkbox state
+    const statementIdInput = document.getElementById("statement-id-input");
+    statementIdInput.value = AppState.preferences.statementId;
+    statementIdInput.disabled = !AppState.preferences.showVotes;
 
     // Initialize sliders
     document.getElementById("opacity-slider").value = AppState.ui.dotOpacity;
@@ -176,6 +178,7 @@ function setupEventListeners() {
     opacitySlider.addEventListener("input", () => {
         AppState.ui.dotOpacity = parseFloat(opacitySlider.value);
         opacityValueLabel.textContent = AppState.ui.dotOpacity;
+        saveState("dotOpacity", AppState.ui.dotOpacity);
         renderAllPlots(); // Reapply to all plots
     });
 
@@ -237,11 +240,15 @@ function setupEventListeners() {
 
     // Show votes by statement ID
     document.getElementById("show-votes-checkbox").addEventListener("change", (e) => {
+        AppState.preferences.showVotes = e.target.checked;
+        saveState("showVotes", AppState.preferences.showVotes);
         updateStatementTextDisplay();
         toggleVoteColors(e.target.checked);
     });
 
     document.getElementById("statement-id-input").addEventListener("change", (e) => {
+        AppState.preferences.statementId = e.target.value;
+        saveState("statementId", AppState.preferences.statementId);
         updateStatementTextDisplay();
         if (document.getElementById("show-votes-checkbox").checked) {
             toggleVoteColors(true);
@@ -286,7 +293,7 @@ async function toggleVoteColors(showVotes) {
     saveState("showVotes", showVotes);
 
     if (showVotes) {
-        const statementId = statementIdInput.value;
+        const statementId = AppState.preferences.statementId;
         if (statementId) {
             showPlotLoader();
             try {
@@ -2245,6 +2252,8 @@ function handleActionIconClick(statementId) {
     const statementIdInput = document.getElementById('statement-id-input');
     if (statementIdInput) {
         statementIdInput.value = statementId;
+        AppState.preferences.statementId = statementId;
+        saveState("statementId", statementId);
 
         // Enable the input if it was disabled
         statementIdInput.disabled = false;

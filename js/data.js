@@ -42,6 +42,14 @@ function loadAndRenderData(slug, preserveCustomLabels = false) {
                 AppState.data.commentTexts = statements;
                 AppState.data.commentTextMap = Object.fromEntries(statements.map((c) => [c.tid, c]));
 
+                // Update statement text display and apply vote colors if show votes is enabled
+                // This needs to happen after comment data is loaded
+                if (AppState.preferences.showVotes) {
+                    updateStatementTextDisplay();
+                    if (AppState.preferences.statementId) {
+                        toggleVoteColors(true);
+                    }
+                }
             });
 
             // Store projection data
@@ -82,7 +90,9 @@ function applySharedState({
     opacity = Config.dotOpacity,
     dotSize = Config.dotSize,
     showGroupLabels = false,
-    includeUnpainted = false
+    includeUnpainted = false,
+    showVotes = false,
+    statementId = "0"
 }) {
     // Update AppState
     AppState.preferences.convoSlug = dataset;
@@ -92,6 +102,8 @@ function applySharedState({
     AppState.ui.dotOpacity = opacity;
     AppState.ui.dotSize = dotSize;
     AppState.selection.includeUnpainted = includeUnpainted;
+    AppState.preferences.showVotes = showVotes;
+    AppState.preferences.statementId = statementId;
 
     // Add custom colors to the palette if they exist
     if (customColors.length > 0) {
@@ -127,6 +139,8 @@ function applySharedState({
     document.getElementById("opacity-value").textContent = opacity;
     document.getElementById("dot-size-slider").value = dotSize;
     document.getElementById("dot-size-value").textContent = dotSize;
+    document.getElementById("show-votes-checkbox").checked = showVotes;
+    document.getElementById("statement-id-input").value = statementId;
 
     // Save to session storage
     saveState("dataset", dataset);
@@ -134,6 +148,10 @@ function applySharedState({
     saveState("flipY", fy);
     saveState("showGroupLabels", showGroupLabels);
     saveState("includeUnpainted", includeUnpainted);
+    saveState("dotOpacity", opacity);
+    saveState("dotSize", dotSize);
+    saveState("showVotes", showVotes);
+    saveState("statementId", statementId);
 
     // Ensure custom labels are set before loading data
     AppState.selection.customLabels = customLabels || {};
@@ -180,7 +198,9 @@ function encodeShareState(includePaint = true) {
         opacity: AppState.ui.dotOpacity,
         dotSize: AppState.ui.dotSize,
         customLabels: AppState.selection.customLabels,
-        includeUnpainted: AppState.selection.includeUnpainted
+        includeUnpainted: AppState.selection.includeUnpainted,
+        showVotes: AppState.preferences.showVotes,
+        statementId: AppState.preferences.statementId
     };
 
     // Only include labelIndices if includePaint is true and there are painted participants
@@ -271,7 +291,9 @@ function decodeShareState(hashString) {
             showGroupLabels: parsed.showGroupLabels || false,
             opacity: parsed.opacity || Config.dotOpacity,
             dotSize: parsed.dotSize || Config.dotSize,
-            includeUnpainted: parsed.includeUnpainted || false
+            includeUnpainted: parsed.includeUnpainted || false,
+            showVotes: parsed.showVotes || false,
+            statementId: parsed.statementId || "0"
         };
     } catch (e) {
         console.warn("Invalid share state", e);

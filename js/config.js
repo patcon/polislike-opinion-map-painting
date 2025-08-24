@@ -126,8 +126,10 @@ const AppState = {
         this.preferences.showGroupComparison = loadState("showGroupComparison", true);
         this.preferences.showGroupLabels = loadState("showGroupLabels", false);
         this.preferences.highlightPassVotes = loadState("highlightPassVotes", false);
-        this.ui.dotOpacity = Config.dotOpacity;
-        this.ui.dotSize = Config.dotSize;
+        this.preferences.showVotes = loadState("showVotes", false);
+        this.preferences.statementId = loadState("statementId", "0");
+        this.ui.dotOpacity = loadState("dotOpacity", Config.dotOpacity);
+        this.ui.dotSize = loadState("dotSize", Config.dotSize);
 
         // Load custom labels and selection preferences from session storage
         this.selection.customLabels = loadState("customLabels", {});
