@@ -83,7 +83,8 @@ const AppState = {
         colorByIndex: [],
         selectedIndices: new Set(),
         customLabels: {}, // Store custom labels for groups (color -> label)
-        includeUnpainted: false // Whether to include unpainted points as a group in analysis
+        includeUnpainted: false, // Whether to include unpainted points as a group in analysis
+        voteColorByIndex: [], // Store vote colors when showing votes
     },
 
     // Preferences
@@ -94,7 +95,8 @@ const AppState = {
         flipY: false,
         scaleOpacityWithVotes: false,
         showGroupComparison: true,
-        showGroupLabels: false
+        showGroupLabels: false,
+        showVotes: false,
     },
 
     /**

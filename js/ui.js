@@ -21,6 +21,10 @@ function initializeUI() {
     document.getElementById("flip-y-checkbox").checked = AppState.preferences.flipY;
     document.getElementById("show-group-comparison-checkbox").checked = AppState.preferences.showGroupComparison;
     document.getElementById("show-group-labels-checkbox").checked = AppState.preferences.showGroupLabels;
+    document.getElementById("show-votes-checkbox").checked = AppState.preferences.showVotes;
+
+    // Initialize statement ID input with default value of 0
+    document.getElementById("statement-id-input").value = "0";
 
     // Initialize sliders
     document.getElementById("opacity-slider").value = AppState.ui.dotOpacity;
@@ -224,6 +228,54 @@ function setupEventListeners() {
 
     // Run analysis button
     document.getElementById("run-analysis").addEventListener("click", applyGroupAnalysis);
+
+    // Show votes by statement ID
+    document.getElementById("show-votes-checkbox").addEventListener("change", (e) => {
+        toggleVoteColors(e.target.checked);
+    });
+
+    document.getElementById("statement-id-input").addEventListener("change", (e) => {
+        if (document.getElementById("show-votes-checkbox").checked) {
+            toggleVoteColors(true);
+        }
+    });
+}
+
+/**
+ * Toggle the display of vote colors on the plots
+ * @param {boolean} showVotes - Whether to show vote colors
+ */
+async function toggleVoteColors(showVotes) {
+    const statementIdInput = document.getElementById("statement-id-input");
+    statementIdInput.disabled = !showVotes;
+    AppState.preferences.showVotes = showVotes;
+    saveState("showVotes", showVotes);
+
+    if (showVotes) {
+        const statementId = statementIdInput.value;
+        if (statementId) {
+            showPlotLoader();
+            try {
+                const votes = await getVotesForStatement(statementId);
+                AppState.selection.voteColorByIndex = AppState.data.participants.map(pid => {
+                    const vote = votes.get(String(pid));
+                    if (vote === 1) return Config.voteColors.agree;
+                    if (vote === -1) return Config.voteColors.disagree;
+                    if (vote === 0) return Config.voteColors.pass;
+                    return "rgba(0,0,0)"; // Default for no vote
+                });
+            } catch (error) {
+                console.error("Error getting votes for statement:", error);
+                AppState.selection.voteColorByIndex = [];
+            } finally {
+                hidePlotLoader();
+            }
+        } else {
+            AppState.selection.voteColorByIndex = [];
+        }
+    }
+
+    renderAllPlots();
 }
 
 // ============================================================================
@@ -397,7 +449,12 @@ function renderPlot(svgId, data, title) {
         .attr("cy", ({ d }) => scales.y(d[1]))
         .attr("r", AppState.ui.dotSize)
         .attr("fill-opacity", AppState.ui.dotOpacity) // Start with default opacity
-        .attr("fill", ({ i }) => AppState.selection.colorByIndex[i] || "rgba(0,0,0,0.5)")
+        .attr("fill", ({ i }) => {
+            if (AppState.preferences.showVotes) {
+                return AppState.selection.voteColorByIndex[i] || "rgba(0,0,0,0.1)";
+            }
+            return AppState.selection.colorByIndex[i] || "rgba(0,0,0,0.5)";
+        })
         .attr("data-index", ({ i }) => i)
         // Show user vote history in console (for debug)
         .on("mouseover", function (event, d) {

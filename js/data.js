@@ -334,6 +334,31 @@ function getParticipantVoteSummary(participantId) {
 }
 
 /**
+ * Get votes for a specific statement
+ * @param {string} statementId - The statement ID
+ * @returns {Promise<Map<string, number>>} - A map of participant IDs to their votes
+ */
+async function getVotesForStatement(statementId) {
+    if (!AppState.data.dbInstance) {
+        await loadVotesDB(AppState.preferences.convoSlug);
+    }
+
+    const result = AppState.data.dbInstance.exec(`
+        SELECT participant_id, vote
+        FROM votes
+        WHERE comment_id = ${statementId}
+    `);
+
+    const votes = new Map();
+    const rows = result[0]?.values || [];
+    rows.forEach(([pid, vote]) => {
+        votes.set(pid, vote);
+    });
+
+    return votes;
+}
+
+/**
  * Calculate opacity scale factor based on vote count
  * @param {string} participantId - The participant ID
  * @returns {Promise<number>} - Scale factor between 0 and 1
