@@ -15,6 +15,8 @@ function loadAndRenderDataWithMocks(slug, mocks) {
     global.renderAllPlots = mocks.renderAllPlots;
     global.renderColorPalette = mocks.renderColorPalette;
     global.updateLabelCounts = mocks.updateLabelCounts;
+    global.updateStatementTextDisplay = mocks.updateStatementTextDisplay;
+    global.toggleVoteColors = mocks.toggleVoteColors;
 
     // Call the original function
     return originalDataModule.loadAndRenderData(slug);

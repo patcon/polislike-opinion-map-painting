@@ -18,6 +18,10 @@ const mockAppState = {
         selectedIndices: {
             clear: jest.fn()
         }
+    },
+    preferences: {
+        showVotes: false,
+        statementId: "0"
     }
 };
 
@@ -28,6 +32,8 @@ const mockRenderMetaInfo = jest.fn();
 const mockRenderAllPlots = jest.fn();
 const mockRenderColorPalette = jest.fn();
 const mockUpdateLabelCounts = jest.fn();
+const mockUpdateStatementTextDisplay = jest.fn();
+const mockToggleVoteColors = jest.fn();
 
 // Create a collection of all mocks
 const mocks = {
@@ -37,7 +43,9 @@ const mocks = {
     renderMetaInfo: mockRenderMetaInfo,
     renderAllPlots: mockRenderAllPlots,
     renderColorPalette: mockRenderColorPalette,
-    updateLabelCounts: mockUpdateLabelCounts
+    updateLabelCounts: mockUpdateLabelCounts,
+    updateStatementTextDisplay: mockUpdateStatementTextDisplay,
+    toggleVoteColors: mockToggleVoteColors
 };
 
 // Helper function to call the wrapped function with our mocks
