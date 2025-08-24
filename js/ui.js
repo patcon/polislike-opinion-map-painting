@@ -231,10 +231,12 @@ function setupEventListeners() {
 
     // Show votes by statement ID
     document.getElementById("show-votes-checkbox").addEventListener("change", (e) => {
+        updateStatementTextDisplay();
         toggleVoteColors(e.target.checked);
     });
 
     document.getElementById("statement-id-input").addEventListener("change", (e) => {
+        updateStatementTextDisplay();
         if (document.getElementById("show-votes-checkbox").checked) {
             toggleVoteColors(true);
         }
@@ -276,6 +278,45 @@ async function toggleVoteColors(showVotes) {
     }
 
     renderAllPlots();
+}
+
+/**
+ * Update the statement text display based on the current statement ID input
+ */
+function updateStatementTextDisplay() {
+    const statementIdInput = document.getElementById("statement-id-input");
+    const textDisplay = document.getElementById("statement-text-display");
+    const showVotesCheckbox = document.getElementById("show-votes-checkbox");
+
+    // Only show text if the checkbox is checked and we have a statement ID
+    if (!showVotesCheckbox.checked || !statementIdInput.value) {
+        textDisplay.classList.add("hidden");
+        return;
+    }
+
+    const statementId = statementIdInput.value;
+
+    // Get the statement text from the comment text map
+    if (AppState.data.commentTextMap && AppState.data.commentTextMap[statementId]) {
+        const statement = AppState.data.commentTextMap[statementId];
+        const isModerated = statement.moderated === -1;
+
+        let displayText = statement.txt || "<em>Missing text</em>";
+
+        // Add moderated indicator if applicable
+        if (isModerated) {
+            displayText = `<span style="color: red;">${displayText} (moderated)</span>`;
+        } else {
+            displayText = `<span>${displayText}</span>`;
+        }
+
+        textDisplay.innerHTML = `Statement ${statementId}: ${displayText}`;
+        textDisplay.classList.remove("hidden");
+    } else {
+        // Statement ID not found
+        textDisplay.innerHTML = `Statement ${statementId}: <em>Not found</em>`;
+        textDisplay.classList.remove("hidden");
+    }
 }
 
 // ============================================================================
