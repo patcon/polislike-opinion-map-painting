@@ -983,15 +983,27 @@ function applyHoverStyles() {
     d3.selectAll("circle").each(function () {
         const circle = d3.select(this);
         const index = +circle.attr("data-index");
-        const rawColor = AppState.selection.colorByIndex[index];
-        const baseColor = rawColor || "#7f7f7f";
+
+        // Use vote colors if votes are being displayed, otherwise use painted colors
+        let rawColor, baseColor;
+        if (AppState.preferences.showVotes) {
+            rawColor = AppState.selection.voteColorByIndex[index];
+            baseColor = rawColor || "rgba(0,0,0,0.1)";
+        } else {
+            rawColor = AppState.selection.colorByIndex[index];
+            baseColor = rawColor || "#7f7f7f";
+        }
 
         if (AppState.ui.hoveredIndices.has(index)) {
             const hoverColor = adjustColorForHover(baseColor);
             circle.attr("fill", hoverColor).attr("fill-opacity", 0.3).raise();
         } else {
-            // Set the fill color
-            circle.attr("fill", rawColor || "rgba(0,0,0,0.5)");
+            // Set the fill color based on current mode
+            if (AppState.preferences.showVotes) {
+                circle.attr("fill", AppState.selection.voteColorByIndex[index] || "rgba(0,0,0,0.1)");
+            } else {
+                circle.attr("fill", rawColor || "rgba(0,0,0,0.5)");
+            }
 
             // Restore the scaled opacity if opacity scaling is enabled
             if (AppState.preferences.scaleOpacityWithVotes) {

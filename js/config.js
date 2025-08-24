@@ -29,9 +29,9 @@ const Config = {
 
     // Chart colors for vote visualization
     voteColors: {
-        agree: "rgb(46, 204, 113)",
-        disagree: "rgb(231, 76, 60)",
-        pass: "rgb(230,230,230)"
+        agree: "#2ecc71",
+        disagree: "#e74c3c",
+        pass: "#e6e6e6"
     },
 
     // Statistical thresholds
