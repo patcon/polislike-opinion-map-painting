@@ -1736,8 +1736,8 @@ function renderRepCommentsTable(repComments) {
     tabContent.className = "mt-4 relative";
     tabContainer.appendChild(tabContent);
 
-    // Track the active tab
-    let activeTabId = null;
+    // Track the active tab - use persistent state or default to null
+    let activeTabId = AppState.selection.activeAnalysisTab;
 
     // Array to store all content panels for height calculation
     const contentPanels = [];
@@ -1768,9 +1768,13 @@ function renderRepCommentsTable(repComments) {
             }
         });
 
-        // Update active tab ID
+        // Update active tab ID and persist it
         activeTabId = tabId;
+        AppState.selection.activeAnalysisTab = tabId;
     };
+
+    // Collect all possible tab IDs for validation
+    const availableTabIds = [];
 
     // Add consensus tab if we have consensus statements
     let tabIndex = 0;
@@ -1778,14 +1782,18 @@ function renderRepCommentsTable(repComments) {
         (AppState.data.consensusStatements.agree.length > 0 || AppState.data.consensusStatements.disagree.length > 0)) {
 
         const consensusTabId = 'consensus-content';
+        availableTabIds.push(consensusTabId);
 
         // Create consensus tab button
         const consensusTab = document.createElement("button");
         consensusTab.id = `tab-${consensusTabId}`;
         consensusTab.setAttribute("role", "tab");
         consensusTab.setAttribute("aria-controls", consensusTabId);
-        consensusTab.setAttribute("aria-selected", "true"); // Make consensus tab active by default
-        consensusTab.className = `flex items-center px-4 py-2 font-medium text-sm border-b-2 focus:outline-none border-primary-500 text-primary-600`;
+        consensusTab.setAttribute("aria-selected", activeTabId === consensusTabId ? "true" : "false");
+        consensusTab.className = `flex items-center px-4 py-2 font-medium text-sm border-b-2 focus:outline-none ${activeTabId === consensusTabId
+            ? 'border-primary-500 text-primary-600'
+            : 'border-transparent text-gray-500 hover:border-gray-300'
+            }`;
 
         // Add consensus icon and text
         consensusTab.innerHTML = `
@@ -1804,7 +1812,7 @@ function renderRepCommentsTable(repComments) {
         consensusPanel.id = consensusTabId;
         consensusPanel.setAttribute("role", "tabpanel");
         consensusPanel.setAttribute("aria-labelledby", `tab-${consensusTabId}`);
-        consensusPanel.className = ""; // Make it visible by default
+        consensusPanel.className = activeTabId === consensusTabId ? "" : "hidden";
 
         // Create consensus content
         consensusPanel.innerHTML = renderConsensusContent(AppState.data.consensusStatements, allGroupColors, groupSizes);
@@ -1812,8 +1820,10 @@ function renderRepCommentsTable(repComments) {
         tabContent.appendChild(consensusPanel);
         contentPanels.push(consensusPanel);
 
-        // Set consensus as active tab
-        activeTabId = consensusTabId;
+        // Set consensus as active tab only if no tab is currently remembered or the remembered tab doesn't exist
+        if (!activeTabId) {
+            activeTabId = consensusTabId;
+        }
         tabIndex = 1; // Start group tabs from index 1
     }
 
@@ -1830,6 +1840,7 @@ function renderRepCommentsTable(repComments) {
         const groupSize = groupSizes[labelColor];
         const tabId = `group-tab-${labelColor.replace('#', '')}`;
         const contentId = `group-content-${labelColor.replace('#', '')}`;
+        availableTabIds.push(contentId);
         const index = tabIndex + groupIndex;
 
         // Create tab button
@@ -2142,14 +2153,36 @@ function renderRepCommentsTable(repComments) {
         // Store the panel for later height calculation
         contentPanels.push(contentPanel);
 
-        // Set the first group tab as active only if no consensus tab exists
-        if (groupIndex === 0 && !AppState.data.consensusStatements) {
+        // Set the first group tab as active only if no consensus tab exists and no tab is remembered
+        if (groupIndex === 0 && !AppState.data.consensusStatements && !activeTabId) {
             activeTabId = contentId;
         }
     });
 
+    // Validate that the remembered active tab still exists, otherwise fall back to default
+    if (activeTabId && !availableTabIds.includes(activeTabId)) {
+        // The remembered tab doesn't exist anymore, fall back to consensus or first group tab
+        if (availableTabIds.includes('consensus-content')) {
+            activeTabId = 'consensus-content';
+        } else if (availableTabIds.length > 0) {
+            activeTabId = availableTabIds[0];
+        } else {
+            activeTabId = null;
+        }
+        // Update the persistent state
+        AppState.selection.activeAnalysisTab = activeTabId;
+    }
+
     // Add the tab container to the main container
     container.appendChild(tabContainer);
+
+    // After all tabs are created, ensure the correct tab content is shown
+    if (activeTabId) {
+        // Use setTimeout to ensure DOM is fully rendered before switching
+        setTimeout(() => {
+            switchTab(activeTabId);
+        }, 0);
+    }
 
     // Set a consistent height for the tab content area to prevent jumping
     // We need to do this after all panels are added to the DOM

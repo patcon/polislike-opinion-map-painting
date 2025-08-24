@@ -92,6 +92,7 @@ const AppState = {
         customLabels: {}, // Store custom labels for groups (color -> label)
         includeUnpainted: false, // Whether to include unpainted points as a group in analysis
         voteColorByIndex: [], // Store vote colors when showing votes
+        activeAnalysisTab: null, // Track the active tab in the analysis table
     },
 
     // Preferences
@@ -158,6 +159,9 @@ const AppState = {
             this.selection.customLabels = {};
             saveState("customLabels", {});
         }
+
+        // Clear the active analysis tab when changing datasets
+        this.selection.activeAnalysisTab = null;
     }
 };
 
