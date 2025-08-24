@@ -92,7 +92,8 @@ function applySharedState({
     showGroupLabels = false,
     includeUnpainted = false,
     showVotes = false,
-    statementId = "0"
+    statementId = "0",
+    highlightPassVotes = false
 }) {
     // Update AppState
     AppState.preferences.convoSlug = dataset;
@@ -104,6 +105,7 @@ function applySharedState({
     AppState.selection.includeUnpainted = includeUnpainted;
     AppState.preferences.showVotes = showVotes;
     AppState.preferences.statementId = statementId;
+    AppState.preferences.highlightPassVotes = highlightPassVotes;
 
     // Add custom colors to the palette if they exist
     if (customColors.length > 0) {
@@ -141,6 +143,7 @@ function applySharedState({
     document.getElementById("dot-size-value").textContent = dotSize;
     document.getElementById("show-votes-checkbox").checked = showVotes;
     document.getElementById("statement-id-input").value = statementId;
+    document.getElementById("highlight-pass-votes-checkbox").checked = highlightPassVotes;
 
     // Save to session storage
     saveState("dataset", dataset);
@@ -152,6 +155,7 @@ function applySharedState({
     saveState("dotSize", dotSize);
     saveState("showVotes", showVotes);
     saveState("statementId", statementId);
+    saveState("highlightPassVotes", highlightPassVotes);
 
     // Ensure custom labels are set before loading data
     AppState.selection.customLabels = customLabels || {};
@@ -200,7 +204,8 @@ function encodeShareState(includePaint = true) {
         customLabels: AppState.selection.customLabels,
         includeUnpainted: AppState.selection.includeUnpainted,
         showVotes: AppState.preferences.showVotes,
-        statementId: AppState.preferences.statementId
+        statementId: AppState.preferences.statementId,
+        highlightPassVotes: AppState.preferences.highlightPassVotes
     };
 
     // Only include labelIndices if includePaint is true and there are painted participants
@@ -293,7 +298,8 @@ function decodeShareState(hashString) {
             dotSize: parsed.dotSize || Config.dotSize,
             includeUnpainted: parsed.includeUnpainted || false,
             showVotes: parsed.showVotes || false,
-            statementId: parsed.statementId || "0"
+            statementId: parsed.statementId || "0",
+            highlightPassVotes: parsed.highlightPassVotes || false
         };
     } catch (e) {
         console.warn("Invalid share state", e);

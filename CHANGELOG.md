@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Updated the BG2050 dataset to work with vote color mode.
 - Upstream `keep_participant_ids` bugfix to red-dwarf and using bugfix branch.
+- Ensure "Hightlight pass votes" checkbox state is included in share link.
 
 ## [0.12.0] - 2025-08-24
 
