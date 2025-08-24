@@ -67,6 +67,10 @@ describe('loadAndRenderData', () => {
         mockAppState.data.X2 = null;
         mockAppState.data.X3 = null;
 
+        // Reset preferences to default values
+        mockAppState.preferences.showVotes = false;
+        mockAppState.preferences.statementId = "0";
+
         // Mock d3.json to return test data
         global.d3.json.mockImplementation((url) => {
             if (url.includes('pca.json')) {
