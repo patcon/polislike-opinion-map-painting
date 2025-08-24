@@ -308,8 +308,9 @@ function calculateRepresentativeComments(groupVotes, commentTexts) {
         disagrees = 0,
         passes = 0,
         seen = 0;
+      console.log(groupMatrix)
       for (const voteRow of Object.values(groupMatrix)) {
-        const vote = voteRow[commentIndex];
+        const vote = voteRow[commentId];
         if (vote != null) {
           seen++;
           if (vote === 1) agrees++;
