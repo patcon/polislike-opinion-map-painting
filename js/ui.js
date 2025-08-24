@@ -262,7 +262,7 @@ async function toggleVoteColors(showVotes) {
                     if (vote === 1) return Config.voteColors.agree;
                     if (vote === -1) return Config.voteColors.disagree;
                     if (vote === 0) return Config.voteColors.pass;
-                    return "rgba(0,0,0)"; // Default for no vote
+                    return null;
                 });
             } catch (error) {
                 console.error("Error getting votes for statement:", error);
@@ -451,7 +451,7 @@ function renderPlot(svgId, data, title) {
         .attr("fill-opacity", AppState.ui.dotOpacity) // Start with default opacity
         .attr("fill", ({ i }) => {
             if (AppState.preferences.showVotes) {
-                return AppState.selection.voteColorByIndex[i] || "rgba(0,0,0,0.1)";
+                return AppState.selection.voteColorByIndex[i] || "rgba(0,0,0,0.5)";
             }
             return AppState.selection.colorByIndex[i] || "rgba(0,0,0,0.5)";
         })
@@ -988,7 +988,7 @@ function applyHoverStyles() {
         let rawColor, baseColor;
         if (AppState.preferences.showVotes) {
             rawColor = AppState.selection.voteColorByIndex[index];
-            baseColor = rawColor || "rgba(0,0,0,0.1)";
+            baseColor = rawColor || "#000000";
         } else {
             rawColor = AppState.selection.colorByIndex[index];
             baseColor = rawColor || "#7f7f7f";
@@ -1000,7 +1000,7 @@ function applyHoverStyles() {
         } else {
             // Set the fill color based on current mode
             if (AppState.preferences.showVotes) {
-                circle.attr("fill", AppState.selection.voteColorByIndex[index] || "rgba(0,0,0,0.1)");
+                circle.attr("fill", AppState.selection.voteColorByIndex[index] || "rgba(0,0,0,0.5)");
             } else {
                 circle.attr("fill", rawColor || "rgba(0,0,0,0.5)");
             }
@@ -1030,12 +1030,17 @@ function applyHoverStyles() {
 
 /**
  * Adjust color for hover effect
- * @param {string} hex - Hex color
+ * @param {string} color - Hex color
  * @param {number} factor - Adjustment factor
  * @returns {string} - Adjusted color
  */
-function adjustColorForHover(hex, factor = 0.2) {
-    if (!hex.startsWith("#")) return hex;
+function adjustColorForHover(color, factor = 0.2) {
+    // Special handling for black points (no vote/unpainted) - make them gray on hover
+    if (color === "#000000") {
+        return "#7f7f7f";
+    }
+
+    if (!color.startsWith("#")) return color;
     const toHSL = (r, g, b) => {
         r /= 255;
         g /= 255;
@@ -1069,9 +1074,9 @@ function adjustColorForHover(hex, factor = 0.2) {
             l: Math.round(l * 100),
         };
     };
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
     const { h, s, l } = toHSL(r, g, b);
     const lightness = Math.max(
         0,
