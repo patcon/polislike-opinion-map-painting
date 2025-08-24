@@ -290,7 +290,8 @@ function updateStatementTextDisplay() {
 
     // Only show text if the checkbox is checked and we have a statement ID
     if (!showVotesCheckbox.checked || !statementIdInput.value) {
-        textDisplay.classList.add("hidden");
+        textDisplay.style.visibility = "hidden";
+        textDisplay.innerHTML = "";
         return;
     }
 
@@ -311,11 +312,11 @@ function updateStatementTextDisplay() {
         }
 
         textDisplay.innerHTML = `Statement ${statementId}: ${displayText}`;
-        textDisplay.classList.remove("hidden");
+        textDisplay.style.visibility = "visible";
     } else {
         // Statement ID not found
         textDisplay.innerHTML = `Statement ${statementId}: <em>Not found</em>`;
-        textDisplay.classList.remove("hidden");
+        textDisplay.style.visibility = "visible";
     }
 }
 
