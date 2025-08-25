@@ -121,6 +121,21 @@ const AppState = {
             this.selection.colorToLabelIndex[color] = i;
         });
 
+        // Check if we're on mobile
+        const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+        // Set mobile-specific defaults for plot visibility
+        // On mobile, show only LocalMAP by default if no settings exist
+        const mobileDefaults = isMobile ? {
+            showPCA: false,
+            showPaCMAP: false,
+            showLocalMAP: true
+        } : {
+            showPCA: true,
+            showPaCMAP: true,
+            showLocalMAP: true
+        };
+
         // Load preferences from session storage
         this.preferences.convoSlug = getQueryParam("dataset") || loadState("dataset", "bg2050");
         this.preferences.isAdditive = loadState("additive", false);
@@ -133,9 +148,9 @@ const AppState = {
         this.preferences.showVotes = loadState("showVotes", false);
         this.preferences.statementId = loadState("statementId", "0");
         this.preferences.keepColoredOnTop = loadState("keepColoredOnTop", false);
-        this.preferences.showPCA = loadState("showPCA", true);
-        this.preferences.showPaCMAP = loadState("showPaCMAP", true);
-        this.preferences.showLocalMAP = loadState("showLocalMAP", true);
+        this.preferences.showPCA = loadState("showPCA", mobileDefaults.showPCA);
+        this.preferences.showPaCMAP = loadState("showPaCMAP", mobileDefaults.showPaCMAP);
+        this.preferences.showLocalMAP = loadState("showLocalMAP", mobileDefaults.showLocalMAP);
         this.ui.dotOpacity = loadState("dotOpacity", Config.dotOpacity);
         this.ui.dotSize = loadState("dotSize", Config.dotSize);
 

@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added checkbox to bring any colored participants (painted or voted, depending on mode) to the top layer, so they're not hidden behind black inactive participants.
 - Add loading indicators for when plot freezes to redraw with votes, etc.
 - Only reload plots when sliders are released from being dragged.
-- Added ability to show arbitary plots and have it take up full screen width.
+- :tada: Added ability to show arbitary plots and have it take up full screen width.
+- When arriving fresh on mobile, just show the LocalMAP plot.
 
 ### Fixed
 - Updated the BG2050 dataset to work with vote color mode.

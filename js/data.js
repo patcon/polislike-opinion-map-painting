@@ -95,7 +95,10 @@ function applySharedState({
     statementId = "0",
     highlightPassVotes = false,
     minVoteCount = 1,
-    keepColoredOnTop = false
+    keepColoredOnTop = false,
+    showPCA = null,
+    showPaCMAP = null,
+    showLocalMAP = null
 }) {
     // Update AppState
     AppState.preferences.convoSlug = dataset;
@@ -109,6 +112,17 @@ function applySharedState({
     AppState.preferences.statementId = statementId;
     AppState.preferences.highlightPassVotes = highlightPassVotes;
     AppState.preferences.keepColoredOnTop = keepColoredOnTop;
+
+    // Handle plot visibility - only override if explicitly provided in shared state
+    if (showPCA !== null) {
+        AppState.preferences.showPCA = showPCA;
+    }
+    if (showPaCMAP !== null) {
+        AppState.preferences.showPaCMAP = showPaCMAP;
+    }
+    if (showLocalMAP !== null) {
+        AppState.preferences.showLocalMAP = showLocalMAP;
+    }
 
     // Add custom colors to the palette if they exist
     if (customColors.length > 0) {
@@ -150,6 +164,17 @@ function applySharedState({
     document.getElementById("min-vote-count").value = minVoteCount;
     document.getElementById("keep-colored-on-top-checkbox").checked = keepColoredOnTop;
 
+    // Update plot visibility checkboxes if they were provided in shared state
+    if (showPCA !== null) {
+        document.getElementById("show-pca").checked = showPCA;
+    }
+    if (showPaCMAP !== null) {
+        document.getElementById("show-pacmap").checked = showPaCMAP;
+    }
+    if (showLocalMAP !== null) {
+        document.getElementById("show-localmap").checked = showLocalMAP;
+    }
+
     // Save to session storage
     saveState("dataset", dataset);
     saveState("flipX", fx);
@@ -163,6 +188,17 @@ function applySharedState({
     saveState("highlightPassVotes", highlightPassVotes);
     saveState("minVoteCount", minVoteCount);
     saveState("keepColoredOnTop", keepColoredOnTop);
+
+    // Save plot visibility settings if they were provided
+    if (showPCA !== null) {
+        saveState("showPCA", showPCA);
+    }
+    if (showPaCMAP !== null) {
+        saveState("showPaCMAP", showPaCMAP);
+    }
+    if (showLocalMAP !== null) {
+        saveState("showLocalMAP", showLocalMAP);
+    }
 
     // Ensure custom labels are set before loading data
     AppState.selection.customLabels = customLabels || {};
@@ -180,6 +216,11 @@ function applySharedState({
                 AppState.selection.colorByIndex[i] = color;
                 AppState.selection.selectedIndices.add(i);
             }
+        }
+
+        // Update plot visibility if any plot settings were provided
+        if (showPCA !== null || showPaCMAP !== null || showLocalMAP !== null) {
+            updatePlotVisibility();
         }
 
         renderAllPlots();
@@ -214,7 +255,10 @@ function encodeShareState(includePaint = true) {
         statementId: AppState.preferences.statementId,
         highlightPassVotes: AppState.preferences.highlightPassVotes,
         minVoteCount: loadState("minVoteCount", 1),
-        keepColoredOnTop: AppState.preferences.keepColoredOnTop
+        keepColoredOnTop: AppState.preferences.keepColoredOnTop,
+        showPCA: AppState.preferences.showPCA,
+        showPaCMAP: AppState.preferences.showPaCMAP,
+        showLocalMAP: AppState.preferences.showLocalMAP
     };
 
     // Only include labelIndices if includePaint is true and there are painted participants
@@ -310,7 +354,10 @@ function decodeShareState(hashString) {
             statementId: parsed.statementId || "0",
             highlightPassVotes: parsed.highlightPassVotes || false,
             minVoteCount: parsed.minVoteCount || 1,
-            keepColoredOnTop: parsed.keepColoredOnTop || false
+            keepColoredOnTop: parsed.keepColoredOnTop || false,
+            showPCA: parsed.showPCA !== undefined ? parsed.showPCA : null,
+            showPaCMAP: parsed.showPaCMAP !== undefined ? parsed.showPaCMAP : null,
+            showLocalMAP: parsed.showLocalMAP !== undefined ? parsed.showLocalMAP : null
         };
     } catch (e) {
         console.warn("Invalid share state", e);
