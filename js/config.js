@@ -11,6 +11,11 @@ const Config = {
     // Default dot size
     dotSize: 3,
 
+    // Developer feature flags
+    features: {
+        showOverallStats: true, // Show overall stats bar chart instead of simple percentage
+    },
+
     // Reference: https://matplotlib.org/stable/users/explain/colors/colormaps.html#qualitative
     colors: {
         tab10: [

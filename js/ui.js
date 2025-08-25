@@ -1664,6 +1664,41 @@ function createMoreCompactBarChart({ voteCounts, nMembers, voteColors = null, bo
 }
 
 /**
+ * Calculate overall stats for a statement across all groups
+ * @param {string} statementId - The statement ID
+ * @param {Object} groupSizes - Group sizes by color
+ * @returns {Object} - Overall vote counts and totals
+ */
+function calculateOverallStats(statementId, groupSizes) {
+    let totalAgrees = 0;
+    let totalDisagrees = 0;
+    let totalSeen = 0;
+
+    // Sum up votes across all groups
+    if (AppState.data.groupVotes) {
+        Object.values(AppState.data.groupVotes).forEach(groupMatrix => {
+            Object.values(groupMatrix).forEach(participantVotes => {
+                const vote = participantVotes[statementId];
+                if (vote !== undefined) {
+                    totalSeen++;
+                    if (vote === 1) totalAgrees++;
+                    else if (vote === -1) totalDisagrees++;
+                }
+            });
+        });
+    }
+
+    const totalParticipants = Object.values(groupSizes).reduce((sum, size) => sum + size, 0);
+
+    return {
+        A: totalAgrees,
+        D: totalDisagrees,
+        S: totalSeen,
+        totalParticipants
+    };
+}
+
+/**
  * Render consensus statements content
  * @param {Object} consensusStatements - Consensus statements with agree/disagree arrays
  * @param {Array} allGroupColors - All group colors for comparison
@@ -1698,7 +1733,7 @@ function renderConsensusContent(consensusStatements, allGroupColors, groupSizes)
     html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-center font-medium text-gray-600 w-16"></th>`; // Empty action column header
     html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600">ID</th>`;
     html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600">Type</th>`;
-    html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600">%</th>`;
+    html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600">${Config.features.showOverallStats ? 'Overall' : '%'}</th>`;
 
     // Add group comparison columns if enabled
     if (AppState.preferences.showGroupComparison) {
@@ -1759,7 +1794,21 @@ function renderConsensusContent(consensusStatements, allGroupColors, groupSizes)
         html += `<td class="py-2 px-3 border-b border-gray-200">
             <span style="color: ${stmt.color}; font-weight: bold;">${stmt.type}</span>
         </td>`;
-        html += `<td class="py-2 px-3 border-b border-gray-200">${successRate}%</td>`;
+        html += `<td class="py-2 px-3 border-b border-gray-200">`;
+        if (Config.features.showOverallStats) {
+            // Calculate overall stats for this statement
+            const overallStats = calculateOverallStats(stmt.tid, groupSizes);
+            const barChart = createMoreCompactBarChart({
+                voteCounts: overallStats,
+                nMembers: overallStats.totalParticipants,
+                voteColors: getCurrentVoteColors(),
+                width: 60
+            });
+            html += barChart.outerHTML;
+        } else {
+            html += `${successRate}%`;
+        }
+        html += `</td>`;
 
         // Add group comparison charts if enabled
         if (AppState.preferences.showGroupComparison && AppState.data.groupVotes) {
@@ -2070,7 +2119,7 @@ function renderRepCommentsTable(repComments) {
         headerRow.appendChild(actionTh);
 
         // Basic columns
-        const basicHeaders = ["ID", "Type", "%"];
+        const basicHeaders = ["ID", "Type", Config.features.showOverallStats ? "Overall" : "%"];
         basicHeaders.forEach((h) => {
             const th = document.createElement("th");
             th.textContent = h;
@@ -2184,10 +2233,24 @@ function renderRepCommentsTable(repComments) {
             tdRep.className = "py-2 px-3 border-b border-gray-200";
             tr.appendChild(tdRep);
 
-            // % Support
+            // % Support or Overall Stats
             const tdPct = document.createElement("td");
-            tdPct.textContent = `${Math.round((c.n_success / c.n_trials) * 100)}%`;
             tdPct.className = "py-2 px-3 border-b border-gray-200";
+
+            if (Config.features.showOverallStats) {
+                // Calculate overall stats for this statement
+                const overallStats = calculateOverallStats(c.tid, groupSizes);
+                const barChart = createMoreCompactBarChart({
+                    voteCounts: overallStats,
+                    nMembers: overallStats.totalParticipants,
+                    voteColors: getCurrentVoteColors(),
+                    width: 60
+                });
+                tdPct.appendChild(barChart);
+            } else {
+                tdPct.textContent = `${Math.round((c.n_success / c.n_trials) * 100)}%`;
+            }
+
             tr.appendChild(tdPct);
 
             // Add bar charts for each group if comparison is enabled
