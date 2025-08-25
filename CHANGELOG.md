@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ensure "Hightlight pass votes" checkbox state is included in share link.
 - Fix bug in "Show moderated statements" that was preventing them from displaying.
 - Ensure "auto-analyze" checkbox affects all report checkboxes properly.
+- Ensure statement ID can't below 0. Ensure proper number input comes up on iOS.
 
 ## [0.12.0] - 2025-08-24
 
