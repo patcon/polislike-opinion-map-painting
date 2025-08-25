@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upstream `keep_participant_ids` bugfix to red-dwarf and using bugfix branch.
 - Ensure "Hightlight pass votes" checkbox state is included in share link.
 - Fix bug in "Show moderated statements" that was preventing them from displaying.
+- Ensure "auto-analyze" checkbox affects all report checkboxes properly.
 
 ## [0.12.0] - 2025-08-24
 

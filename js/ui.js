@@ -147,6 +147,10 @@ function setupEventListeners() {
     // Include moderated comments
     document.getElementById("include-moderated-checkbox").addEventListener("change", (e) => {
         saveState("includeModerated", e.target.checked);
+        // If auto-analyze is enabled, automatically regenerate the table
+        if (document.getElementById("auto-analyze-checkbox").checked) {
+            applyGroupAnalysis();
+        }
     });
 
     // Color selection
@@ -225,8 +229,8 @@ function setupEventListeners() {
         AppState.preferences.showGroupComparison = e.target.checked;
         saveState("showGroupComparison", AppState.preferences.showGroupComparison);
 
-        // If analysis results are already displayed, rerun the analysis to update the display
-        if (document.getElementById("rep-comments-output").innerHTML !== "") {
+        // If auto-analyze is enabled and analysis results are already displayed, rerun the analysis to update the display
+        if (document.getElementById("auto-analyze-checkbox").checked && document.getElementById("rep-comments-output").innerHTML !== "") {
             applyGroupAnalysis();
         }
     });
