@@ -352,7 +352,7 @@ function updateStatementTextDisplay() {
     // Get the statement text from the comment text map
     if (AppState.data.commentTextMap && AppState.data.commentTextMap[statementId]) {
         const statement = AppState.data.commentTextMap[statementId];
-        const isModerated = statement.mod === "-1";
+        const isModerated = statement.mod === "-1" || statement.mod === -1;
 
         let displayText = statement.txt || "<em>Missing text</em>";
 
