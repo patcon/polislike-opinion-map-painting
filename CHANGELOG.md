@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Added basic Google Analytics tracking.
+
 ### Fixed
 - Updated the BG2050 dataset to work with vote color mode.
 - Upstream `keep_participant_ids` bugfix to red-dwarf and using bugfix branch.
