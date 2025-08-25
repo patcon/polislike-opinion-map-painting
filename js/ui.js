@@ -251,15 +251,39 @@ function setupEventListeners() {
         AppState.preferences.showVotes = e.target.checked;
         saveState("showVotes", AppState.preferences.showVotes);
         updateStatementTextDisplay();
-        toggleVoteColors(e.target.checked);
+
+        // Show loading indicator since plot will re-render
+        showPlotLoader();
+
+        // Use setTimeout to ensure the spinner is shown before the potentially blocking operations
+        setTimeout(() => {
+            try {
+                toggleVoteColors(e.target.checked);
+            } finally {
+                // Always hide the loader when done
+                hidePlotLoader();
+            }
+        }, 10);
     });
 
     document.getElementById("statement-id-input").addEventListener("change", (e) => {
         AppState.preferences.statementId = e.target.value;
         saveState("statementId", AppState.preferences.statementId);
         updateStatementTextDisplay();
+
         if (document.getElementById("show-votes-checkbox").checked) {
-            toggleVoteColors(true);
+            // Show loading indicator since plot will re-render
+            showPlotLoader();
+
+            // Use setTimeout to ensure the spinner is shown before the potentially blocking operations
+            setTimeout(() => {
+                try {
+                    toggleVoteColors(true);
+                } finally {
+                    // Always hide the loader when done
+                    hidePlotLoader();
+                }
+            }, 10);
         }
     });
 
