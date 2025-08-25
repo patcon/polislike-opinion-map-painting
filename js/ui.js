@@ -189,9 +189,15 @@ function setupEventListeners() {
     // Opacity slider
     const opacitySlider = document.getElementById("opacity-slider");
     const opacityValueLabel = document.getElementById("opacity-value");
+
+    // Update the display value while dragging (input event)
     opacitySlider.addEventListener("input", () => {
+        opacityValueLabel.textContent = opacitySlider.value;
+    });
+
+    // Only apply changes when slider is released (change event)
+    opacitySlider.addEventListener("change", () => {
         AppState.ui.dotOpacity = parseFloat(opacitySlider.value);
-        opacityValueLabel.textContent = AppState.ui.dotOpacity;
         saveState("dotOpacity", AppState.ui.dotOpacity);
 
         withLoadingIndicator(() => {
@@ -202,9 +208,15 @@ function setupEventListeners() {
     // Dot size slider
     const dotSizeSlider = document.getElementById("dot-size-slider");
     const dotSizeValueLabel = document.getElementById("dot-size-value");
+
+    // Update the display value while dragging (input event)
     dotSizeSlider.addEventListener("input", () => {
+        dotSizeValueLabel.textContent = dotSizeSlider.value;
+    });
+
+    // Only apply changes when slider is released (change event)
+    dotSizeSlider.addEventListener("change", () => {
         AppState.ui.dotSize = parseFloat(dotSizeSlider.value);
-        dotSizeValueLabel.textContent = AppState.ui.dotSize;
         saveState("dotSize", AppState.ui.dotSize);
 
         withLoadingIndicator(() => {
