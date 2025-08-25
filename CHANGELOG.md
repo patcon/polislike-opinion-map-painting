@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Added basic Google Analytics tracking.
+- Added a minimum vote threshold for the group analysis, to help filter out insignificant statements in larger conversations.
 
 ### Fixed
 - Updated the BG2050 dataset to work with vote color mode.

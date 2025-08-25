@@ -207,6 +207,7 @@ function agreesBeforeDisagrees(comments) {
 function selectRepComments(commentStatsWithTid) {
   const result = {};
   const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
+  const minVoteCount = parseInt(document.getElementById("min-vote-count")?.value) || 1;
 
   if (commentStatsWithTid.length === 0) return {};
 
@@ -225,6 +226,12 @@ function selectRepComments(commentStatsWithTid) {
 
     Object.entries(groupsData).forEach(([gid, commentStats]) => {
       const groupResult = result[gid];
+
+      // Apply minimum vote count filter - only exclude statements for the current group
+      // if their total vote count (ns) is below the threshold
+      if (commentStats.ns < minVoteCount) {
+        return; // Skip this statement for this group
+      }
 
       if (passesByTest(commentStats)) {
         groupResult.sufficient.push(finalizeCommentStats(tid, commentStats));

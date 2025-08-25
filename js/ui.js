@@ -29,6 +29,9 @@ function initializeUI() {
     document.getElementById("show-votes-checkbox").checked = AppState.preferences.showVotes;
     document.getElementById("highlight-pass-votes-checkbox").checked = AppState.preferences.highlightPassVotes;
 
+    // Initialize min vote count input
+    document.getElementById("min-vote-count").value = loadState("minVoteCount", 1);
+
     // Initialize statement ID input with saved value and enable/disable based on checkbox state
     const statementIdInput = document.getElementById("statement-id-input");
     statementIdInput.value = AppState.preferences.statementId;
@@ -267,6 +270,15 @@ function setupEventListeners() {
 
         // If analysis results are displayed, rerun the analysis to update the charts with new colors
         if (document.getElementById("rep-comments-output").innerHTML !== "") {
+            applyGroupAnalysis();
+        }
+    });
+
+    // Min vote count input
+    document.getElementById("min-vote-count").addEventListener("change", (e) => {
+        const minVoteCount = parseInt(e.target.value) || 1;
+        saveState("minVoteCount", minVoteCount);
+        if (document.getElementById("auto-analyze-checkbox").checked) {
             applyGroupAnalysis();
         }
     });

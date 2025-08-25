@@ -93,7 +93,8 @@ function applySharedState({
     includeUnpainted = false,
     showVotes = false,
     statementId = "0",
-    highlightPassVotes = false
+    highlightPassVotes = false,
+    minVoteCount = 1
 }) {
     // Update AppState
     AppState.preferences.convoSlug = dataset;
@@ -144,6 +145,7 @@ function applySharedState({
     document.getElementById("show-votes-checkbox").checked = showVotes;
     document.getElementById("statement-id-input").value = statementId;
     document.getElementById("highlight-pass-votes-checkbox").checked = highlightPassVotes;
+    document.getElementById("min-vote-count").value = minVoteCount;
 
     // Save to session storage
     saveState("dataset", dataset);
@@ -156,6 +158,7 @@ function applySharedState({
     saveState("showVotes", showVotes);
     saveState("statementId", statementId);
     saveState("highlightPassVotes", highlightPassVotes);
+    saveState("minVoteCount", minVoteCount);
 
     // Ensure custom labels are set before loading data
     AppState.selection.customLabels = customLabels || {};
@@ -205,7 +208,8 @@ function encodeShareState(includePaint = true) {
         includeUnpainted: AppState.selection.includeUnpainted,
         showVotes: AppState.preferences.showVotes,
         statementId: AppState.preferences.statementId,
-        highlightPassVotes: AppState.preferences.highlightPassVotes
+        highlightPassVotes: AppState.preferences.highlightPassVotes,
+        minVoteCount: loadState("minVoteCount", 1)
     };
 
     // Only include labelIndices if includePaint is true and there are painted participants
@@ -299,7 +303,8 @@ function decodeShareState(hashString) {
             includeUnpainted: parsed.includeUnpainted || false,
             showVotes: parsed.showVotes || false,
             statementId: parsed.statementId || "0",
-            highlightPassVotes: parsed.highlightPassVotes || false
+            highlightPassVotes: parsed.highlightPassVotes || false,
+            minVoteCount: parsed.minVoteCount || 1
         };
     } catch (e) {
         console.warn("Invalid share state", e);
