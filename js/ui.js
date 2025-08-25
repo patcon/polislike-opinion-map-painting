@@ -30,6 +30,11 @@ function initializeUI() {
     document.getElementById("highlight-pass-votes-checkbox").checked = AppState.preferences.highlightPassVotes;
     document.getElementById("keep-colored-on-top-checkbox").checked = AppState.preferences.keepColoredOnTop;
 
+    // Initialize plot selection checkboxes
+    document.getElementById("show-pca").checked = AppState.preferences.showPCA;
+    document.getElementById("show-pacmap").checked = AppState.preferences.showPaCMAP;
+    document.getElementById("show-localmap").checked = AppState.preferences.showLocalMAP;
+
     // Initialize min vote count input
     document.getElementById("min-vote-count").value = loadState("minVoteCount", 1);
 
@@ -329,6 +334,25 @@ function setupEventListeners() {
         withLoadingIndicator(() => {
             renderAllPlots(); // Re-render to apply new layering
         });
+    });
+
+    // Plot selection checkboxes
+    document.getElementById("show-pca").addEventListener("change", (e) => {
+        AppState.preferences.showPCA = e.target.checked;
+        saveState("showPCA", AppState.preferences.showPCA);
+        updatePlotVisibility();
+    });
+
+    document.getElementById("show-pacmap").addEventListener("change", (e) => {
+        AppState.preferences.showPaCMAP = e.target.checked;
+        saveState("showPaCMAP", AppState.preferences.showPaCMAP);
+        updatePlotVisibility();
+    });
+
+    document.getElementById("show-localmap").addEventListener("change", (e) => {
+        AppState.preferences.showLocalMAP = e.target.checked;
+        saveState("showLocalMAP", AppState.preferences.showLocalMAP);
+        updatePlotVisibility();
     });
 }
 
@@ -958,15 +982,55 @@ async function updateOpacityBasedOnVotes() {
 }
 
 /**
- * Render all three projection plots
+ * Update plot visibility and layout based on selection
+ */
+function updatePlotVisibility() {
+    const plot1Container = document.querySelector('#plot1').parentElement;
+    const plot2Container = document.querySelector('#plot2').parentElement;
+    const plot3Container = document.querySelector('#plot3').parentElement;
+
+    // Show/hide plots based on preferences
+    plot1Container.style.display = AppState.preferences.showPCA ? 'flex' : 'none';
+    plot2Container.style.display = AppState.preferences.showPaCMAP ? 'flex' : 'none';
+    plot3Container.style.display = AppState.preferences.showLocalMAP ? 'flex' : 'none';
+
+    // Ensure at least one plot is visible
+    const visiblePlots = [
+        AppState.preferences.showPCA,
+        AppState.preferences.showPaCMAP,
+        AppState.preferences.showLocalMAP
+    ].filter(Boolean).length;
+
+    if (visiblePlots === 0) {
+        // If no plots are selected, show PCA as default
+        AppState.preferences.showPCA = true;
+        document.getElementById("show-pca").checked = true;
+        saveState("showPCA", true);
+        plot1Container.style.display = 'flex';
+    }
+
+    // Re-render all plots with new dimensions
+    withLoadingIndicator(() => {
+        renderAllPlots();
+    });
+}
+
+/**
+ * Render all selected projection plots
  */
 function renderAllPlots() {
     AppState.updateDimensions();
 
-
-    renderPlot("#plot1", AppState.data.X1, "PCA projection");
-    renderPlot("#plot2", AppState.data.X2, "PaCMAP projection");
-    renderPlot("#plot3", AppState.data.X3, "LocalMAP projection");
+    // Only render visible plots
+    if (AppState.preferences.showPCA && AppState.data.X1) {
+        renderPlot("#plot1", AppState.data.X1, "PCA projection");
+    }
+    if (AppState.preferences.showPaCMAP && AppState.data.X2) {
+        renderPlot("#plot2", AppState.data.X2, "PaCMAP projection");
+    }
+    if (AppState.preferences.showLocalMAP && AppState.data.X3) {
+        renderPlot("#plot3", AppState.data.X3, "LocalMAP projection");
+    }
 
     // Update opacity based on vote count if enabled
     if (AppState.preferences.scaleOpacityWithVotes) {

@@ -107,6 +107,9 @@ const AppState = {
         showVotes: false,
         highlightPassVotes: false,
         keepColoredOnTop: false,
+        showPCA: true,
+        showPaCMAP: true,
+        showLocalMAP: true,
     },
 
     /**
@@ -130,6 +133,9 @@ const AppState = {
         this.preferences.showVotes = loadState("showVotes", false);
         this.preferences.statementId = loadState("statementId", "0");
         this.preferences.keepColoredOnTop = loadState("keepColoredOnTop", false);
+        this.preferences.showPCA = loadState("showPCA", true);
+        this.preferences.showPaCMAP = loadState("showPaCMAP", true);
+        this.preferences.showLocalMAP = loadState("showLocalMAP", true);
         this.ui.dotOpacity = loadState("dotOpacity", Config.dotOpacity);
         this.ui.dotSize = loadState("dotSize", Config.dotSize);
 
@@ -139,12 +145,23 @@ const AppState = {
     },
 
     /**
-     * Update dimensions based on container size
+     * Update dimensions based on container size and visible plots
      */
     updateDimensions() {
         const container = document.getElementById("plot-wrapper");
         const containerWidth = container.clientWidth;
-        this.dimensions.width = containerWidth / 3 - 20;
+
+        // Count visible plots
+        const visiblePlots = [
+            this.preferences.showPCA,
+            this.preferences.showPaCMAP,
+            this.preferences.showLocalMAP
+        ].filter(Boolean).length;
+
+        // Ensure at least one plot is visible
+        const plotCount = Math.max(1, visiblePlots);
+
+        this.dimensions.width = containerWidth / plotCount - 20;
         this.dimensions.height = this.dimensions.width;
     },
 

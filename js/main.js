@@ -610,38 +610,41 @@ async function applyGroupAnalysis() {
  * Initialize the application
  */
 function initializeApp() {
-  // Initialize application state
-  AppState.init();
+    // Initialize application state
+    AppState.init();
 
-  // Initialize UI with stored preferences
-  initializeUI();
+    // Initialize UI with stored preferences
+    initializeUI();
 
-  // Set up event listeners
-  setupEventListeners();
+    // Set up event listeners
+    setupEventListeners();
 
-  // First load the dataset list to ensure dropdown is populated
-  loadDatasetList()
-    .then(() => {
-      // Check for shared state in URL hash
-      const hash = location.hash.slice(1);
-      if (hash) {
-        const shared = decodeShareState(hash);
-        if (shared) {
-          // Explicitly handle custom labels if they exist in the shared state
-          if (shared.customLabels && Object.keys(shared.customLabels).length > 0) {
-            console.log("Found custom labels in shared state:", shared.customLabels);
-            AppState.selection.customLabels = shared.customLabels;
-            saveState("customLabels", shared.customLabels);
-          }
+    // Initialize plot visibility
+    updatePlotVisibility();
 
-          applySharedState(shared);
-          return; // ✅ Don't run normal startup; already handled
-        }
-      }
+    // First load the dataset list to ensure dropdown is populated
+    loadDatasetList()
+        .then(() => {
+            // Check for shared state in URL hash
+            const hash = location.hash.slice(1);
+            if (hash) {
+                const shared = decodeShareState(hash);
+                if (shared) {
+                    // Explicitly handle custom labels if they exist in the shared state
+                    if (shared.customLabels && Object.keys(shared.customLabels).length > 0) {
+                        console.log("Found custom labels in shared state:", shared.customLabels);
+                        AppState.selection.customLabels = shared.customLabels;
+                        saveState("customLabels", shared.customLabels);
+                    }
 
-      // Only run if no shared state
-      loadAndRenderData(AppState.preferences.convoSlug);
-    });
+                    applySharedState(shared);
+                    return; // ✅ Don't run normal startup; already handled
+                }
+            }
+
+            // Only run if no shared state
+            loadAndRenderData(AppState.preferences.convoSlug);
+        });
 }
 
 /**
