@@ -13,7 +13,6 @@ const Config = {
 
     // Developer feature flags
     features: {
-        showOverallStats: true, // Show overall stats bar chart instead of simple percentage
     },
 
     // Reference: https://matplotlib.org/stable/users/explain/colors/colormaps.html#qualitative
@@ -107,6 +106,7 @@ const AppState = {
         flipX: false,
         flipY: false,
         scaleOpacityWithVotes: false,
+        showOverallComparison: true,
         showGroupComparison: true,
         showGroupLabels: false,
         showVotes: false,
@@ -156,6 +156,7 @@ const AppState = {
         this.preferences.showPCA = loadState("showPCA", mobileDefaults.showPCA);
         this.preferences.showPaCMAP = loadState("showPaCMAP", mobileDefaults.showPaCMAP);
         this.preferences.showLocalMAP = loadState("showLocalMAP", mobileDefaults.showLocalMAP);
+        this.preferences.showOverallComparison = loadState("showOverallComparison", true);
         this.ui.dotOpacity = loadState("dotOpacity", Config.dotOpacity);
         this.ui.dotSize = loadState("dotSize", Config.dotSize);
 

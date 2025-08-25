@@ -25,6 +25,7 @@ function initializeUI() {
     document.getElementById("flip-x-checkbox").checked = AppState.preferences.flipX;
     document.getElementById("flip-y-checkbox").checked = AppState.preferences.flipY;
     document.getElementById("show-group-comparison-checkbox").checked = AppState.preferences.showGroupComparison;
+    document.getElementById("show-overall-comparison-checkbox").checked = AppState.preferences.showOverallComparison;
     document.getElementById("show-group-labels-checkbox").checked = AppState.preferences.showGroupLabels;
     document.getElementById("show-votes-checkbox").checked = AppState.preferences.showVotes;
     document.getElementById("highlight-pass-votes-checkbox").checked = AppState.preferences.highlightPassVotes;
@@ -258,6 +259,17 @@ function setupEventListeners() {
     document.getElementById("show-group-comparison-checkbox").addEventListener("change", (e) => {
         AppState.preferences.showGroupComparison = e.target.checked;
         saveState("showGroupComparison", AppState.preferences.showGroupComparison);
+
+        // If auto-analyze is enabled and analysis results are already displayed, rerun the analysis to update the display
+        if (document.getElementById("auto-analyze-checkbox").checked && document.getElementById("rep-comments-output").innerHTML !== "") {
+            applyGroupAnalysis();
+        }
+    });
+
+    // Show overall comparison checkbox
+    document.getElementById("show-overall-comparison-checkbox").addEventListener("change", (e) => {
+        AppState.preferences.showOverallComparison = e.target.checked;
+        saveState("showOverallComparison", AppState.preferences.showOverallComparison);
 
         // If auto-analyze is enabled and analysis results are already displayed, rerun the analysis to update the display
         if (document.getElementById("auto-analyze-checkbox").checked && document.getElementById("rep-comments-output").innerHTML !== "") {
@@ -1732,8 +1744,11 @@ function renderConsensusContent(consensusStatements, allGroupColors, groupSizes)
     html += `<tr>`;
     html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-center font-medium text-gray-600 w-16"></th>`; // Empty action column header
     html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600">ID</th>`;
+    html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600">%</th>`;
     html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600">Type</th>`;
-    html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600">${Config.features.showOverallStats ? 'Overall' : '%'}</th>`;
+    if (AppState.preferences.showOverallComparison) {
+        html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600">Overall</th>`;
+    }
 
     // Add group comparison columns if enabled
     if (AppState.preferences.showGroupComparison) {
@@ -1791,11 +1806,12 @@ function renderConsensusContent(consensusStatements, allGroupColors, groupSizes)
                 </button>
         </td>`;
         html += `<td class="py-2 px-3 border-b border-gray-200">${stmt.tid}</td>`;
+        html += `<td class="py-2 px-3 border-b border-gray-200">${successRate}%</td>`;
         html += `<td class="py-2 px-3 border-b border-gray-200">
             <span style="color: ${stmt.color}; font-weight: bold;">${stmt.type}</span>
         </td>`;
-        html += `<td class="py-2 px-3 border-b border-gray-200">`;
-        if (Config.features.showOverallStats) {
+        if (AppState.preferences.showOverallComparison) {
+            html += `<td class="py-2 px-3 border-b border-gray-200">`;
             // Calculate overall stats for this statement
             const overallStats = calculateOverallStats(stmt.tid, groupSizes);
             const barChart = createMoreCompactBarChart({
@@ -1805,10 +1821,8 @@ function renderConsensusContent(consensusStatements, allGroupColors, groupSizes)
                 width: 60
             });
             html += barChart.outerHTML;
-        } else {
-            html += `${successRate}%`;
+            html += `</td>`;
         }
-        html += `</td>`;
 
         // Add group comparison charts if enabled
         if (AppState.preferences.showGroupComparison && AppState.data.groupVotes) {
@@ -2119,7 +2133,10 @@ function renderRepCommentsTable(repComments) {
         headerRow.appendChild(actionTh);
 
         // Basic columns
-        const basicHeaders = ["ID", "Type", Config.features.showOverallStats ? "Overall" : "%"];
+        const basicHeaders = ["ID", "%", "Type"];
+        if (AppState.preferences.showOverallComparison) {
+            basicHeaders.push("Overall");
+        }
         basicHeaders.forEach((h) => {
             const th = document.createElement("th");
             th.textContent = h;
@@ -2227,17 +2244,23 @@ function renderRepCommentsTable(repComments) {
             tdId.className = "py-2 px-3 border-b border-gray-200";
             tr.appendChild(tdId);
 
+            // % Support
+            const tdPct = document.createElement("td");
+            tdPct.className = "py-2 px-3 border-b border-gray-200";
+            tdPct.textContent = `${Math.round((c.n_success / c.n_trials) * 100)}%`;
+            tr.appendChild(tdPct);
+
             // Rep Type
             const tdRep = document.createElement("td");
             tdRep.innerHTML = `<span style="color: ${repColor}; font-weight: bold;">${c.repful_for}</span>`;
             tdRep.className = "py-2 px-3 border-b border-gray-200";
             tr.appendChild(tdRep);
 
-            // % Support or Overall Stats
-            const tdPct = document.createElement("td");
-            tdPct.className = "py-2 px-3 border-b border-gray-200";
+            // Add Overall column if enabled
+            if (AppState.preferences.showOverallComparison) {
+                const tdOverall = document.createElement("td");
+                tdOverall.className = "py-2 px-3 border-b border-gray-200";
 
-            if (Config.features.showOverallStats) {
                 // Calculate overall stats for this statement
                 const overallStats = calculateOverallStats(c.tid, groupSizes);
                 const barChart = createMoreCompactBarChart({
@@ -2246,12 +2269,9 @@ function renderRepCommentsTable(repComments) {
                     voteColors: getCurrentVoteColors(),
                     width: 60
                 });
-                tdPct.appendChild(barChart);
-            } else {
-                tdPct.textContent = `${Math.round((c.n_success / c.n_trials) * 100)}%`;
+                tdOverall.appendChild(barChart);
+                tr.appendChild(tdOverall);
             }
-
-            tr.appendChild(tdPct);
 
             // Add bar charts for each group if comparison is enabled
             if (AppState.preferences.showGroupComparison) {
