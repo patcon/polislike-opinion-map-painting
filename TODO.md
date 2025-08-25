@@ -4,3 +4,4 @@
 - [ ] add ability to calculate and store hulls in the config data for labels
 - [ ] add default tab to show all statements (maybe show text on tab line to encourage painting)
 - [ ] show compact bar chart in overall column, instead of simple percent value.
+- [ ] min votes should apply to consensus tab too
