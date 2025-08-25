@@ -128,14 +128,20 @@ function setupEventListeners() {
     document.getElementById("flip-x-checkbox").addEventListener("change", (e) => {
         AppState.preferences.flipX = e.target.checked;
         saveState("flipX", AppState.preferences.flipX);
-        renderAllPlots();
+
+        withLoadingIndicator(() => {
+            renderAllPlots();
+        });
     });
 
     // Flip Y axis
     document.getElementById("flip-y-checkbox").addEventListener("change", (e) => {
         AppState.preferences.flipY = e.target.checked;
         saveState("flipY", AppState.preferences.flipY);
-        renderAllPlots();
+
+        withLoadingIndicator(() => {
+            renderAllPlots();
+        });
     });
 
     // Auto analyze
@@ -187,7 +193,10 @@ function setupEventListeners() {
         AppState.ui.dotOpacity = parseFloat(opacitySlider.value);
         opacityValueLabel.textContent = AppState.ui.dotOpacity;
         saveState("dotOpacity", AppState.ui.dotOpacity);
-        renderAllPlots(); // Reapply to all plots
+
+        withLoadingIndicator(() => {
+            renderAllPlots(); // Reapply to all plots
+        });
     });
 
     // Dot size slider
@@ -197,7 +206,10 @@ function setupEventListeners() {
         AppState.ui.dotSize = parseFloat(dotSizeSlider.value);
         dotSizeValueLabel.textContent = AppState.ui.dotSize;
         saveState("dotSize", AppState.ui.dotSize);
-        renderAllPlots(); // Reapply to all plots
+
+        withLoadingIndicator(() => {
+            renderAllPlots(); // Reapply to all plots
+        });
     });
 
     // Scale opacity with vote count checkbox
@@ -240,7 +252,10 @@ function setupEventListeners() {
     document.getElementById("show-group-labels-checkbox").addEventListener("change", (e) => {
         AppState.preferences.showGroupLabels = e.target.checked;
         saveState("showGroupLabels", AppState.preferences.showGroupLabels);
-        renderAllPlots(); // Rerender plots to show/hide labels
+
+        withLoadingIndicator(() => {
+            renderAllPlots(); // Rerender plots to show/hide labels
+        });
     });
 
     // Run analysis button
@@ -252,18 +267,9 @@ function setupEventListeners() {
         saveState("showVotes", AppState.preferences.showVotes);
         updateStatementTextDisplay();
 
-        // Show loading indicator since plot will re-render
-        showPlotLoader();
-
-        // Use setTimeout to ensure the spinner is shown before the potentially blocking operations
-        setTimeout(() => {
-            try {
-                toggleVoteColors(e.target.checked);
-            } finally {
-                // Always hide the loader when done
-                hidePlotLoader();
-            }
-        }, 10);
+        withLoadingIndicator(() => {
+            toggleVoteColors(e.target.checked);
+        });
     });
 
     document.getElementById("statement-id-input").addEventListener("change", (e) => {
@@ -272,18 +278,9 @@ function setupEventListeners() {
         updateStatementTextDisplay();
 
         if (document.getElementById("show-votes-checkbox").checked) {
-            // Show loading indicator since plot will re-render
-            showPlotLoader();
-
-            // Use setTimeout to ensure the spinner is shown before the potentially blocking operations
-            setTimeout(() => {
-                try {
-                    toggleVoteColors(true);
-                } finally {
-                    // Always hide the loader when done
-                    hidePlotLoader();
-                }
-            }, 10);
+            withLoadingIndicator(() => {
+                toggleVoteColors(true);
+            });
         }
     });
 
@@ -316,8 +313,28 @@ function setupEventListeners() {
     document.getElementById("keep-colored-on-top-checkbox").addEventListener("change", (e) => {
         AppState.preferences.keepColoredOnTop = e.target.checked;
         saveState("keepColoredOnTop", AppState.preferences.keepColoredOnTop);
-        renderAllPlots(); // Re-render to apply new layering
+
+        withLoadingIndicator(() => {
+            renderAllPlots(); // Re-render to apply new layering
+        });
     });
+}
+
+/**
+ * Helper function to execute an operation with loading indicator
+ * @param {Function} operation - The operation to execute
+ * @param {number} delay - Delay in milliseconds before executing operation (default: 10)
+ */
+function withLoadingIndicator(operation, delay = 10) {
+    showPlotLoader();
+
+    setTimeout(() => {
+        try {
+            operation();
+        } finally {
+            hidePlotLoader();
+        }
+    }, delay);
 }
 
 /**
