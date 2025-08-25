@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added basic Google Analytics tracking.
 - Added a minimum vote threshold for the group analysis, to help filter out insignificant statements in larger conversations.
+- Added checkbox to bring any colored participants (painted or voted, depending on mode) to the top layer, so they're not hidden behind black inactive participants.
 
 ### Fixed
 - Updated the BG2050 dataset to work with vote color mode.

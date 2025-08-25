@@ -28,6 +28,7 @@ function initializeUI() {
     document.getElementById("show-group-labels-checkbox").checked = AppState.preferences.showGroupLabels;
     document.getElementById("show-votes-checkbox").checked = AppState.preferences.showVotes;
     document.getElementById("highlight-pass-votes-checkbox").checked = AppState.preferences.highlightPassVotes;
+    document.getElementById("keep-colored-on-top-checkbox").checked = AppState.preferences.keepColoredOnTop;
 
     // Initialize min vote count input
     document.getElementById("min-vote-count").value = loadState("minVoteCount", 1);
@@ -286,6 +287,13 @@ function setupEventListeners() {
             applyGroupAnalysis();
         }
     });
+
+    // Keep colored points on top checkbox
+    document.getElementById("keep-colored-on-top-checkbox").addEventListener("change", (e) => {
+        AppState.preferences.keepColoredOnTop = e.target.checked;
+        saveState("keepColoredOnTop", AppState.preferences.keepColoredOnTop);
+        renderAllPlots(); // Re-render to apply new layering
+    });
 }
 
 /**
@@ -538,9 +546,27 @@ function renderPlot(svgId, data, title) {
             .attr("stroke-dasharray", "2,2");
     }
 
+    // Create circles with proper layering if keepColoredOnTop is enabled
+    let circleData = data.map((d, i) => ({ d, i }));
+
+    if (AppState.preferences.keepColoredOnTop) {
+        // Sort data so uncolored points come first (rendered behind), colored points come last (rendered on top)
+        circleData = circleData.sort((a, b) => {
+            const aHasColor = AppState.preferences.showVotes
+                ? (AppState.selection.voteColorByIndex[a.i] && AppState.selection.voteColorByIndex[a.i] !== "rgba(0,0,0,0.5)")
+                : (AppState.selection.colorByIndex[a.i] && AppState.selection.colorByIndex[a.i] !== "rgba(0,0,0,0.5)");
+            const bHasColor = AppState.preferences.showVotes
+                ? (AppState.selection.voteColorByIndex[b.i] && AppState.selection.voteColorByIndex[b.i] !== "rgba(0,0,0,0.5)")
+                : (AppState.selection.colorByIndex[b.i] && AppState.selection.colorByIndex[b.i] !== "rgba(0,0,0,0.5)");
+
+            // Uncolored points (false) come first, colored points (true) come last
+            return aHasColor - bHasColor;
+        });
+    }
+
     svg
         .selectAll("circle")
-        .data(data.map((d, i) => ({ d, i })))
+        .data(circleData)
         .enter()
         .append("circle")
         .attr("cx", ({ d }) => scales.x(d[0]))

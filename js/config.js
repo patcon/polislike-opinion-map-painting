@@ -106,6 +106,7 @@ const AppState = {
         showGroupLabels: false,
         showVotes: false,
         highlightPassVotes: false,
+        keepColoredOnTop: false,
     },
 
     /**
@@ -128,6 +129,7 @@ const AppState = {
         this.preferences.highlightPassVotes = loadState("highlightPassVotes", false);
         this.preferences.showVotes = loadState("showVotes", false);
         this.preferences.statementId = loadState("statementId", "0");
+        this.preferences.keepColoredOnTop = loadState("keepColoredOnTop", false);
         this.ui.dotOpacity = loadState("dotOpacity", Config.dotOpacity);
         this.ui.dotSize = loadState("dotSize", Config.dotSize);
 

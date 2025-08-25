@@ -94,7 +94,8 @@ function applySharedState({
     showVotes = false,
     statementId = "0",
     highlightPassVotes = false,
-    minVoteCount = 1
+    minVoteCount = 1,
+    keepColoredOnTop = false
 }) {
     // Update AppState
     AppState.preferences.convoSlug = dataset;
@@ -107,6 +108,7 @@ function applySharedState({
     AppState.preferences.showVotes = showVotes;
     AppState.preferences.statementId = statementId;
     AppState.preferences.highlightPassVotes = highlightPassVotes;
+    AppState.preferences.keepColoredOnTop = keepColoredOnTop;
 
     // Add custom colors to the palette if they exist
     if (customColors.length > 0) {
@@ -146,6 +148,7 @@ function applySharedState({
     document.getElementById("statement-id-input").value = statementId;
     document.getElementById("highlight-pass-votes-checkbox").checked = highlightPassVotes;
     document.getElementById("min-vote-count").value = minVoteCount;
+    document.getElementById("keep-colored-on-top-checkbox").checked = keepColoredOnTop;
 
     // Save to session storage
     saveState("dataset", dataset);
@@ -159,6 +162,7 @@ function applySharedState({
     saveState("statementId", statementId);
     saveState("highlightPassVotes", highlightPassVotes);
     saveState("minVoteCount", minVoteCount);
+    saveState("keepColoredOnTop", keepColoredOnTop);
 
     // Ensure custom labels are set before loading data
     AppState.selection.customLabels = customLabels || {};
@@ -209,7 +213,8 @@ function encodeShareState(includePaint = true) {
         showVotes: AppState.preferences.showVotes,
         statementId: AppState.preferences.statementId,
         highlightPassVotes: AppState.preferences.highlightPassVotes,
-        minVoteCount: loadState("minVoteCount", 1)
+        minVoteCount: loadState("minVoteCount", 1),
+        keepColoredOnTop: AppState.preferences.keepColoredOnTop
     };
 
     // Only include labelIndices if includePaint is true and there are painted participants
@@ -304,7 +309,8 @@ function decodeShareState(hashString) {
             showVotes: parsed.showVotes || false,
             statementId: parsed.statementId || "0",
             highlightPassVotes: parsed.highlightPassVotes || false,
-            minVoteCount: parsed.minVoteCount || 1
+            minVoteCount: parsed.minVoteCount || 1,
+            keepColoredOnTop: parsed.keepColoredOnTop || false
         };
     } catch (e) {
         console.warn("Invalid share state", e);
