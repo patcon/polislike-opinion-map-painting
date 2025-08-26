@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - :tada: Added ability to show arbitary plots and have it take up full screen width.
 - When arriving fresh on mobile, just show the LocalMAP plot.
 - Use a bar chart for overall comparison for each statement in group analysis.
+- Ensure minimum vote value filters consensus tab statements too.
 
 ### Fixed
 - Updated the BG2050 dataset to work with vote color mode.

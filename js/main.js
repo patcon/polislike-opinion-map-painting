@@ -391,6 +391,8 @@ function selectConsensusStatements(
   probThreshold = 0.5,
   confidence = 0.9
 ) {
+  // Get the minimum vote count threshold from the UI
+  const minVoteCount = parseInt(document.getElementById("min-vote-count")?.value) || 1;
   // Get all unique comment IDs across all groups
   const allCommentIds = new Set();
   Object.values(groupVotes).forEach(groupMatrix => {
@@ -427,6 +429,9 @@ function selectConsensusStatements(
     });
 
     if (totalSeen === 0) return; // Skip if no votes
+
+    // Apply minimum vote count filter - skip statements that don't meet the threshold
+    if (totalSeen < minVoteCount) return;
 
     // Calculate proportions (with Laplace smoothing)
     const pa = (totalAgrees + 1) / (totalSeen + 2);
