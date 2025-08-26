@@ -1,7 +1,14 @@
 # To Dos
 
-- [x] show compact bar chart in overall column, instead of simple percent value.
-- [ ] when new dataset is selected, reset statement ID to 0 (and uncheck "show votes"?)
-- [ ] min votes should apply to consensus tab too
-- [ ] add default tab to show all statements (maybe show text on tab line to encourage painting)
-- [ ] add ability to calculate and store hulls in the config data for labels
+- [x] feat: show compact bar chart in overall column, instead of simple percent value.
+- [ ] improve: figure out why consensus statements don't seem to be working well for BG2050.
+- [ ] improve: when new dataset is selected, reset statement ID to 0 (and uncheck "show votes"?)
+- [x] improve: min votes should apply to consensus tab too
+- [ ] feat: add default tab to show all statements (maybe show text on tab line to encourage painting)
+- [ ] improve: when group comparison disabled, make single large bar chart for overall
+- [ ] bug: overall column should ALWAYS show in consensus tab
+- [ ] improve: when group comparison disabled, still show the group letter above in header
+- [ ] feat: add checkbox to make bar charts relative to group totals (remove white part that condenses)
+- [ ] improve: if not in vote color mode, no need to redraw plots when changing color scheme
+- [ ] bug: algorithm description popup shows below fold if button is near the top of page when clicked.
+- [ ] feat: add ability to calculate and store hulls git in the config data for labels
