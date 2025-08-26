@@ -39,10 +39,9 @@ function initializeUI() {
     // Initialize min vote count input
     document.getElementById("min-vote-count").value = loadState("minVoteCount", 1);
 
-    // Initialize statement ID input with saved value and enable/disable based on checkbox state
+    // Initialize statement ID input with saved value
     const statementIdInput = document.getElementById("statement-id-input");
     statementIdInput.value = AppState.preferences.statementId;
-    statementIdInput.disabled = !AppState.preferences.showVotes;
 
     // Initialize sliders
     document.getElementById("opacity-slider").value = AppState.ui.dotOpacity;
@@ -109,6 +108,21 @@ function setupEventListeners() {
         const selectedDataset = e.target.value;
         AppState.preferences.convoSlug = selectedDataset;
         saveState("dataset", selectedDataset);
+
+        // Reset statement ID to zero when new dataset is selected
+        AppState.preferences.statementId = "0";
+        saveState("statementId", "0");
+        document.getElementById("statement-id-input").value = "0";
+
+        // Uncheck "show votes" checkbox when new dataset is selected
+        AppState.preferences.showVotes = false;
+        saveState("showVotes", false);
+        document.getElementById("show-votes-checkbox").checked = false;
+
+        // Clear vote colors and update statement text display
+        AppState.selection.voteColorByIndex = [];
+        updateStatementTextDisplay();
+
         loadAndRenderData(selectedDataset);
     });
 
@@ -400,8 +414,6 @@ function getCurrentVoteColors() {
  * @param {boolean} showVotes - Whether to show vote colors
  */
 async function toggleVoteColors(showVotes) {
-    const statementIdInput = document.getElementById("statement-id-input");
-    statementIdInput.disabled = !showVotes;
     AppState.preferences.showVotes = showVotes;
     saveState("showVotes", showVotes);
 
@@ -2497,8 +2509,6 @@ function handleActionIconClick(statementId) {
         AppState.preferences.statementId = statementId;
         saveState("statementId", statementId);
 
-        // Enable the input if it was disabled
-        statementIdInput.disabled = false;
     }
 
     // Update the statement text display

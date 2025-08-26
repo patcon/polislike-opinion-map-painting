@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - When arriving fresh on mobile, just show the LocalMAP plot.
 - Use a bar chart for overall comparison for each statement in group analysis.
 - Ensure minimum vote value filters consensus tab statements too.
+- Disable and reset vote color mode when changing datasets.
+- Enable statement ID input even when "show votes" checkbox unchecked.
 
 ### Fixed
 - Updated the BG2050 dataset to work with vote color mode.
