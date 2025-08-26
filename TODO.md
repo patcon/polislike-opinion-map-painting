@@ -2,7 +2,7 @@
 
 - [x] feat: show compact bar chart in overall column, instead of simple percent value.
 - [ ] improve: figure out why consensus statements don't seem to be working well for BG2050.
-- [ ] improve: when new dataset is selected, reset statement ID to 0 (and uncheck "show votes"?)
+- [x] improve: when new dataset is selected, reset statement ID to 0 (and uncheck "show votes"?)
 - [x] improve: min votes should apply to consensus tab too
 - [ ] feat: add default tab to show all statements (maybe show text on tab line to encourage painting)
 - [ ] improve: when group comparison disabled, make single large bar chart for overall
@@ -12,3 +12,9 @@
 - [ ] improve: if not in vote color mode, no need to redraw plots when changing color scheme
 - [ ] bug: algorithm description popup shows below fold if button is near the top of page when clicked.
 - [ ] feat: add ability to calculate and store hulls git in the config data for labels
+- [ ] feat: do code spike converion to solidJS
+- [ ] feat: convert generate.py into edge function in python
+    - https://vercel.com/docs/functions/runtimes/python
+- [ ] chore: benchmark remote CSV loading with duckdb
+    - [ ] improve: migrate to duckdb
+- [ ] feat: add search bar to filter statements by text
