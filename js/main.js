@@ -108,7 +108,6 @@ async function getGroupVoteMatrices(db, labelArray) {
     groupVotes[label] = voteMatrix;
   }
 
-  console.log(groupVotes);
   return groupVotes;
 }
 
@@ -315,7 +314,7 @@ function calculateRepresentativeComments(groupVotes, commentTexts) {
         disagrees = 0,
         passes = 0,
         seen = 0;
-      console.log(groupMatrix)
+
       for (const voteRow of Object.values(groupMatrix)) {
         const vote = voteRow[commentId];
         if (vote != null) {
