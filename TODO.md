@@ -4,6 +4,7 @@
 - [ ] improve: figure out why consensus statements don't seem to be working well for BG2050.
 - [x] improve: when new dataset is selected, reset statement ID to 0 (and uncheck "show votes"?)
 - [x] improve: min votes should apply to consensus tab too
+- [ ] improve: dim the "overall" column bar charts for group tabs, so main group column is emphasized.
 - [ ] feat: add default tab to show all statements (maybe show text on tab line to encourage painting)
 - [ ] improve: when group comparison disabled, make single large bar chart for overall
 - [ ] bug: overall column should ALWAYS show in consensus tab
@@ -18,3 +19,6 @@
 - [ ] chore: benchmark remote CSV loading with duckdb
     - [ ] improve: migrate to duckdb
 - [ ] feat: add search bar to filter statements by text
+- [ ] feat: tagging statements and listing by tag (for storytelling)
+- [ ] feat: showing list of recent statements by "show votes" checkbox
+- [ ] feat: animate transitions between projections
