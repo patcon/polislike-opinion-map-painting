@@ -1,601 +1,406 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
-        <meta content="utf-8" http-equiv="encoding" />
 
-        <!-- Open Graph -->
-        <meta
-            property="og:title"
-            content="Polis-Like Opinion Landscape Painter"
-        />
-        <meta
-            property="og:description"
-            content="Explore consensus and disagreement visually using opinion map painting."
-        />
-        <meta
-            property="og:image"
-            content="https://patcon.github.io/polislike-opinion-map-painting/assets/cover.jpg"
-        />
-        <meta
-            property="og:url"
-            content="https://patcon.github.io/polislike-opinion-map-painting/"
-        />
-        <meta property="og:type" content="website" />
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <meta content="utf-8" http-equiv="encoding" />
 
-        <!-- Twitter Card -->
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta
-            name="twitter:title"
-            content="Polis-Like Opinion Landscape Painter"
-        />
-        <meta
-            name="twitter:description"
-            content="Explore consensus and disagreement visually using opinion map painting."
-        />
-        <meta
-            name="twitter:image"
-            content="https://patcon.github.io/polislike-opinion-map-painting/assets/cover.jpg"
-        />
+    <!-- Open Graph -->
+    <meta property="og:title" content="Polis-Like Opinion Landscape Painter" />
+    <meta property="og:description" content="Explore consensus and disagreement visually using opinion map painting." />
+    <meta property="og:image" content="https://patcon.github.io/polislike-opinion-map-painting/assets/cover.jpg" />
+    <meta property="og:url" content="https://patcon.github.io/polislike-opinion-map-painting/" />
+    <meta property="og:type" content="website" />
 
-        <!-- Tailwind CSS -->
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script>
-            tailwind.config = {
-                theme: {
-                    extend: {
-                        colors: {
-                            primary: {
-                                50: "#f0f9ff",
-                                100: "#e0f2fe",
-                                200: "#bae6fd",
-                                300: "#7dd3fc",
-                                400: "#38bdf8",
-                                500: "#0ea5e9",
-                                600: "#0284c7",
-                                700: "#0369a1",
-                                800: "#075985",
-                                900: "#0c4a6e",
-                            },
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Polis-Like Opinion Landscape Painter" />
+    <meta name="twitter:description"
+        content="Explore consensus and disagreement visually using opinion map painting." />
+    <meta name="twitter:image" content="https://patcon.github.io/polislike-opinion-map-painting/assets/cover.jpg" />
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: "#f0f9ff",
+                            100: "#e0f2fe",
+                            200: "#bae6fd",
+                            300: "#7dd3fc",
+                            400: "#38bdf8",
+                            500: "#0ea5e9",
+                            600: "#0284c7",
+                            700: "#0369a1",
+                            800: "#075985",
+                            900: "#0c4a6e",
                         },
                     },
                 },
-            };
-        </script>
+            },
+        };
+    </script>
 
-        <!-- Custom styles that need to be preserved -->
-        <style>
-            @keyframes marching-ants {
-                to {
-                    stroke-dashoffset: 6;
-                }
+    <!-- Custom styles that need to be preserved -->
+    <style>
+        @keyframes marching-ants {
+            to {
+                stroke-dashoffset: 6;
             }
+        }
 
-            @keyframes spin {
-                to {
-                    transform: rotate(360deg);
-                }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
             }
-        </style>
+        }
+    </style>
 
-        <!-- External libraries -->
-        <script src="https://d3js.org/d3.v7.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
-        <link
-            rel="stylesheet"
-            href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css"
-        />
+    <!-- External libraries -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css" />
 
-        <!-- Google Analytics -->
-        <script
-            async
-            src="https://www.googletagmanager.com/gtag/js?id=G-VM4LWZ82ZD"
-        ></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag() {
-                dataLayer.push(arguments);
-            }
-            gtag("js", new Date());
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VM4LWZ82ZD"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+        gtag("js", new Date());
 
-            gtag("config", "G-VM4LWZ82ZD");
-        </script>
-    </head>
+        gtag("config", "G-VM4LWZ82ZD");
+    </script>
+</head>
 
-    <body class="bg-gray-50 text-gray-800 p-4 md:p-6 max-w-7xl mx-auto">
-        <a
-            class="github-fork-ribbon"
-            href="https://github.com/patcon/polislike-opinion-map-painting"
-            data-ribbon="Fork me on GitHub"
-            title="Fork me on GitHub"
-            >Fork me on GitHub</a
-        >
+<body class="bg-gray-50 text-gray-800 p-4 md:p-6 max-w-7xl mx-auto">
+    <a class="github-fork-ribbon" href="https://github.com/patcon/polislike-opinion-map-painting"
+        data-ribbon="Fork me on GitHub" title="Fork me on GitHub">Fork me on GitHub</a>
 
-        <header class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">
-                Polis Opinion Landscape Painter
-            </h1>
-            <p class="text-gray-600">
-                Explore consensus and disagreement visually using opinion map
-                painting.<br />(Drag to re-paint groups. Group statements below
-                will be recalculated.)
-            </p>
-        </header>
+    <header class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">
+            Polis Opinion Landscape Painter
+        </h1>
+        <p class="text-gray-600">
+            Explore consensus and disagreement visually using opinion map
+            painting.<br />(Drag to re-paint groups. Group statements below
+            will be recalculated.)
+        </p>
+    </header>
 
-        <div class="bg-white rounded-lg shadow-md p-4 md:p-6 mb-6">
-            <!-- Dataset selection and plot selection - moved to top line -->
-            <div class="flex flex-wrap items-center gap-4 mb-4">
-                <div class="flex items-center space-x-2">
-                    <label for="dataset" class="font-medium">Dataset:</label>
-                    <select
-                        id="dataset"
-                        class="rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50 py-1 px-2 bg-white"
-                    ></select>
-                </div>
-
-                <div class="flex items-center space-x-2">
-                    <label for="plot-selection" class="font-medium"
-                        >Show plots:</label
-                    >
-                    <div class="flex items-center space-x-3">
-                        <label
-                            class="flex items-center space-x-1 cursor-pointer"
-                        >
-                            <input
-                                type="checkbox"
-                                id="show-pca"
-                                checked
-                                class="rounded text-primary-600 focus:ring-primary-500"
-                            />
-                            <span class="text-sm">PCA</span>
-                        </label>
-                        <label
-                            class="flex items-center space-x-1 cursor-pointer"
-                        >
-                            <input
-                                type="checkbox"
-                                id="show-pacmap"
-                                checked
-                                class="rounded text-primary-600 focus:ring-primary-500"
-                            />
-                            <span class="text-sm">PaCMAP</span>
-                        </label>
-                        <label
-                            class="flex items-center space-x-1 cursor-pointer"
-                        >
-                            <input
-                                type="checkbox"
-                                id="show-localmap"
-                                checked
-                                class="rounded text-primary-600 focus:ring-primary-500"
-                            />
-                            <span class="text-sm">LocalMAP</span>
-                        </label>
-                    </div>
-                </div>
+    <div class="bg-white rounded-lg shadow-md p-4 md:p-6 mb-6">
+        <!-- Dataset selection and plot selection - moved to top line -->
+        <div class="flex flex-wrap items-center gap-4 mb-4">
+            <div class="flex items-center space-x-2">
+                <label for="dataset" class="font-medium">Dataset:</label>
+                <select id="dataset"
+                    class="rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50 py-1 px-2 bg-white"></select>
             </div>
 
-            <div
-                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 mb-4"
-            >
-                <!-- Color selection -->
-                <div class="flex items-center space-x-2">
-                    <label for="color" class="font-medium">Custom color:</label>
-                    <input
-                        type="color"
-                        id="color"
-                        value="#1f77b4"
-                        class="h-8 w-12 rounded border border-gray-300 cursor-pointer"
-                    />
-                </div>
-
-                <!-- Additive painting toggle -->
-                <div class="flex items-center space-x-2">
-                    <label class="flex items-center space-x-2 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            id="toggle-additive"
-                            class="rounded text-primary-600 focus:ring-primary-500"
-                        />
-                        <span>Additive painting by default</span>
-                    </label>
-                    <small class="text-gray-500"
-                        >(Otherwise, Cmd-click for additive)</small
-                    >
-                </div>
-            </div>
-
-            <!-- Color palette -->
-            <div class="mb-4">
-                <div id="color-palette" class="flex flex-wrap gap-2 mb-2"></div>
-                <small class="text-gray-500"
-                    >Press keys 0–9 to select colors</small
-                >
-            </div>
-
-            <div
-                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4"
-            >
-                <!-- Axis flipping -->
-                <div class="flex items-center space-x-4">
-                    <label class="flex items-center space-x-2 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            id="flip-x-checkbox"
-                            class="rounded text-primary-600 focus:ring-primary-500"
-                        />
-                        <span>Flip X axis</span>
-                    </label>
-                    <label class="flex items-center space-x-2 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            id="flip-y-checkbox"
-                            class="rounded text-primary-600 focus:ring-primary-500"
-                        />
-                        <span>Flip Y axis</span>
-                    </label>
-                </div>
-
-                <!-- Opacity slider -->
-                <div class="flex items-center space-x-2">
-                    <label for="opacity-slider" class="font-medium"
-                        >Opacity:</label
-                    >
-                    <input
-                        type="range"
-                        id="opacity-slider"
-                        min="0.05"
-                        max="1"
-                        step="0.05"
-                        value="0.3"
-                        class="w-32 accent-primary-600"
-                    />
-                    <span id="opacity-value" class="text-sm">0.3</span>
-                </div>
-
-                <!-- Scale opacity with vote count -->
-                <div class="flex items-center space-x-2">
-                    <label class="flex items-center space-x-2 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            id="scale-opacity-checkbox"
-                            class="rounded text-primary-600 focus:ring-primary-500"
-                        />
-                        <span>Scale opacity with vote count</span>
-                    </label>
-                </div>
-
-                <!-- Show group labels -->
-                <div class="flex items-center space-x-2">
-                    <label class="flex items-center space-x-2 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            id="show-group-labels-checkbox"
-                            class="rounded text-primary-600 focus:ring-primary-500"
-                        />
-                        <span>Show group labels</span>
-                    </label>
-                </div>
-
-                <!-- Dot size slider -->
-                <div class="flex items-center space-x-2">
-                    <label for="dot-size-slider" class="font-medium"
-                        >Dot Size:</label
-                    >
-                    <input
-                        type="range"
-                        id="dot-size-slider"
-                        min="1"
-                        max="5"
-                        step="0.5"
-                        value="3"
-                        class="w-32 accent-primary-600"
-                    />
-                    <span id="dot-size-value" class="text-sm">3</span>
-                </div>
-
-                <!-- Highlight pass votes -->
-                <div class="flex items-center space-x-2">
-                    <label class="flex items-center space-x-2 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            id="highlight-pass-votes-checkbox"
-                            class="rounded text-primary-600 focus:ring-primary-500"
-                        />
-                        <span>Highlight pass votes (yellow)</span>
-                    </label>
-                </div>
-
-                <!-- Keep colored points on top -->
-                <div class="flex items-center space-x-2">
-                    <label class="flex items-center space-x-2 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            id="keep-colored-on-top-checkbox"
-                            class="rounded text-primary-600 focus:ring-primary-500"
-                        />
-                        <span>Keep colored points on top</span>
-                    </label>
-                </div>
-            </div>
-
-            <!-- Show votes by statement ID - moved below grid -->
-            <div class="flex flex-col space-y-2 mb-4">
-                <div class="flex items-center space-x-2">
-                    <label class="flex items-center space-x-2 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            id="show-votes-checkbox"
-                            class="rounded text-primary-600 focus:ring-primary-500"
-                        />
-                        <span>Show votes by statement ID:</span>
-                    </label>
-                    <input
-                        type="number"
-                        pattern="\d*"
-                        min="0"
-                        id="statement-id-input"
-                        class="w-20 rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50 py-1 px-2 bg-white"
-                    />
-                </div>
-                <div
-                    id="statement-text-display"
-                    class="text-xs text-gray-600 ml-6 min-h-[2rem]"
-                    style="visibility: hidden"
-                ></div>
-            </div>
-
-            <!-- Meta info -->
-            <div id="meta-info" class="text-sm text-gray-500 mt-2"></div>
-
-            <!-- Share controls -->
-            <div class="flex flex-wrap items-center gap-3 mt-4">
-                <div class="relative inline-flex">
-                    <!-- Main share button -->
-                    <button
-                        id="share-button"
-                        class="bg-primary-600 hover:bg-primary-700 text-white py-1.5 px-4 rounded-l-md text-sm transition-colors w-44 text-center whitespace-nowrap"
-                    >
-                        Share with paint
-                    </button>
-
-                    <!-- Dropdown button - ensure same height as main button -->
-                    <button
-                        id="share-options-button"
-                        class="bg-primary-600 hover:bg-primary-700 text-white py-1.5 px-2 rounded-r-md text-sm transition-colors border-l border-primary-500 flex items-center justify-center"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M19 9l-7 7-7-7"
-                            />
-                        </svg>
-                    </button>
-
-                    <!-- Dropdown menu (hidden by default) -->
-                    <div
-                        id="share-dropdown"
-                        class="hidden absolute left-0 top-full mt-1 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200"
-                    >
-                        <div class="py-1">
-                            <button
-                                id="share-with-paint"
-                                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                            >
-                                Share with paint
-                            </button>
-                            <button
-                                id="share-without-paint"
-                                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                            >
-                                Share without paint
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <input
-                    id="share-url"
-                    readonly
-                    class="flex-1 min-w-[200px] text-sm py-1.5 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Shareable link will appear here"
-                />
-            </div>
-        </div>
-
-        <!-- Plot container -->
-        <div class="relative mb-6">
-            <!-- Loading overlay -->
-            <div
-                id="plot-loader"
-                class="hidden absolute inset-0 bg-white bg-opacity-60 z-50 flex items-center justify-center font-bold text-gray-700"
-            >
+            <div class="flex items-center space-x-2">
+                <label for="plot-selection" class="font-medium">Show plots:</label>
                 <div class="flex items-center space-x-3">
-                    <div
-                        class="w-6 h-6 border-3 border-gray-300 border-t-gray-700 rounded-full animate-spin"
-                    ></div>
-                    <span>Updating…</span>
-                </div>
-            </div>
-
-            <!-- Plots -->
-            <div id="plot-wrapper" class="flex flex-row w-full gap-5">
-                <!-- Plot 1 with title -->
-                <div class="flex-1 flex flex-col">
-                    <div
-                        id="plot1-title"
-                        class="text-center font-bold mb-1 flex justify-center items-center"
-                    >
-                        PCA projection
-                        <span
-                            id="plot1-info"
-                            class="ml-1 text-red-500 cursor-pointer"
-                            title="Click for more information"
-                            >ℹ️</span
-                        >
-                    </div>
-                    <svg
-                        id="plot1"
-                        class="w-full aspect-square min-h-[200px] bg-gray-50 border border-gray-300 rounded-md"
-                    ></svg>
-                </div>
-
-                <!-- Plot 2 with title -->
-                <div class="flex-1 flex flex-col">
-                    <div
-                        id="plot2-title"
-                        class="text-center font-bold mb-1 flex justify-center items-center"
-                    >
-                        PaCMAP projection
-                        <span
-                            id="plot2-info"
-                            class="ml-1 text-red-500 cursor-pointer"
-                            title="Click for more information"
-                            >ℹ️</span
-                        >
-                    </div>
-                    <svg
-                        id="plot2"
-                        class="w-full aspect-square min-h-[200px] bg-gray-50 border border-gray-300 rounded-md"
-                    ></svg>
-                </div>
-
-                <!-- Plot 3 with title -->
-                <div class="flex-1 flex flex-col">
-                    <div
-                        id="plot3-title"
-                        class="text-center font-bold mb-1 flex justify-center items-center"
-                    >
-                        LocalMAP projection
-                        <span
-                            id="plot3-info"
-                            class="ml-1 text-red-500 cursor-pointer"
-                            title="Click for more information"
-                            >ℹ️</span
-                        >
-                    </div>
-                    <svg
-                        id="plot3"
-                        class="w-full aspect-square min-h-[200px] bg-gray-50 border border-gray-300 rounded-md"
-                    ></svg>
+                    <label class="flex items-center space-x-1 cursor-pointer">
+                        <input type="checkbox" id="show-pca" checked
+                            class="rounded text-primary-600 focus:ring-primary-500" />
+                        <span class="text-sm">PCA</span>
+                    </label>
+                    <label class="flex items-center space-x-1 cursor-pointer">
+                        <input type="checkbox" id="show-pacmap" checked
+                            class="rounded text-primary-600 focus:ring-primary-500" />
+                        <span class="text-sm">PaCMAP</span>
+                    </label>
+                    <label class="flex items-center space-x-1 cursor-pointer">
+                        <input type="checkbox" id="show-localmap" checked
+                            class="rounded text-primary-600 focus:ring-primary-500" />
+                        <span class="text-sm">LocalMAP</span>
+                    </label>
                 </div>
             </div>
         </div>
 
-        <!-- Analysis controls -->
-        <div class="bg-white rounded-lg shadow-md p-4 md:p-6 mb-6">
-            <div class="flex flex-wrap items-center gap-x-6 gap-y-3 mb-4">
-                <label class="flex items-center space-x-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        id="include-unpainted"
-                        class="rounded text-primary-600 focus:ring-primary-500"
-                    />
-                    <span>Include unpainted points as group</span>
-                </label>
-                <div id="label-counts" class="text-sm font-medium"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 mb-4">
+            <!-- Color selection -->
+            <div class="flex items-center space-x-2">
+                <label for="color" class="font-medium">Custom color:</label>
+                <input type="color" id="color" value="#1f77b4"
+                    class="h-8 w-12 rounded border border-gray-300 cursor-pointer" />
             </div>
 
-            <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
-                <button
-                    id="run-analysis"
-                    class="bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-md transition-colors"
-                >
-                    Run Group Analysis
+            <!-- Additive painting toggle -->
+            <div class="flex items-center space-x-2">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="toggle-additive"
+                        class="rounded text-primary-600 focus:ring-primary-500" />
+                    <span>Additive painting by default</span>
+                </label>
+                <small class="text-gray-500">(Otherwise, Cmd-click for additive)</small>
+            </div>
+        </div>
+
+        <!-- Color palette -->
+        <div class="mb-4">
+            <div id="color-palette" class="flex flex-wrap gap-2 mb-2"></div>
+            <small class="text-gray-500">Press keys 0–9 to select colors</small>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <!-- Axis flipping -->
+            <div class="flex items-center space-x-4">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="flip-x-checkbox"
+                        class="rounded text-primary-600 focus:ring-primary-500" />
+                    <span>Flip X axis</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="flip-y-checkbox"
+                        class="rounded text-primary-600 focus:ring-primary-500" />
+                    <span>Flip Y axis</span>
+                </label>
+            </div>
+
+            <!-- Opacity slider -->
+            <div class="flex items-center space-x-2">
+                <label for="opacity-slider" class="font-medium">Opacity:</label>
+                <input type="range" id="opacity-slider" min="0.05" max="1" step="0.05" value="0.3"
+                    class="w-32 accent-primary-600" />
+                <span id="opacity-value" class="text-sm">0.3</span>
+            </div>
+
+            <!-- Scale opacity with vote count -->
+            <div class="flex items-center space-x-2">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="scale-opacity-checkbox"
+                        class="rounded text-primary-600 focus:ring-primary-500" />
+                    <span>Scale opacity with vote count</span>
+                </label>
+            </div>
+
+            <!-- Show group labels -->
+            <div class="flex items-center space-x-2">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="show-group-labels-checkbox"
+                        class="rounded text-primary-600 focus:ring-primary-500" />
+                    <span>Show group labels</span>
+                </label>
+            </div>
+
+            <!-- Dot size slider -->
+            <div class="flex items-center space-x-2">
+                <label for="dot-size-slider" class="font-medium">Dot Size:</label>
+                <input type="range" id="dot-size-slider" min="1" max="5" step="0.5" value="3"
+                    class="w-32 accent-primary-600" />
+                <span id="dot-size-value" class="text-sm">3</span>
+            </div>
+
+            <!-- Highlight pass votes -->
+            <div class="flex items-center space-x-2">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="highlight-pass-votes-checkbox"
+                        class="rounded text-primary-600 focus:ring-primary-500" />
+                    <span>Highlight pass votes (yellow)</span>
+                </label>
+            </div>
+
+            <!-- Keep colored points on top -->
+            <div class="flex items-center space-x-2">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="keep-colored-on-top-checkbox"
+                        class="rounded text-primary-600 focus:ring-primary-500" />
+                    <span>Keep colored points on top</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Show votes by statement ID - moved below grid -->
+        <div class="flex flex-col space-y-2 mb-4">
+            <div class="flex items-center space-x-2">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="show-votes-checkbox"
+                        class="rounded text-primary-600 focus:ring-primary-500" />
+                    <span>Show votes by statement ID:</span>
+                </label>
+                <input type="number" pattern="\d*" min="0" id="statement-id-input"
+                    class="w-20 rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50 py-1 px-2 bg-white" />
+            </div>
+            <div id="statement-text-display" class="text-xs text-gray-600 ml-6 min-h-[2rem]" style="visibility: hidden">
+            </div>
+        </div>
+
+        <!-- Meta info -->
+        <div id="meta-info" class="text-sm text-gray-500 mt-2"></div>
+
+        <!-- Share controls -->
+        <div class="flex flex-wrap items-center gap-3 mt-4">
+            <div class="relative inline-flex">
+                <!-- Main share button -->
+                <button id="share-button"
+                    class="bg-primary-600 hover:bg-primary-700 text-white py-1.5 px-4 rounded-l-md text-sm transition-colors w-44 text-center whitespace-nowrap">
+                    Share with paint
                 </button>
-                <div class="flex items-center space-x-2">
-                    <label for="min-vote-count" class="font-medium"
-                        >Min votes:</label
-                    >
-                    <input
-                        type="number"
-                        pattern="\d*"
-                        id="min-vote-count"
-                        min="0"
-                        value="1"
-                        class="w-16 rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50 py-1 px-2 bg-white"
-                    />
+
+                <!-- Dropdown button - ensure same height as main button -->
+                <button id="share-options-button"
+                    class="bg-primary-600 hover:bg-primary-700 text-white py-1.5 px-2 rounded-r-md text-sm transition-colors border-l border-primary-500 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
+                <!-- Dropdown menu (hidden by default) -->
+                <div id="share-dropdown"
+                    class="hidden absolute left-0 top-full mt-1 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+                    <div class="py-1">
+                        <button id="share-with-paint"
+                            class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                            Share with paint
+                        </button>
+                        <button id="share-without-paint"
+                            class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                            Share without paint
+                        </button>
+                    </div>
                 </div>
-                <label class="flex items-center space-x-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        id="auto-analyze-checkbox"
-                        checked
-                        class="rounded text-primary-600 focus:ring-primary-500"
-                    />
-                    <span>Auto-analyze on selection</span>
-                </label>
-                <label class="flex items-center space-x-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        id="include-moderated-checkbox"
-                        class="rounded text-primary-600 focus:ring-primary-500"
-                    />
-                    <span>Include moderated comments</span>
-                </label>
-                <label class="flex items-center space-x-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        id="show-group-comparison-checkbox"
-                        class="rounded text-primary-600 focus:ring-primary-500"
-                    />
-                    <span>Show group comparison</span>
-                </label>
-                <label class="flex items-center space-x-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        id="show-overall-comparison-checkbox"
-                        checked
-                        class="rounded text-primary-600 focus:ring-primary-500"
-                    />
-                    <span>Show overall comparison</span>
-                </label>
+            </div>
+
+            <input id="share-url" readonly
+                class="flex-1 min-w-[200px] text-sm py-1.5 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Shareable link will appear here" />
+        </div>
+    </div>
+
+    <!-- Plot container -->
+    <div class="relative mb-6">
+        <!-- Loading overlay -->
+        <div id="plot-loader"
+            class="hidden absolute inset-0 bg-white bg-opacity-60 z-50 flex items-center justify-center font-bold text-gray-700">
+            <div class="flex items-center space-x-3">
+                <div class="w-6 h-6 border-3 border-gray-300 border-t-gray-700 rounded-full animate-spin"></div>
+                <span>Updating…</span>
             </div>
         </div>
 
-        <!-- Warning message -->
-        <div class="bg-amber-50 border border-amber-300 rounded-md p-4 mb-6">
-            <p class="flex items-start">
-                <span class="mr-2">⚠️</span>
-                <span>
-                    <strong>Note:</strong> Representative group statement
-                    calculations used beyond PCA <em>experimental</em> and may
-                    create phantom artifacts. This is an area of ongoing
-                    research.
-                </span>
-            </p>
+        <!-- Plots -->
+        <div id="plot-wrapper" class="flex flex-row w-full gap-5">
+            <!-- Plot 1 with title -->
+            <div class="flex-1 flex flex-col">
+                <div id="plot1-title" class="text-center font-bold mb-1 flex justify-center items-center">
+                    PCA projection
+                    <span id="plot1-info" class="ml-1 text-red-500 cursor-pointer"
+                        title="Click for more information">ℹ️</span>
+                </div>
+                <svg id="plot1"
+                    class="w-full aspect-square min-h-[200px] bg-gray-50 border border-gray-300 rounded-md"></svg>
+            </div>
+
+            <!-- Plot 2 with title -->
+            <div class="flex-1 flex flex-col">
+                <div id="plot2-title" class="text-center font-bold mb-1 flex justify-center items-center">
+                    PaCMAP projection
+                    <span id="plot2-info" class="ml-1 text-red-500 cursor-pointer"
+                        title="Click for more information">ℹ️</span>
+                </div>
+                <svg id="plot2"
+                    class="w-full aspect-square min-h-[200px] bg-gray-50 border border-gray-300 rounded-md"></svg>
+            </div>
+
+            <!-- Plot 3 with title -->
+            <div class="flex-1 flex flex-col">
+                <div id="plot3-title" class="text-center font-bold mb-1 flex justify-center items-center">
+                    LocalMAP projection
+                    <span id="plot3-info" class="ml-1 text-red-500 cursor-pointer"
+                        title="Click for more information">ℹ️</span>
+                </div>
+                <svg id="plot3"
+                    class="w-full aspect-square min-h-[200px] bg-gray-50 border border-gray-300 rounded-md"></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis controls -->
+    <div class="bg-white rounded-lg shadow-md p-4 md:p-6 mb-6">
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-3 mb-4">
+            <label class="flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" id="include-unpainted" class="rounded text-primary-600 focus:ring-primary-500" />
+                <span>Include unpainted points as group</span>
+            </label>
+            <div id="label-counts" class="text-sm font-medium"></div>
         </div>
 
-        <!-- Results output -->
-        <div id="rep-comments-output" class="mt-6"></div>
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <button id="run-analysis"
+                class="bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-md transition-colors">
+                Run Group Analysis
+            </button>
+            <div class="flex items-center space-x-2">
+                <label for="min-vote-count" class="font-medium">Min votes:</label>
+                <input type="number" pattern="\d*" id="min-vote-count" min="0" value="1"
+                    class="w-16 rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50 py-1 px-2 bg-white" />
+            </div>
+            <label class="flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" id="auto-analyze-checkbox" checked
+                    class="rounded text-primary-600 focus:ring-primary-500" />
+                <span>Auto-analyze on selection</span>
+            </label>
+            <label class="flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" id="include-moderated-checkbox"
+                    class="rounded text-primary-600 focus:ring-primary-500" />
+                <span>Include moderated comments</span>
+            </label>
+            <label class="flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" id="show-group-comparison-checkbox"
+                    class="rounded text-primary-600 focus:ring-primary-500" />
+                <span>Show group comparison</span>
+            </label>
+            <label class="flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" id="show-overall-comparison-checkbox" checked
+                    class="rounded text-primary-600 focus:ring-primary-500" />
+                <span>Show overall comparison</span>
+            </label>
+        </div>
+    </div>
 
-        <script src="js/config.js"></script>
-        <script src="js/data.js"></script>
-        <script src="js/ui.js"></script>
-        <script src="js/main.js"></script>
-        <script>
-            const isMobile = /Mobi|Android|iPhone|iPad/i.test(
-                navigator.userAgent,
-            );
+    <!-- Warning message -->
+    <div class="bg-amber-50 border border-amber-300 rounded-md p-4 mb-6">
+        <p class="flex items-start">
+            <span class="mr-2">⚠️</span>
+            <span>
+                <strong>Note:</strong> Representative group statement
+                calculations used beyond PCA <em>experimental</em> and may
+                create phantom artifacts. This is an area of ongoing
+                research.
+            </span>
+        </p>
+    </div>
 
-            if (isMobile && !sessionStorage.getItem("mobileWarningDismissed")) {
-                const dialog = document.createElement("div");
-                dialog.className =
-                    "fixed top-5 left-1/2 transform -translate-x-1/2 max-w-md bg-amber-50 border border-amber-300 rounded-lg shadow-lg p-4 z-50 font-sans";
+    <!-- Results output -->
+    <div id="rep-comments-output" class="mt-6"></div>
 
-                const msg = document.createElement("div");
-                msg.innerHTML = `
+    <script src="js/config.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        const isMobile = /Mobi|Android|iPhone|iPad/i.test(
+            navigator.userAgent,
+        );
+
+        if (isMobile && !sessionStorage.getItem("mobileWarningDismissed")) {
+            const dialog = document.createElement("div");
+            dialog.className =
+                "fixed top-5 left-1/2 transform -translate-x-1/2 max-w-md bg-amber-50 border border-amber-300 rounded-lg shadow-lg p-4 z-50 font-sans";
+
+            const msg = document.createElement("div");
+            msg.innerHTML = `
           <strong>⚠️ Painting not yet supported on mobile.</strong><br>
           Please use a desktop browser to assign group labels.
           (<a class="font-medium text-blue-600 dark:text-blue-500 hover:underline" href="mobile-test.html">
@@ -603,19 +408,20 @@
           </a>)
         `;
 
-                const closeBtn = document.createElement("button");
-                closeBtn.textContent = "✖";
-                closeBtn.className =
-                    "absolute top-2 right-3 bg-transparent border-none text-gray-500 hover:text-gray-700 cursor-pointer";
-                closeBtn.onclick = () => {
-                    dialog.remove();
-                    sessionStorage.setItem("mobileWarningDismissed", "1");
-                };
+            const closeBtn = document.createElement("button");
+            closeBtn.textContent = "✖";
+            closeBtn.className =
+                "absolute top-2 right-3 bg-transparent border-none text-gray-500 hover:text-gray-700 cursor-pointer";
+            closeBtn.onclick = () => {
+                dialog.remove();
+                sessionStorage.setItem("mobileWarningDismissed", "1");
+            };
 
-                dialog.appendChild(closeBtn);
-                dialog.appendChild(msg);
-                document.body.appendChild(dialog);
-            }
-        </script>
-    </body>
+            dialog.appendChild(closeBtn);
+            dialog.appendChild(msg);
+            document.body.appendChild(dialog);
+        }
+    </script>
+</body>
+
 </html>
