@@ -11,7 +11,7 @@
  * @returns {boolean} - True if significant
  */
 function zSig90(zVal) {
-  return zVal > Config.stats.significanceThreshold;
+    return zVal > Config.stats.significanceThreshold;
 }
 
 /**
@@ -23,22 +23,22 @@ function zSig90(zVal) {
  * @returns {number} - Z-score
  */
 function twoPropTest(succIn, succOut, popIn, popOut) {
-  const adjustedSuccIn = succIn + 1;
-  const adjustedSuccOut = succOut + 1;
-  const adjustedPopIn = popIn + 1;
-  const adjustedPopOut = popOut + 1;
+    const adjustedSuccIn = succIn + 1;
+    const adjustedSuccOut = succOut + 1;
+    const adjustedPopIn = popIn + 1;
+    const adjustedPopOut = popOut + 1;
 
-  const pi1 = adjustedSuccIn / adjustedPopIn;
-  const pi2 = adjustedSuccOut / adjustedPopOut;
-  const piHat =
-    (adjustedSuccIn + adjustedSuccOut) / (adjustedPopIn + adjustedPopOut);
+    const pi1 = adjustedSuccIn / adjustedPopIn;
+    const pi2 = adjustedSuccOut / adjustedPopOut;
+    const piHat =
+        (adjustedSuccIn + adjustedSuccOut) / (adjustedPopIn + adjustedPopOut);
 
-  if (piHat === 1) return 0;
+    if (piHat === 1) return 0;
 
-  return (
-    (pi1 - pi2) /
-    Math.sqrt(piHat * (1 - piHat) * (1 / adjustedPopIn + 1 / adjustedPopOut))
-  );
+    return (
+        (pi1 - pi2) /
+        Math.sqrt(piHat * (1 - piHat) * (1 / adjustedPopIn + 1 / adjustedPopOut))
+    );
 }
 
 /**
@@ -48,26 +48,26 @@ function twoPropTest(succIn, succOut, popIn, popOut) {
  * @returns {Object} - Combined stats
  */
 function addComparativeStats(inStats, restStats) {
-  // Sum up values across other groups
-  const sumOtherNa = restStats.reduce((sum, g) => sum + g.na, 0);
-  const sumOtherNd = restStats.reduce((sum, g) => sum + g.nd, 0);
-  const sumOtherNs = restStats.reduce((sum, g) => sum + g.ns, 0);
+    // Sum up values across other groups
+    const sumOtherNa = restStats.reduce((sum, g) => sum + g.na, 0);
+    const sumOtherNd = restStats.reduce((sum, g) => sum + g.nd, 0);
+    const sumOtherNs = restStats.reduce((sum, g) => sum + g.ns, 0);
 
-  // Calculate relative agreement and disagreement
-  const ra = inStats.pa / ((1 + sumOtherNa) / (2 + sumOtherNs));
-  const rd = inStats.pd / ((1 + sumOtherNd) / (2 + sumOtherNs));
+    // Calculate relative agreement and disagreement
+    const ra = inStats.pa / ((1 + sumOtherNa) / (2 + sumOtherNs));
+    const rd = inStats.pd / ((1 + sumOtherNd) / (2 + sumOtherNs));
 
-  // Calculate z-scores for the differences between proportions
-  const rat = twoPropTest(inStats.na, sumOtherNa, inStats.ns, sumOtherNs);
-  const rdt = twoPropTest(inStats.nd, sumOtherNd, inStats.ns, sumOtherNs);
+    // Calculate z-scores for the differences between proportions
+    const rat = twoPropTest(inStats.na, sumOtherNa, inStats.ns, sumOtherNs);
+    const rdt = twoPropTest(inStats.nd, sumOtherNd, inStats.ns, sumOtherNs);
 
-  return {
-    ...inStats,
-    ra,
-    rd,
-    rat,
-    rdt,
-  };
+    return {
+        ...inStats,
+        ra,
+        rd,
+        rat,
+        rdt,
+    };
 }
 
 /**
@@ -77,38 +77,38 @@ function addComparativeStats(inStats, restStats) {
  * @returns {Promise<Object>} - Group vote matrices
  */
 async function getGroupVoteMatrices(db, labelArray) {
-  const groups = {};
-  labelArray.forEach((label, index) => {
-    if (label != null) {
-      const pid = AppState.data.participants?.[index];
-      if (pid !== undefined) {
-        if (!groups[label]) groups[label] = [];
-        groups[label].push(pid);
-      }
-    }
-  });
+    const groups = {};
+    labelArray.forEach((label, index) => {
+        if (label != null) {
+            const pid = AppState.data.participants?.[index];
+            if (pid !== undefined) {
+                if (!groups[label]) groups[label] = [];
+                groups[label].push(pid);
+            }
+        }
+    });
 
-  const groupVotes = {};
-  for (const [label, indices] of Object.entries(groups)) {
-    // Properly quote participant IDs as they are strings
-    const quotedIndices = indices.map(pid => `'${pid}'`);
-    const result = db.exec(`
+    const groupVotes = {};
+    for (const [label, indices] of Object.entries(groups)) {
+        // Properly quote participant IDs as they are strings
+        const quotedIndices = indices.map(pid => `'${pid}'`);
+        const result = db.exec(`
       SELECT participant_id, comment_id, vote
       FROM votes
       WHERE participant_id IN(${quotedIndices.join(",")})
   `);
 
-    const voteMatrix = {};
-    const rows = result[0]?.values || [];
-    rows.forEach(([pid, cid, vote]) => {
-      if (!voteMatrix[pid]) voteMatrix[pid] = {};
-      voteMatrix[pid][cid] = vote;
-    });
+        const voteMatrix = {};
+        const rows = result[0]?.values || [];
+        rows.forEach(([pid, cid, vote]) => {
+            if (!voteMatrix[pid]) voteMatrix[pid] = {};
+            voteMatrix[pid][cid] = vote;
+        });
 
-    groupVotes[label] = voteMatrix;
-  }
+        groupVotes[label] = voteMatrix;
+    }
 
-  return groupVotes;
+    return groupVotes;
 }
 
 /**
@@ -117,10 +117,10 @@ async function getGroupVoteMatrices(db, labelArray) {
  * @returns {boolean} - True if passes test
  */
 function passesByTest(commentStats) {
-  return (
-    (zSig90(commentStats.rat) && zSig90(commentStats.pat)) ||
-    (zSig90(commentStats.rdt) && zSig90(commentStats.pdt))
-  );
+    return (
+        (zSig90(commentStats.rat) && zSig90(commentStats.pat)) ||
+        (zSig90(commentStats.rdt) && zSig90(commentStats.pdt))
+    );
 }
 
 /**
@@ -130,10 +130,10 @@ function passesByTest(commentStats) {
  * @returns {boolean} - True if beats best
  */
 function beatsBestByTest(commentStats, currentBestZ) {
-  return (
-    currentBestZ === null ||
-    Math.max(commentStats.rat, commentStats.rdt) > currentBestZ
-  );
+    return (
+        currentBestZ === null ||
+        Math.max(commentStats.rat, commentStats.rdt) > currentBestZ
+    );
 }
 
 /**
@@ -143,18 +143,18 @@ function beatsBestByTest(commentStats, currentBestZ) {
  * @returns {boolean} - True if beats best
  */
 function beatsBestAgr(commentStats, currentBest) {
-  const { na, nd, ra, rat, pa, pat } = commentStats;
-  if (na === 0 && nd === 0) return false;
-  if (currentBest && currentBest.ra > 1.0) {
-    return (
-      ra * rat * pa * pat >
-      currentBest.ra * currentBest.rat * currentBest.pa * currentBest.pat
-    );
-  }
-  if (currentBest) {
-    return pa * pat > currentBest.pa * currentBest.pat;
-  }
-  return zSig90(pat) || (ra > 1.0 && pa > 0.5);
+    const { na, nd, ra, rat, pa, pat } = commentStats;
+    if (na === 0 && nd === 0) return false;
+    if (currentBest && currentBest.ra > 1.0) {
+        return (
+            ra * rat * pa * pat >
+            currentBest.ra * currentBest.rat * currentBest.pa * currentBest.pat
+        );
+    }
+    if (currentBest) {
+        return pa * pat > currentBest.pa * currentBest.pat;
+    }
+    return zSig90(pat) || (ra > 1.0 && pa > 0.5);
 }
 
 /**
@@ -164,27 +164,27 @@ function beatsBestAgr(commentStats, currentBest) {
  * @returns {Object} - Finalized stats
  */
 function finalizeCommentStats(tid, stats) {
-  const { na, nd, ns, pa, pd, pat, pdt, ra, rd, rat, rdt } = stats;
-  const isAgreeMoreRep = (rat > rdt && na >= Config.stats.minVotes) || nd < Config.stats.minVotes;
-  const repful_for = isAgreeMoreRep ? "agree" : "disagree";
+    const { na, nd, ns, pa, pd, pat, pdt, ra, rd, rat, rdt } = stats;
+    const isAgreeMoreRep = (rat > rdt && na >= Config.stats.minVotes) || nd < Config.stats.minVotes;
+    const repful_for = isAgreeMoreRep ? "agree" : "disagree";
 
-  return {
-    tid,
-    n_agree: na,
-    n_disagree: nd,
-    n_pass: ns - na - nd,
-    n_success: isAgreeMoreRep ? na : nd,
-    n_trials: ns,
-    p_success: isAgreeMoreRep ? pa : pd,
-    p_test: isAgreeMoreRep ? pat : pdt,
-    repness: isAgreeMoreRep ? ra : rd,
-    repness_test: isAgreeMoreRep ? rat : rdt,
-    repful_for,
-  };
+    return {
+        tid,
+        n_agree: na,
+        n_disagree: nd,
+        n_pass: ns - na - nd,
+        n_success: isAgreeMoreRep ? na : nd,
+        n_trials: ns,
+        p_success: isAgreeMoreRep ? pa : pd,
+        p_test: isAgreeMoreRep ? pat : pdt,
+        repness: isAgreeMoreRep ? ra : rd,
+        repness_test: isAgreeMoreRep ? rat : rdt,
+        repful_for,
+    };
 }
 
 function repnessMetric(data) {
-  return data.repness * data.repness_test * data.p_success * data.p_test;
+    return data.repness * data.repness_test * data.p_success * data.p_test;
 }
 
 /**
@@ -193,9 +193,9 @@ function repnessMetric(data) {
  * @returns {Array} - Sorted comments
  */
 function agreesBeforeDisagrees(comments) {
-  const agrees = comments.filter((c) => c.repful_for === "agree");
-  const disagrees = comments.filter((c) => c.repful_for === "disagree");
-  return [...agrees, ...disagrees];
+    const agrees = comments.filter((c) => c.repful_for === "agree");
+    const disagrees = comments.filter((c) => c.repful_for === "disagree");
+    return [...agrees, ...disagrees];
 }
 
 /**
@@ -204,75 +204,75 @@ function agreesBeforeDisagrees(comments) {
  * @returns {Array} - Representative comments
  */
 function selectRepComments(commentStatsWithTid) {
-  const result = {};
-  const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
-  const minVoteCount = parseInt(document.getElementById("min-vote-count")?.value) || 1;
+    const result = {};
+    const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
+    const minVoteCount = parseInt(document.getElementById("min-vote-count")?.value) || 1;
 
-  if (commentStatsWithTid.length === 0) return {};
+    if (commentStatsWithTid.length === 0) return {};
 
-  const groupIds = Object.keys(commentStatsWithTid[0][1]);
+    const groupIds = Object.keys(commentStatsWithTid[0][1]);
 
-  groupIds.forEach((gid) => {
-    result[gid] = { best: null, best_agree: null, sufficient: [] };
-  });
-
-  commentStatsWithTid.forEach(([tid, groupsData]) => {
-    const comment = AppState.data.commentTextMap?.[tid];
-    // TODO: Get this working for strict moderation (-1 or 0)
-    // This doesn't work in upstream Polis either, so has feature parity rn.
-    const isModerated = comment?.mod === "-1" || comment?.mod === -1;
-    if (isModerated && !includeModerated) return;
-
-    Object.entries(groupsData).forEach(([gid, commentStats]) => {
-      const groupResult = result[gid];
-
-      // Apply minimum vote count filter - only exclude statements for the current group
-      // if their total vote count (ns) is below the threshold
-      if (commentStats.ns < minVoteCount) {
-        return; // Skip this statement for this group
-      }
-
-      if (passesByTest(commentStats)) {
-        groupResult.sufficient.push(finalizeCommentStats(tid, commentStats));
-      }
-
-      if (
-        beatsBestByTest(commentStats, groupResult.best?.repness_test || null)
-      ) {
-        groupResult.best = finalizeCommentStats(tid, commentStats);
-      }
-
-      if (beatsBestAgr(commentStats, groupResult.best_agree)) {
-        groupResult.best_agree = { ...commentStats, tid };
-      }
+    groupIds.forEach((gid) => {
+        result[gid] = { best: null, best_agree: null, sufficient: [] };
     });
-  });
 
-  const finalResult = {};
+    commentStatsWithTid.forEach(([tid, groupsData]) => {
+        const comment = AppState.data.commentTextMap?.[tid];
+        // TODO: Get this working for strict moderation (-1 or 0)
+        // This doesn't work in upstream Polis either, so has feature parity rn.
+        const isModerated = comment?.mod === "-1" || comment?.mod === -1;
+        if (isModerated && !includeModerated) return;
 
-  Object.entries(result).forEach(([gid, { best, best_agree, sufficient }]) => {
-    let bestAgreeComment = null;
-    if (best_agree) {
-      bestAgreeComment = finalizeCommentStats(best_agree.tid, best_agree);
-      bestAgreeComment.best_agree = true;
-    }
+        Object.entries(groupsData).forEach(([gid, commentStats]) => {
+            const groupResult = result[gid];
 
-    let selectedComments = [];
-    if (bestAgreeComment) {
-      selectedComments.push(bestAgreeComment);
-      sufficient = sufficient.filter((c) => c.tid !== bestAgreeComment.tid);
-    }
+            // Apply minimum vote count filter - only exclude statements for the current group
+            // if their total vote count (ns) is below the threshold
+            if (commentStats.ns < minVoteCount) {
+                return; // Skip this statement for this group
+            }
 
-    const sortedSufficient = sufficient.sort(
-      (a, b) => repnessMetric(b) - repnessMetric(a)
-    );
+            if (passesByTest(commentStats)) {
+                groupResult.sufficient.push(finalizeCommentStats(tid, commentStats));
+            }
 
-    selectedComments = [...selectedComments, ...sortedSufficient].slice(0, 20);
+            if (
+                beatsBestByTest(commentStats, groupResult.best?.repness_test || null)
+            ) {
+                groupResult.best = finalizeCommentStats(tid, commentStats);
+            }
 
-    finalResult[gid] = agreesBeforeDisagrees(selectedComments);
-  });
+            if (beatsBestAgr(commentStats, groupResult.best_agree)) {
+                groupResult.best_agree = { ...commentStats, tid };
+            }
+        });
+    });
 
-  return finalResult;
+    const finalResult = {};
+
+    Object.entries(result).forEach(([gid, { best, best_agree, sufficient }]) => {
+        let bestAgreeComment = null;
+        if (best_agree) {
+            bestAgreeComment = finalizeCommentStats(best_agree.tid, best_agree);
+            bestAgreeComment.best_agree = true;
+        }
+
+        let selectedComments = [];
+        if (bestAgreeComment) {
+            selectedComments.push(bestAgreeComment);
+            sufficient = sufficient.filter((c) => c.tid !== bestAgreeComment.tid);
+        }
+
+        const sortedSufficient = sufficient.sort(
+            (a, b) => repnessMetric(b) - repnessMetric(a)
+        );
+
+        selectedComments = [...selectedComments, ...sortedSufficient].slice(0, 20);
+
+        finalResult[gid] = agreesBeforeDisagrees(selectedComments);
+    });
+
+    return finalResult;
 }
 
 /**
@@ -282,9 +282,9 @@ function selectRepComments(commentStatsWithTid) {
  * @returns {number} - Z-score
  */
 function propTest(succ, n) {
-  const adjustedSucc = succ + 1;
-  const adjustedN = n + 1;
-  return 2 * Math.sqrt(adjustedN) * (adjustedSucc / adjustedN - 0.5);
+    const adjustedSucc = succ + 1;
+    const adjustedN = n + 1;
+    return 2 * Math.sqrt(adjustedN) * (adjustedSucc / adjustedN - 0.5);
 }
 
 /**
@@ -294,71 +294,71 @@ function propTest(succ, n) {
  * @returns {Object} - Representative comments by group
  */
 function calculateRepresentativeComments(groupVotes, commentTexts) {
-  const allComments = commentTexts
-    ? commentTexts.map((c) => c.id)
-    : Array.from(
-      new Set(
-        Object.values(groupVotes)
-          .flatMap((group) => Object.values(group))
-          .flatMap((votes) => Object.keys(votes).map(Number))
-      )
-    ).sort((a, b) => a - b); // unique sorted comment_ids
-  const allGroups = Object.keys(groupVotes);
-  const commentStatsWithTid = [];
+    const allComments = commentTexts
+        ? commentTexts.map((c) => c.id)
+        : Array.from(
+            new Set(
+                Object.values(groupVotes)
+                    .flatMap((group) => Object.values(group))
+                    .flatMap((votes) => Object.keys(votes).map(Number))
+            )
+        ).sort((a, b) => a - b); // unique sorted comment_ids
+    const allGroups = Object.keys(groupVotes);
+    const commentStatsWithTid = [];
 
-  allComments.forEach((commentId, commentIndex) => {
-    const commentStats = {};
+    allComments.forEach((commentId, commentIndex) => {
+        const commentStats = {};
 
-    for (const [groupId, groupMatrix] of Object.entries(groupVotes)) {
-      let agrees = 0,
-        disagrees = 0,
-        passes = 0,
-        seen = 0;
+        for (const [groupId, groupMatrix] of Object.entries(groupVotes)) {
+            let agrees = 0,
+                disagrees = 0,
+                passes = 0,
+                seen = 0;
 
-      for (const voteRow of Object.values(groupMatrix)) {
-        const vote = voteRow[commentId];
-        if (vote != null) {
-          seen++;
-          if (vote === 1) agrees++;
-          else if (vote === -1) disagrees++;
-          else passes++;
+            for (const voteRow of Object.values(groupMatrix)) {
+                const vote = voteRow[commentId];
+                if (vote != null) {
+                    seen++;
+                    if (vote === 1) agrees++;
+                    else if (vote === -1) disagrees++;
+                    else passes++;
+                }
+            }
+
+            const pa = (agrees + 1) / (seen + 2);
+            const pd = (disagrees + 1) / (seen + 2);
+            const pat = propTest(agrees, seen);
+            const pdt = propTest(disagrees, seen);
+
+            commentStats[groupId] = {
+                na: agrees,
+                nd: disagrees,
+                ns: seen,
+                pa,
+                pd,
+                pat,
+                pdt,
+            };
         }
-      }
 
-      const pa = (agrees + 1) / (seen + 2);
-      const pd = (disagrees + 1) / (seen + 2);
-      const pat = propTest(agrees, seen);
-      const pdt = propTest(disagrees, seen);
+        commentStatsWithTid.push([commentId, commentStats]);
+    });
 
-      commentStats[groupId] = {
-        na: agrees,
-        nd: disagrees,
-        ns: seen,
-        pa,
-        pd,
-        pat,
-        pdt,
-      };
-    }
+    // Add comparative stats
+    const withComparatives = commentStatsWithTid.map(([tid, stats]) => {
+        const processed = {};
+        for (const [gid, stat] of Object.entries(stats)) {
+            const rest = Object.entries(stats)
+                .filter(([otherGid]) => otherGid !== gid)
+                .map(([, s]) => s);
+            processed[gid] = addComparativeStats(stat, rest);
+        }
+        return [tid, processed];
+    });
 
-    commentStatsWithTid.push([commentId, commentStats]);
-  });
+    const repCommentMap = selectRepComments(withComparatives, commentTexts);
 
-  // Add comparative stats
-  const withComparatives = commentStatsWithTid.map(([tid, stats]) => {
-    const processed = {};
-    for (const [gid, stat] of Object.entries(stats)) {
-      const rest = Object.entries(stats)
-        .filter(([otherGid]) => otherGid !== gid)
-        .map(([, s]) => s);
-      processed[gid] = addComparativeStats(stat, rest);
-    }
-    return [tid, processed];
-  });
-
-  const repCommentMap = selectRepComments(withComparatives, commentTexts);
-
-  return repCommentMap;
+    return repCommentMap;
 }
 
 /**
@@ -368,10 +368,10 @@ function calculateRepresentativeComments(groupVotes, commentTexts) {
  * @returns {boolean} - True if significant
  */
 function isSignificant(pValue, confidence = 0.9) {
-  // Convert confidence to z-score threshold
-  // For 90% confidence, z-threshold is approximately 1.645
-  const zThreshold = confidence === 0.9 ? 1.645 : 1.96; // 95% confidence
-  return Math.abs(pValue) > zThreshold;
+    // Convert confidence to z-score threshold
+    // For 90% confidence, z-threshold is approximately 1.645
+    const zThreshold = confidence === 0.9 ? 1.645 : 1.96; // 95% confidence
+    return Math.abs(pValue) > zThreshold;
 }
 
 /**
@@ -384,106 +384,106 @@ function isSignificant(pValue, confidence = 0.9) {
  * @returns {Object} - Object with agree and disagree consensus statements
  */
 function selectConsensusStatements(
-  groupVotes,
-  modOutStatementIds = [],
-  pickMax = 5,
-  probThreshold = 0.5,
-  confidence = 0.9
+    groupVotes,
+    modOutStatementIds = [],
+    pickMax = 5,
+    probThreshold = 0.5,
+    confidence = 0.9
 ) {
-  // Get the minimum vote count threshold from the UI
-  const minVoteCount = parseInt(document.getElementById("min-vote-count")?.value) || 1;
-  // Get all unique comment IDs across all groups
-  const allCommentIds = new Set();
-  Object.values(groupVotes).forEach(groupMatrix => {
-    Object.values(groupMatrix).forEach(participantVotes => {
-      Object.keys(participantVotes).forEach(commentId => {
-        allCommentIds.add(parseInt(commentId));
-      });
-    });
-  });
-
-  // Convert to sorted array and filter out moderated statements
-  const commentIds = Array.from(allCommentIds)
-    .filter(id => !modOutStatementIds.includes(id))
-    .sort((a, b) => a - b);
-
-  const statements = [];
-
-  // Calculate statistics for each comment across all participants (mock group approach)
-  commentIds.forEach(commentId => {
-    let totalAgrees = 0;
-    let totalDisagrees = 0;
-    let totalSeen = 0;
-
-    // Aggregate votes across all groups
+    // Get the minimum vote count threshold from the UI
+    const minVoteCount = parseInt(document.getElementById("min-vote-count")?.value) || 1;
+    // Get all unique comment IDs across all groups
+    const allCommentIds = new Set();
     Object.values(groupVotes).forEach(groupMatrix => {
-      Object.values(groupMatrix).forEach(participantVotes => {
-        const vote = participantVotes[commentId];
-        if (vote !== undefined) {
-          totalSeen++;
-          if (vote === 1) totalAgrees++;
-          else if (vote === -1) totalDisagrees++;
-        }
-      });
+        Object.values(groupMatrix).forEach(participantVotes => {
+            Object.keys(participantVotes).forEach(commentId => {
+                allCommentIds.add(parseInt(commentId));
+            });
+        });
     });
 
-    if (totalSeen === 0) return; // Skip if no votes
+    // Convert to sorted array and filter out moderated statements
+    const commentIds = Array.from(allCommentIds)
+        .filter(id => !modOutStatementIds.includes(id))
+        .sort((a, b) => a - b);
 
-    // Apply minimum vote count filter - skip statements that don't meet the threshold
-    if (totalSeen < minVoteCount) return;
+    const statements = [];
 
-    // Calculate proportions (with Laplace smoothing)
-    const pa = (totalAgrees + 1) / (totalSeen + 2);
-    const pd = (totalDisagrees + 1) / (totalSeen + 2);
+    // Calculate statistics for each comment across all participants (mock group approach)
+    commentIds.forEach(commentId => {
+        let totalAgrees = 0;
+        let totalDisagrees = 0;
+        let totalSeen = 0;
 
-    // Calculate z-scores using proportion test
-    const pat = propTest(totalAgrees, totalSeen);
-    const pdt = propTest(totalDisagrees, totalSeen);
+        // Aggregate votes across all groups
+        Object.values(groupVotes).forEach(groupMatrix => {
+            Object.values(groupMatrix).forEach(participantVotes => {
+                const vote = participantVotes[commentId];
+                if (vote !== undefined) {
+                    totalSeen++;
+                    if (vote === 1) totalAgrees++;
+                    else if (vote === -1) totalDisagrees++;
+                }
+            });
+        });
 
-    // Calculate metrics (similar to Python's am and dm)
-    const agreeMetric = pa * pat;
-    const disagreeMetric = pd * pdt;
+        if (totalSeen === 0) return; // Skip if no votes
 
-    statements.push({
-      tid: commentId,
-      na: totalAgrees,
-      nd: totalDisagrees,
-      ns: totalSeen,
-      pa,
-      pd,
-      pat,
-      pdt,
-      agreeMetric,
-      disagreeMetric
+        // Apply minimum vote count filter - skip statements that don't meet the threshold
+        if (totalSeen < minVoteCount) return;
+
+        // Calculate proportions (with Laplace smoothing)
+        const pa = (totalAgrees + 1) / (totalSeen + 2);
+        const pd = (totalDisagrees + 1) / (totalSeen + 2);
+
+        // Calculate z-scores using proportion test
+        const pat = propTest(totalAgrees, totalSeen);
+        const pdt = propTest(totalDisagrees, totalSeen);
+
+        // Calculate metrics (similar to Python's am and dm)
+        const agreeMetric = pa * pat;
+        const disagreeMetric = pd * pdt;
+
+        statements.push({
+            tid: commentId,
+            na: totalAgrees,
+            nd: totalDisagrees,
+            ns: totalSeen,
+            pa,
+            pd,
+            pat,
+            pdt,
+            agreeMetric,
+            disagreeMetric
+        });
     });
-  });
 
-  // Filter and rank agree candidates
-  const agreeCandidates = statements
-    .filter(s => s.pa > probThreshold && isSignificant(s.pat, confidence))
-    .sort((a, b) => b.agreeMetric - a.agreeMetric)
-    .slice(0, pickMax);
+    // Filter and rank agree candidates
+    const agreeCandidates = statements
+        .filter(s => s.pa > probThreshold && isSignificant(s.pat, confidence))
+        .sort((a, b) => b.agreeMetric - a.agreeMetric)
+        .slice(0, pickMax);
 
-  // Filter and rank disagree candidates
-  const disagreeCandidates = statements
-    .filter(s => s.pd > probThreshold && isSignificant(s.pdt, confidence))
-    .sort((a, b) => b.disagreeMetric - a.disagreeMetric)
-    .slice(0, pickMax);
+    // Filter and rank disagree candidates
+    const disagreeCandidates = statements
+        .filter(s => s.pd > probThreshold && isSignificant(s.pdt, confidence))
+        .sort((a, b) => b.disagreeMetric - a.disagreeMetric)
+        .slice(0, pickMax);
 
-  // Format results similar to Python output
-  const formatStatement = (stmt, isAgree) => ({
-    tid: stmt.tid,
-    n_success: isAgree ? stmt.na : stmt.nd,
-    n_trials: stmt.ns,
-    p_success: isAgree ? stmt.pa : stmt.pd,
-    p_test: isAgree ? stmt.pat : stmt.pdt,
-    cons_for: isAgree ? "agree" : "disagree"
-  });
+    // Format results similar to Python output
+    const formatStatement = (stmt, isAgree) => ({
+        tid: stmt.tid,
+        n_success: isAgree ? stmt.na : stmt.nd,
+        n_trials: stmt.ns,
+        p_success: isAgree ? stmt.pa : stmt.pd,
+        p_test: isAgree ? stmt.pat : stmt.pdt,
+        cons_for: isAgree ? "agree" : "disagree"
+    });
 
-  return {
-    agree: agreeCandidates.map(s => formatStatement(s, true)),
-    disagree: disagreeCandidates.map(s => formatStatement(s, false))
-  };
+    return {
+        agree: agreeCandidates.map(s => formatStatement(s, true)),
+        disagree: disagreeCandidates.map(s => formatStatement(s, false))
+    };
 }
 
 /**
@@ -491,21 +491,21 @@ function selectConsensusStatements(
  * @returns {Array} - Label array
  */
 function getLabelArrayWithOptionalUngrouped() {
-  const includeUnpainted = document.getElementById("include-unpainted").checked;
-  const labels = [];
+    const includeUnpainted = document.getElementById("include-unpainted").checked;
+    const labels = [];
 
-  for (let i = 0; i < AppState.selection.colorByIndex.length; i++) {
-    const label = AppState.selection.colorByIndex[i];
-    if (label) {
-      labels.push(label);
-    } else if (includeUnpainted) {
-      labels.push("black"); // Treat unpainted points as a group
-    } else {
-      labels.push(null); // Exclude from analysis
+    for (let i = 0; i < AppState.selection.colorByIndex.length; i++) {
+        const label = AppState.selection.colorByIndex[i];
+        if (label) {
+            labels.push(label);
+        } else if (includeUnpainted) {
+            labels.push("black"); // Treat unpainted points as a group
+        } else {
+            labels.push(null); // Exclude from analysis
+        }
     }
-  }
 
-  return labels;
+    return labels;
 }
 
 /**
@@ -516,94 +516,94 @@ function getLabelArrayWithOptionalUngrouped() {
  * @returns {Promise<Object>} - Representative comments
  */
 async function analyzePaintedClusters(db, labelArray, commentTexts) {
-  const groupVotes = await getGroupVoteMatrices(db, labelArray);
-  const repComments = calculateRepresentativeComments(groupVotes, commentTexts);
+    const groupVotes = await getGroupVoteMatrices(db, labelArray);
+    const repComments = calculateRepresentativeComments(groupVotes, commentTexts);
 
-  // Store the raw group votes data for use in the comparison view
-  AppState.data.groupVotes = groupVotes;
+    // Store the raw group votes data for use in the comparison view
+    AppState.data.groupVotes = groupVotes;
 
-  // Calculate consensus statements if we have at least 2 groups
-  const uniqueGroups = Object.keys(groupVotes);
-  let consensusStatements = null;
-  if (uniqueGroups.length >= 2) {
-    // Get moderated statement IDs to exclude
-    const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
-    const modOutStatementIds = [];
-    if (!includeModerated && AppState.data.commentTexts) {
-      AppState.data.commentTexts.forEach(comment => {
-        const isModerated = comment?.mod === "-1" || comment?.mod === -1;
-        if (isModerated) {
-          modOutStatementIds.push(comment.tid);
+    // Calculate consensus statements if we have at least 2 groups
+    const uniqueGroups = Object.keys(groupVotes);
+    let consensusStatements = null;
+    if (uniqueGroups.length >= 2) {
+        // Get moderated statement IDs to exclude
+        const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
+        const modOutStatementIds = [];
+        if (!includeModerated && AppState.data.commentTexts) {
+            AppState.data.commentTexts.forEach(comment => {
+                const isModerated = comment?.mod === "-1" || comment?.mod === -1;
+                if (isModerated) {
+                    modOutStatementIds.push(comment.tid);
+                }
+            });
         }
-      });
+
+        consensusStatements = selectConsensusStatements(groupVotes, modOutStatementIds);
+        console.log("Consensus Statements:", consensusStatements);
     }
 
-    consensusStatements = selectConsensusStatements(groupVotes, modOutStatementIds);
-    console.log("Consensus Statements:", consensusStatements);
-  }
+    // Store consensus statements for UI rendering
+    AppState.data.consensusStatements = consensusStatements;
 
-  // Store consensus statements for UI rendering
-  AppState.data.consensusStatements = consensusStatements;
-
-  console.log("Representative Comments:", repComments);
-  return repComments;
+    console.log("Representative Comments:", repComments);
+    return repComments;
 }
 
 /**
  * Apply group analysis
  */
 async function applyGroupAnalysis() {
-  const output = document.getElementById("rep-comments-output");
+    const output = document.getElementById("rep-comments-output");
 
-  const labelArray = getLabelArrayWithOptionalUngrouped(); // same as "unpainted"
+    const labelArray = getLabelArrayWithOptionalUngrouped(); // same as "unpainted"
 
-  // Count distinct labels, excluding nulls
-  const uniqueLabels = new Set(labelArray.filter((x) => x !== null));
-  if (uniqueLabels.size < 2) {
-    output.innerHTML = `<p style="color: #c00; font-weight: bold;">Need at least two groups to analyze.</p>`;
-    return;
-  }
+    // Count distinct labels, excluding nulls
+    const uniqueLabels = new Set(labelArray.filter((x) => x !== null));
+    if (uniqueLabels.size < 2) {
+        output.innerHTML = `<p style="color: #c00; font-weight: bold;">Need at least two groups to analyze.</p>`;
+        return;
+    }
 
-  // 👉 SHOW loader before starting analysis, because freezes plots.
-  showPlotLoader();
+    // 👉 SHOW loader before starting analysis, because freezes plots.
+    showPlotLoader();
 
-  // Create a loading overlay instead of replacing content
-  const loadingOverlay = document.createElement("div");
-  loadingOverlay.className = "absolute inset-0 bg-white bg-opacity-80 z-10";
-  loadingOverlay.id = "analysis-loader";
-  loadingOverlay.innerHTML = `
+    // Create a loading overlay instead of replacing content
+    const loadingOverlay = document.createElement("div");
+    loadingOverlay.className = "absolute inset-0 bg-white bg-opacity-80 z-10";
+    loadingOverlay.id = "analysis-loader";
+    loadingOverlay.innerHTML = `
     <div class="sticky top-0 left-0 w-full bg-primary-100 p-2 flex items-center justify-center space-x-3 shadow-md">
       <div class="w-5 h-5 border-3 border-primary-300 border-t-primary-600 rounded-full animate-spin"></div>
       <span class="font-medium text-primary-800">Analyzing groups…</span>
     </div>
   `;
 
-  // Make sure the output container has relative positioning for the absolute overlay
-  if (window.getComputedStyle(output).position === 'static') {
-    output.style.position = 'relative';
-  }
+    // Make sure the output container has relative positioning for the absolute overlay
+    if (window.getComputedStyle(output).position === 'static') {
+        output.style.position = 'relative';
+    }
 
-  // Add the overlay to the output container
-  output.appendChild(loadingOverlay);
+    // Add the overlay to the output container
+    output.appendChild(loadingOverlay);
 
-  // 🔥 FORCE a DOM paint before continuing with long task
-  await preworkRenderPipelinePauseHelper();
+    // 🔥 FORCE a DOM paint before continuing with long task
+    await preworkRenderPipelinePauseHelper();
 
-  const db = await loadVotesDB(AppState.preferences.convoSlug);
-  let commentTexts;
-  const rep = await analyzePaintedClusters(db, labelArray, commentTexts);
+    const db = await loadVotesDB(AppState.preferences.convoSlug);
+    let commentTexts;
+    const rep = await analyzePaintedClusters(db, labelArray, commentTexts);
 
-  // Remove the loading overlay
-  const loader = document.getElementById("analysis-loader");
-  if (loader) {
-    loader.remove();
-  }
+    // Remove the loading overlay
+    const loader = document.getElementById("analysis-loader");
+    if (loader) {
+        loader.remove();
+    }
 
-  // Now render the new content
-  renderRepCommentsTable(rep);
+    // Now render the new content
+    renderRepCommentsTable(rep);
 
-  // 👉 HIDE loader after analysis and render complete
-  hidePlotLoader();
+    // 👉 HIDE loader after analysis and render complete
+    hidePlotLoader();
 }
 
 // ============================================================================
@@ -658,7 +658,7 @@ function initializeApp() {
  * @returns {Promise<void>} Resolves on the next tick, after paint.
  */
 function preworkRenderPipelinePauseHelper() {
-  return new Promise((r) => setTimeout(r, 0));
+    return new Promise((r) => setTimeout(r, 0));
 }
 
 // Initialize the application when the DOM is loaded
@@ -666,9 +666,9 @@ window.addEventListener("DOMContentLoaded", initializeApp);
 
 // For testing purposes, export objects and functions
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    twoPropTest,
-    zSig90,
-    // Add other functions you want to test
-  };
+    module.exports = {
+        twoPropTest,
+        zSig90,
+        // Add other functions you want to test
+    };
 }
