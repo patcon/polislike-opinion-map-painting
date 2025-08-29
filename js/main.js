@@ -201,9 +201,10 @@ function agreesBeforeDisagrees(comments) {
 /**
  * Select representative comments
  * @param {Array} commentStatsWithTid - Comment statistics
+ * @param {number|null} pickMax - Maximum comments per group (default: null for no limit)
  * @returns {Array} - Representative comments
  */
-function selectRepComments(commentStatsWithTid) {
+function selectRepComments(commentStatsWithTid, pickMax = null) {
     const result = {};
     const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
     const minVoteCount = parseInt(document.getElementById("min-vote-count")?.value) || 1;
@@ -267,7 +268,11 @@ function selectRepComments(commentStatsWithTid) {
             (a, b) => repnessMetric(b) - repnessMetric(a)
         );
 
-        selectedComments = [...selectedComments, ...sortedSufficient].slice(0, 20);
+        selectedComments = [...selectedComments, ...sortedSufficient];
+
+        if (pickMax !== null && pickMax !== undefined) {
+            selectedComments = selectedComments.slice(0, pickMax);
+        }
 
         finalResult[gid] = agreesBeforeDisagrees(selectedComments);
     });
@@ -386,7 +391,7 @@ function isSignificant(pValue, confidence = 0.9) {
 function selectConsensusStatements(
     groupVotes,
     modOutStatementIds = [],
-    pickMax = 5,
+    pickMax = null,
     probThreshold = 0.5,
     confidence = 0.9
 ) {
@@ -459,16 +464,22 @@ function selectConsensusStatements(
     });
 
     // Filter and rank agree candidates
-    const agreeCandidates = statements
+    let agreeCandidates = statements
         .filter(s => s.pa > probThreshold && isSignificant(s.pat, confidence))
-        .sort((a, b) => b.agreeMetric - a.agreeMetric)
-        .slice(0, pickMax);
+        .sort((a, b) => b.agreeMetric - a.agreeMetric);
+
+    if (pickMax !== null && pickMax !== undefined) {
+        agreeCandidates = agreeCandidates.slice(0, pickMax);
+    }
 
     // Filter and rank disagree candidates
-    const disagreeCandidates = statements
+    let disagreeCandidates = statements
         .filter(s => s.pd > probThreshold && isSignificant(s.pdt, confidence))
-        .sort((a, b) => b.disagreeMetric - a.disagreeMetric)
-        .slice(0, pickMax);
+        .sort((a, b) => b.disagreeMetric - a.disagreeMetric);
+
+    if (pickMax !== null && pickMax !== undefined) {
+        disagreeCandidates = disagreeCandidates.slice(0, pickMax);
+    }
 
     // Format results similar to Python output
     const formatStatement = (stmt, isAgree) => ({
