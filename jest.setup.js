@@ -1,5 +1,5 @@
 // Import jest-dom utilities
-require('@testing-library/jest-dom');
+require("@testing-library/jest-dom");
 
 // Mock D3.js
 global.d3 = {
@@ -44,23 +44,23 @@ global.URL.revokeObjectURL = jest.fn();
 const localStorageMock = (function () {
     let store = {};
     return {
-        getItem: jest.fn(key => store[key] || null),
+        getItem: jest.fn((key) => store[key] || null),
         setItem: jest.fn((key, value) => {
             store[key] = value.toString();
         }),
         clear: jest.fn(() => {
             store = {};
         }),
-        removeItem: jest.fn(key => {
+        removeItem: jest.fn((key) => {
             delete store[key];
         }),
     };
 })();
 
-Object.defineProperty(window, 'localStorage', {
+Object.defineProperty(window, "localStorage", {
     value: localStorageMock,
 });
 
-Object.defineProperty(window, 'sessionStorage', {
+Object.defineProperty(window, "sessionStorage", {
     value: localStorageMock,
 });

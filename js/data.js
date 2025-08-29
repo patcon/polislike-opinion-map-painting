@@ -26,43 +26,44 @@ function loadAndRenderData(slug, preserveCustomLabels = false) {
             AppState.data.participants = data1.map(([tid]) => tid);
             AppState.data.meta = meta;
 
-
             showPlotLoader();
             renderMetaInfo(meta);
 
-            d3.json(`data/datasets/${slug}/statements.json`).then((rawStatements) => {
-                const statements = rawStatements.map((s) => ({
-                    tid: s.tid ?? s.statement_id,
-                    pid: s.pid ?? s.participant_id,
-                    mod: s.mod ?? s.moderated,
-                    txt: s.txt ?? s.text ?? "<missing>", // optional: fallback for text
-                    ...s, // keep any other keys
-                }));
+            d3.json(`data/datasets/${slug}/statements.json`).then(
+                (rawStatements) => {
+                    const statements = rawStatements.map((s) => ({
+                        tid: s.tid ?? s.statement_id,
+                        pid: s.pid ?? s.participant_id,
+                        mod: s.mod ?? s.moderated,
+                        txt: s.txt ?? s.text ?? "<missing>", // optional: fallback for text
+                        ...s, // keep any other keys
+                    }));
 
-                AppState.data.commentTexts = statements;
-                AppState.data.commentTextMap = Object.fromEntries(statements.map((c) => [c.tid, c]));
+                    AppState.data.commentTexts = statements;
+                    AppState.data.commentTextMap = Object.fromEntries(
+                        statements.map((c) => [c.tid, c]),
+                    );
 
-                // Update statement text display and apply vote colors if show votes is enabled
-                // This needs to happen after comment data is loaded
-                if (AppState.preferences.showVotes) {
-                    updateStatementTextDisplay();
-                    if (AppState.preferences.statementId) {
-                        toggleVoteColors(true);
+                    // Update statement text display and apply vote colors if show votes is enabled
+                    // This needs to happen after comment data is loaded
+                    if (AppState.preferences.showVotes) {
+                        updateStatementTextDisplay();
+                        if (AppState.preferences.statementId) {
+                            toggleVoteColors(true);
+                        }
                     }
-                }
-            });
+                },
+            );
 
             // Store projection data
             AppState.data.X1 = data1.map(([, coords]) => coords);
             AppState.data.X2 = data2.map(([, coords]) => coords);
             AppState.data.X3 = data3.map(([, coords]) => coords);
 
-
             // Reset selection state
             AppState.selection.colorByIndex.length = AppState.data.X1.length;
             AppState.selection.colorByIndex.fill(null);
             AppState.selection.selectedIndices.clear();
-
 
             // Render UI
             renderAllPlots();
@@ -98,7 +99,7 @@ function applySharedState({
     keepColoredOnTop = false,
     showPCA = null,
     showPaCMAP = null,
-    showLocalMAP = null
+    showLocalMAP = null,
 }) {
     // Update AppState
     AppState.preferences.convoSlug = dataset;
@@ -130,13 +131,17 @@ function applySharedState({
         const defaultPaletteLength = 10; // The original tab10 has 10 colors
 
         // Reset the palette to the default first
-        Config.colors.tab10 = Config.colors.tab10.slice(0, defaultPaletteLength);
+        Config.colors.tab10 = Config.colors.tab10.slice(
+            0,
+            defaultPaletteLength,
+        );
 
         // Add custom colors
-        customColors.forEach(color => {
+        customColors.forEach((color) => {
             if (!Config.colors.tab10.includes(color)) {
                 Config.colors.tab10.push(color);
-                AppState.selection.colorToLabelIndex[color] = Config.colors.tab10.length - 1;
+                AppState.selection.colorToLabelIndex[color] =
+                    Config.colors.tab10.length - 1;
             }
         });
 
@@ -152,7 +157,8 @@ function applySharedState({
     document.getElementById("dataset").value = dataset;
     document.getElementById("flip-x-checkbox").checked = fx;
     document.getElementById("flip-y-checkbox").checked = fy;
-    document.getElementById("show-group-labels-checkbox").checked = showGroupLabels;
+    document.getElementById("show-group-labels-checkbox").checked =
+        showGroupLabels;
     document.getElementById("include-unpainted").checked = includeUnpainted;
     document.getElementById("opacity-slider").value = opacity;
     document.getElementById("opacity-value").textContent = opacity;
@@ -160,9 +166,11 @@ function applySharedState({
     document.getElementById("dot-size-value").textContent = dotSize;
     document.getElementById("show-votes-checkbox").checked = showVotes;
     document.getElementById("statement-id-input").value = statementId;
-    document.getElementById("highlight-pass-votes-checkbox").checked = highlightPassVotes;
+    document.getElementById("highlight-pass-votes-checkbox").checked =
+        highlightPassVotes;
     document.getElementById("min-vote-count").value = minVoteCount;
-    document.getElementById("keep-colored-on-top-checkbox").checked = keepColoredOnTop;
+    document.getElementById("keep-colored-on-top-checkbox").checked =
+        keepColoredOnTop;
 
     // Update plot visibility checkboxes if they were provided in shared state
     if (showPCA !== null) {
@@ -258,13 +266,13 @@ function encodeShareState(includePaint = true) {
         keepColoredOnTop: AppState.preferences.keepColoredOnTop,
         showPCA: AppState.preferences.showPCA,
         showPaCMAP: AppState.preferences.showPaCMAP,
-        showLocalMAP: AppState.preferences.showLocalMAP
+        showLocalMAP: AppState.preferences.showLocalMAP,
     };
 
     // Only include labelIndices if includePaint is true and there are painted participants
     if (includePaint && AppState.selection.selectedIndices.size > 0) {
         payload.labelIndices = AppState.selection.colorByIndex.map((c) =>
-            c == null ? null : AppState.selection.colorToLabelIndex[c]
+            c == null ? null : AppState.selection.colorToLabelIndex[c],
         );
 
         // Include custom colors that aren't in the default palette
@@ -308,7 +316,7 @@ function decodeShareState(hashString) {
         let jsonString;
 
         // Check if this is a pako compressed string
-        if (hashString.startsWith('pako:')) {
+        if (hashString.startsWith("pako:")) {
             // Remove the "pako:" prefix
             const base64Data = hashString.slice(5);
 
@@ -322,7 +330,7 @@ function decodeShareState(hashString) {
             }
 
             // Decompress with pako
-            const decompressed = pako.inflate(uint8Array, { to: 'string' });
+            const decompressed = pako.inflate(uint8Array, { to: "string" });
             jsonString = decompressed;
         } else {
             // Legacy format: direct base64 encoded JSON
@@ -334,7 +342,9 @@ function decodeShareState(hashString) {
         // Backward compatibility: if old `labels` format is used
         if (parsed.labels) {
             const labelIndices = parsed.labels.map((color) =>
-                color == null ? null : AppState.selection.colorToLabelIndex[color]
+                color == null
+                    ? null
+                    : AppState.selection.colorToLabelIndex[color],
             );
             parsed.labelIndices = labelIndices;
         }
@@ -356,8 +366,10 @@ function decodeShareState(hashString) {
             minVoteCount: parsed.minVoteCount || 1,
             keepColoredOnTop: parsed.keepColoredOnTop || false,
             showPCA: parsed.showPCA !== undefined ? parsed.showPCA : null,
-            showPaCMAP: parsed.showPaCMAP !== undefined ? parsed.showPaCMAP : null,
-            showLocalMAP: parsed.showLocalMAP !== undefined ? parsed.showLocalMAP : null
+            showPaCMAP:
+                parsed.showPaCMAP !== undefined ? parsed.showPaCMAP : null,
+            showLocalMAP:
+                parsed.showLocalMAP !== undefined ? parsed.showLocalMAP : null,
         };
     } catch (e) {
         console.warn("Invalid share state", e);
@@ -387,7 +399,6 @@ async function loadVotesDB(slug) {
     // Store in AppState
     AppState.data.dbInstance = db;
 
-
     return db;
 }
 
@@ -397,7 +408,8 @@ async function loadVotesDB(slug) {
  * @returns {string} - Summary text
  */
 function getParticipantVoteSummary(participantId) {
-    if (!AppState.data.dbInstance || !AppState.data.commentTexts) return "(data not loaded)";
+    if (!AppState.data.dbInstance || !AppState.data.commentTexts)
+        return "(data not loaded)";
 
     const result = AppState.data.dbInstance.exec(`
       SELECT comment_id, vote
@@ -413,7 +425,8 @@ function getParticipantVoteSummary(participantId) {
             else if (vote === -1) label = "disagree";
             else label = "pass";
 
-            const text = AppState.data.commentTextMap?.[cid]?.txt || "<missing>";
+            const text =
+                AppState.data.commentTextMap?.[cid]?.txt || "<missing>";
             return `#${cid} - ${label}: ${text}`;
         })
         .join("\n");
@@ -471,8 +484,8 @@ async function calculateOpacityScaleFactor(participantId) {
     }
 
     // Get all unmoderated statements
-    const unmoderatedStatements = AppState.data.commentTexts.filter(s =>
-        s.mod !== -1 && s.mod !== "-1"
+    const unmoderatedStatements = AppState.data.commentTexts.filter(
+        (s) => s.mod !== -1 && s.mod !== "-1",
     );
 
     // If no unmoderated statements, return 1
@@ -512,7 +525,7 @@ function loadDatasetList() {
             });
 
             // fallback if current is invalid
-            if (!datasets.find(d => d.slug === current)) {
+            if (!datasets.find((d) => d.slug === current)) {
                 AppState.preferences.convoSlug = datasets[0]?.slug;
                 saveState("dataset", AppState.preferences.convoSlug);
             }
@@ -523,7 +536,7 @@ function loadDatasetList() {
 }
 
 // For testing purposes, export objects and functions
-if (typeof module !== 'undefined' && module.exports) {
+if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         loadAndRenderData,
         applySharedState,
@@ -532,6 +545,6 @@ if (typeof module !== 'undefined' && module.exports) {
         loadVotesDB,
         getParticipantVoteSummary,
         calculateOpacityScaleFactor,
-        loadDatasetList
+        loadDatasetList,
     };
 }

@@ -12,8 +12,7 @@ const Config = {
     dotSize: 3,
 
     // Developer feature flags
-    features: {
-    },
+    features: {},
 
     // Reference: https://matplotlib.org/stable/users/explain/colors/colormaps.html#qualitative
     colors: {
@@ -28,28 +27,28 @@ const Config = {
             "#7f7f7f", // (H) middle gray
             "#bcbd22", // (I) curry yellow-green
             "#17becf", // (J) blue-teal
-        ]
+        ],
     },
 
     // Chart colors for vote visualization
     voteColors: {
         agree: "#2ecc71",
         disagree: "#e74c3c",
-        pass: "#e6e6e6"
+        pass: "#e6e6e6",
     },
 
     // Alternative vote colors with highlighted pass votes
     voteColorsHighlightPass: {
         agree: "#2ecc71",
         disagree: "#e74c3c",
-        pass: "#f1c40f"  // Yellow for highlighted pass votes
+        pass: "#f1c40f", // Yellow for highlighted pass votes
     },
 
     // Statistical thresholds
     stats: {
         minVotes: 3,
         significanceThreshold: 1.2816, // 90% confidence
-    }
+    },
 };
 
 // ============================================================================
@@ -63,7 +62,7 @@ const AppState = {
     // Dimensions
     dimensions: {
         width: 0,
-        height: 0
+        height: 0,
     },
 
     // Data
@@ -76,7 +75,7 @@ const AppState = {
         commentTextMap: {},
         meta: null,
         repComments: null,
-        dbInstance: null
+        dbInstance: null,
     },
 
     // UI State
@@ -85,7 +84,7 @@ const AppState = {
         hoveredIndices: new Set(),
         dotOpacity: Config.dotOpacity,
         dotSize: Config.dotSize,
-        opacityFactorCache: {} // Cache for opacity scale factors
+        opacityFactorCache: {}, // Cache for opacity scale factors
     },
 
     // Selection state
@@ -131,32 +130,56 @@ const AppState = {
 
         // Set mobile-specific defaults for plot visibility
         // On mobile, show only LocalMAP by default if no settings exist
-        const mobileDefaults = isMobile ? {
-            showPCA: false,
-            showPaCMAP: false,
-            showLocalMAP: true
-        } : {
-            showPCA: true,
-            showPaCMAP: true,
-            showLocalMAP: true
-        };
+        const mobileDefaults = isMobile
+            ? {
+                  showPCA: false,
+                  showPaCMAP: false,
+                  showLocalMAP: true,
+              }
+            : {
+                  showPCA: true,
+                  showPaCMAP: true,
+                  showLocalMAP: true,
+              };
 
         // Load preferences from session storage
-        this.preferences.convoSlug = getQueryParam("dataset") || loadState("dataset", "bg2050");
+        this.preferences.convoSlug =
+            getQueryParam("dataset") || loadState("dataset", "bg2050");
         this.preferences.isAdditive = loadState("additive", false);
         this.preferences.flipX = loadState("flipX", false);
         this.preferences.flipY = loadState("flipY", false);
-        this.preferences.scaleOpacityWithVotes = loadState("scaleOpacityWithVotes", false);
-        this.preferences.showGroupComparison = loadState("showGroupComparison", true);
+        this.preferences.scaleOpacityWithVotes = loadState(
+            "scaleOpacityWithVotes",
+            false,
+        );
+        this.preferences.showGroupComparison = loadState(
+            "showGroupComparison",
+            true,
+        );
         this.preferences.showGroupLabels = loadState("showGroupLabels", false);
-        this.preferences.highlightPassVotes = loadState("highlightPassVotes", false);
+        this.preferences.highlightPassVotes = loadState(
+            "highlightPassVotes",
+            false,
+        );
         this.preferences.showVotes = loadState("showVotes", false);
         this.preferences.statementId = loadState("statementId", "0");
-        this.preferences.keepColoredOnTop = loadState("keepColoredOnTop", false);
+        this.preferences.keepColoredOnTop = loadState(
+            "keepColoredOnTop",
+            false,
+        );
         this.preferences.showPCA = loadState("showPCA", mobileDefaults.showPCA);
-        this.preferences.showPaCMAP = loadState("showPaCMAP", mobileDefaults.showPaCMAP);
-        this.preferences.showLocalMAP = loadState("showLocalMAP", mobileDefaults.showLocalMAP);
-        this.preferences.showOverallComparison = loadState("showOverallComparison", true);
+        this.preferences.showPaCMAP = loadState(
+            "showPaCMAP",
+            mobileDefaults.showPaCMAP,
+        );
+        this.preferences.showLocalMAP = loadState(
+            "showLocalMAP",
+            mobileDefaults.showLocalMAP,
+        );
+        this.preferences.showOverallComparison = loadState(
+            "showOverallComparison",
+            true,
+        );
         this.ui.dotOpacity = loadState("dotOpacity", Config.dotOpacity);
         this.ui.dotSize = loadState("dotSize", Config.dotSize);
 
@@ -176,7 +199,7 @@ const AppState = {
         const visiblePlots = [
             this.preferences.showPCA,
             this.preferences.showPaCMAP,
-            this.preferences.showLocalMAP
+            this.preferences.showLocalMAP,
         ].filter(Boolean).length;
 
         // Ensure at least one plot is visible
@@ -204,7 +227,7 @@ const AppState = {
 
         // Clear the active analysis tab when changing datasets
         this.selection.activeAnalysisTab = null;
-    }
+    },
 };
 
 // ============================================================================
@@ -266,7 +289,7 @@ function hidePlotLoader() {
 
 // For testing purposes, export objects and functions
 /* istanbul ignore next */
-if (typeof module !== 'undefined' && module.exports) {
+if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         Config,
         AppState,

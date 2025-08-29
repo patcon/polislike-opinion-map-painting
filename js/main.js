@@ -37,7 +37,9 @@ function twoPropTest(succIn, succOut, popIn, popOut) {
 
     return (
         (pi1 - pi2) /
-        Math.sqrt(piHat * (1 - piHat) * (1 / adjustedPopIn + 1 / adjustedPopOut))
+        Math.sqrt(
+            piHat * (1 - piHat) * (1 / adjustedPopIn + 1 / adjustedPopOut),
+        )
     );
 }
 
@@ -91,7 +93,7 @@ async function getGroupVoteMatrices(db, labelArray) {
     const groupVotes = {};
     for (const [label, indices] of Object.entries(groups)) {
         // Properly quote participant IDs as they are strings
-        const quotedIndices = indices.map(pid => `'${pid}'`);
+        const quotedIndices = indices.map((pid) => `'${pid}'`);
         const result = db.exec(`
       SELECT participant_id, comment_id, vote
       FROM votes
@@ -165,7 +167,9 @@ function beatsBestAgr(commentStats, currentBest) {
  */
 function finalizeCommentStats(tid, stats) {
     const { na, nd, ns, pa, pd, pat, pdt, ra, rd, rat, rdt } = stats;
-    const isAgreeMoreRep = (rat > rdt && na >= Config.stats.minVotes) || nd < Config.stats.minVotes;
+    const isAgreeMoreRep =
+        (rat > rdt && na >= Config.stats.minVotes) ||
+        nd < Config.stats.minVotes;
     const repful_for = isAgreeMoreRep ? "agree" : "disagree";
 
     return {
@@ -206,8 +210,11 @@ function agreesBeforeDisagrees(comments) {
  */
 function selectRepComments(commentStatsWithTid, pickMax = null) {
     const result = {};
-    const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
-    const minVoteCount = parseInt(document.getElementById("min-vote-count")?.value) || 1;
+    const includeModerated = document.getElementById(
+        "include-moderated-checkbox",
+    )?.checked;
+    const minVoteCount =
+        parseInt(document.getElementById("min-vote-count")?.value) || 1;
 
     if (commentStatsWithTid.length === 0) return {};
 
@@ -234,11 +241,16 @@ function selectRepComments(commentStatsWithTid, pickMax = null) {
             }
 
             if (passesByTest(commentStats)) {
-                groupResult.sufficient.push(finalizeCommentStats(tid, commentStats));
+                groupResult.sufficient.push(
+                    finalizeCommentStats(tid, commentStats),
+                );
             }
 
             if (
-                beatsBestByTest(commentStats, groupResult.best?.repness_test || null)
+                beatsBestByTest(
+                    commentStats,
+                    groupResult.best?.repness_test || null,
+                )
             ) {
                 groupResult.best = finalizeCommentStats(tid, commentStats);
             }
@@ -251,31 +263,38 @@ function selectRepComments(commentStatsWithTid, pickMax = null) {
 
     const finalResult = {};
 
-    Object.entries(result).forEach(([gid, { best, best_agree, sufficient }]) => {
-        let bestAgreeComment = null;
-        if (best_agree) {
-            bestAgreeComment = finalizeCommentStats(best_agree.tid, best_agree);
-            bestAgreeComment.best_agree = true;
-        }
+    Object.entries(result).forEach(
+        ([gid, { best, best_agree, sufficient }]) => {
+            let bestAgreeComment = null;
+            if (best_agree) {
+                bestAgreeComment = finalizeCommentStats(
+                    best_agree.tid,
+                    best_agree,
+                );
+                bestAgreeComment.best_agree = true;
+            }
 
-        let selectedComments = [];
-        if (bestAgreeComment) {
-            selectedComments.push(bestAgreeComment);
-            sufficient = sufficient.filter((c) => c.tid !== bestAgreeComment.tid);
-        }
+            let selectedComments = [];
+            if (bestAgreeComment) {
+                selectedComments.push(bestAgreeComment);
+                sufficient = sufficient.filter(
+                    (c) => c.tid !== bestAgreeComment.tid,
+                );
+            }
 
-        const sortedSufficient = sufficient.sort(
-            (a, b) => repnessMetric(b) - repnessMetric(a)
-        );
+            const sortedSufficient = sufficient.sort(
+                (a, b) => repnessMetric(b) - repnessMetric(a),
+            );
 
-        selectedComments = [...selectedComments, ...sortedSufficient];
+            selectedComments = [...selectedComments, ...sortedSufficient];
 
-        if (pickMax !== null && pickMax !== undefined) {
-            selectedComments = selectedComments.slice(0, pickMax);
-        }
+            if (pickMax !== null && pickMax !== undefined) {
+                selectedComments = selectedComments.slice(0, pickMax);
+            }
 
-        finalResult[gid] = agreesBeforeDisagrees(selectedComments);
-    });
+            finalResult[gid] = agreesBeforeDisagrees(selectedComments);
+        },
+    );
 
     return finalResult;
 }
@@ -302,12 +321,12 @@ function calculateRepresentativeComments(groupVotes, commentTexts) {
     const allComments = commentTexts
         ? commentTexts.map((c) => c.id)
         : Array.from(
-            new Set(
-                Object.values(groupVotes)
-                    .flatMap((group) => Object.values(group))
-                    .flatMap((votes) => Object.keys(votes).map(Number))
-            )
-        ).sort((a, b) => a - b); // unique sorted comment_ids
+              new Set(
+                  Object.values(groupVotes)
+                      .flatMap((group) => Object.values(group))
+                      .flatMap((votes) => Object.keys(votes).map(Number)),
+              ),
+          ).sort((a, b) => a - b); // unique sorted comment_ids
     const allGroups = Object.keys(groupVotes);
     const commentStatsWithTid = [];
 
@@ -393,15 +412,16 @@ function selectConsensusStatements(
     modOutStatementIds = [],
     pickMax = null,
     probThreshold = 0.5,
-    confidence = 0.9
+    confidence = 0.9,
 ) {
     // Get the minimum vote count threshold from the UI
-    const minVoteCount = parseInt(document.getElementById("min-vote-count")?.value) || 1;
+    const minVoteCount =
+        parseInt(document.getElementById("min-vote-count")?.value) || 1;
     // Get all unique comment IDs across all groups
     const allCommentIds = new Set();
-    Object.values(groupVotes).forEach(groupMatrix => {
-        Object.values(groupMatrix).forEach(participantVotes => {
-            Object.keys(participantVotes).forEach(commentId => {
+    Object.values(groupVotes).forEach((groupMatrix) => {
+        Object.values(groupMatrix).forEach((participantVotes) => {
+            Object.keys(participantVotes).forEach((commentId) => {
                 allCommentIds.add(parseInt(commentId));
             });
         });
@@ -409,20 +429,20 @@ function selectConsensusStatements(
 
     // Convert to sorted array and filter out moderated statements
     const commentIds = Array.from(allCommentIds)
-        .filter(id => !modOutStatementIds.includes(id))
+        .filter((id) => !modOutStatementIds.includes(id))
         .sort((a, b) => a - b);
 
     const statements = [];
 
     // Calculate statistics for each comment across all participants (mock group approach)
-    commentIds.forEach(commentId => {
+    commentIds.forEach((commentId) => {
         let totalAgrees = 0;
         let totalDisagrees = 0;
         let totalSeen = 0;
 
         // Aggregate votes across all groups
-        Object.values(groupVotes).forEach(groupMatrix => {
-            Object.values(groupMatrix).forEach(participantVotes => {
+        Object.values(groupVotes).forEach((groupMatrix) => {
+            Object.values(groupMatrix).forEach((participantVotes) => {
                 const vote = participantVotes[commentId];
                 if (vote !== undefined) {
                     totalSeen++;
@@ -459,13 +479,13 @@ function selectConsensusStatements(
             pat,
             pdt,
             agreeMetric,
-            disagreeMetric
+            disagreeMetric,
         });
     });
 
     // Filter and rank agree candidates
     let agreeCandidates = statements
-        .filter(s => s.pa > probThreshold && isSignificant(s.pat, confidence))
+        .filter((s) => s.pa > probThreshold && isSignificant(s.pat, confidence))
         .sort((a, b) => b.agreeMetric - a.agreeMetric);
 
     if (pickMax !== null && pickMax !== undefined) {
@@ -474,7 +494,7 @@ function selectConsensusStatements(
 
     // Filter and rank disagree candidates
     let disagreeCandidates = statements
-        .filter(s => s.pd > probThreshold && isSignificant(s.pdt, confidence))
+        .filter((s) => s.pd > probThreshold && isSignificant(s.pdt, confidence))
         .sort((a, b) => b.disagreeMetric - a.disagreeMetric);
 
     if (pickMax !== null && pickMax !== undefined) {
@@ -488,12 +508,12 @@ function selectConsensusStatements(
         n_trials: stmt.ns,
         p_success: isAgree ? stmt.pa : stmt.pd,
         p_test: isAgree ? stmt.pat : stmt.pdt,
-        cons_for: isAgree ? "agree" : "disagree"
+        cons_for: isAgree ? "agree" : "disagree",
     });
 
     return {
-        agree: agreeCandidates.map(s => formatStatement(s, true)),
-        disagree: disagreeCandidates.map(s => formatStatement(s, false))
+        agree: agreeCandidates.map((s) => formatStatement(s, true)),
+        disagree: disagreeCandidates.map((s) => formatStatement(s, false)),
     };
 }
 
@@ -502,7 +522,8 @@ function selectConsensusStatements(
  * @returns {Array} - Label array
  */
 function getLabelArrayWithOptionalUngrouped() {
-    const includeUnpainted = document.getElementById("include-unpainted").checked;
+    const includeUnpainted =
+        document.getElementById("include-unpainted").checked;
     const labels = [];
 
     for (let i = 0; i < AppState.selection.colorByIndex.length; i++) {
@@ -528,7 +549,10 @@ function getLabelArrayWithOptionalUngrouped() {
  */
 async function analyzePaintedClusters(db, labelArray, commentTexts) {
     const groupVotes = await getGroupVoteMatrices(db, labelArray);
-    const repComments = calculateRepresentativeComments(groupVotes, commentTexts);
+    const repComments = calculateRepresentativeComments(
+        groupVotes,
+        commentTexts,
+    );
 
     // Store the raw group votes data for use in the comparison view
     AppState.data.groupVotes = groupVotes;
@@ -538,18 +562,24 @@ async function analyzePaintedClusters(db, labelArray, commentTexts) {
     let consensusStatements = null;
     if (uniqueGroups.length >= 2) {
         // Get moderated statement IDs to exclude
-        const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
+        const includeModerated = document.getElementById(
+            "include-moderated-checkbox",
+        )?.checked;
         const modOutStatementIds = [];
         if (!includeModerated && AppState.data.commentTexts) {
-            AppState.data.commentTexts.forEach(comment => {
-                const isModerated = comment?.mod === "-1" || comment?.mod === -1;
+            AppState.data.commentTexts.forEach((comment) => {
+                const isModerated =
+                    comment?.mod === "-1" || comment?.mod === -1;
                 if (isModerated) {
                     modOutStatementIds.push(comment.tid);
                 }
             });
         }
 
-        consensusStatements = selectConsensusStatements(groupVotes, modOutStatementIds);
+        consensusStatements = selectConsensusStatements(
+            groupVotes,
+            modOutStatementIds,
+        );
         console.log("Consensus Statements:", consensusStatements);
     }
 
@@ -590,8 +620,8 @@ async function applyGroupAnalysis() {
   `;
 
     // Make sure the output container has relative positioning for the absolute overlay
-    if (window.getComputedStyle(output).position === 'static') {
-        output.style.position = 'relative';
+    if (window.getComputedStyle(output).position === "static") {
+        output.style.position = "relative";
     }
 
     // Add the overlay to the output container
@@ -638,28 +668,33 @@ function initializeApp() {
     updatePlotVisibility();
 
     // First load the dataset list to ensure dropdown is populated
-    loadDatasetList()
-        .then(() => {
-            // Check for shared state in URL hash
-            const hash = location.hash.slice(1);
-            if (hash) {
-                const shared = decodeShareState(hash);
-                if (shared) {
-                    // Explicitly handle custom labels if they exist in the shared state
-                    if (shared.customLabels && Object.keys(shared.customLabels).length > 0) {
-                        console.log("Found custom labels in shared state:", shared.customLabels);
-                        AppState.selection.customLabels = shared.customLabels;
-                        saveState("customLabels", shared.customLabels);
-                    }
-
-                    applySharedState(shared);
-                    return; // ✅ Don't run normal startup; already handled
+    loadDatasetList().then(() => {
+        // Check for shared state in URL hash
+        const hash = location.hash.slice(1);
+        if (hash) {
+            const shared = decodeShareState(hash);
+            if (shared) {
+                // Explicitly handle custom labels if they exist in the shared state
+                if (
+                    shared.customLabels &&
+                    Object.keys(shared.customLabels).length > 0
+                ) {
+                    console.log(
+                        "Found custom labels in shared state:",
+                        shared.customLabels,
+                    );
+                    AppState.selection.customLabels = shared.customLabels;
+                    saveState("customLabels", shared.customLabels);
                 }
-            }
 
-            // Only run if no shared state
-            loadAndRenderData(AppState.preferences.convoSlug);
-        });
+                applySharedState(shared);
+                return; // ✅ Don't run normal startup; already handled
+            }
+        }
+
+        // Only run if no shared state
+        loadAndRenderData(AppState.preferences.convoSlug);
+    });
 }
 
 /**
@@ -676,7 +711,7 @@ function preworkRenderPipelinePauseHelper() {
 window.addEventListener("DOMContentLoaded", initializeApp);
 
 // For testing purposes, export objects and functions
-if (typeof module !== 'undefined' && module.exports) {
+if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         twoPropTest,
         zSig90,

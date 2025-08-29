@@ -1,4 +1,3 @@
-
 /**
  * UI-related functions for Opinion Map Painting Application
  */
@@ -17,27 +16,49 @@ const MAP_VOTES_ICON_HTML = `
  */
 function initializeUI() {
     document.getElementById("dataset").value = AppState.preferences.convoSlug;
-    document.getElementById("toggle-additive").checked = AppState.preferences.isAdditive;
-    document.getElementById("include-unpainted").checked = AppState.selection.includeUnpainted;
-    document.getElementById("auto-analyze-checkbox").checked = loadState("autoAnalyze", true);
-    document.getElementById("include-moderated-checkbox").checked = loadState("includeModerated", false);
-    document.getElementById("scale-opacity-checkbox").checked = AppState.preferences.scaleOpacityWithVotes;
-    document.getElementById("flip-x-checkbox").checked = AppState.preferences.flipX;
-    document.getElementById("flip-y-checkbox").checked = AppState.preferences.flipY;
-    document.getElementById("show-group-comparison-checkbox").checked = AppState.preferences.showGroupComparison;
-    document.getElementById("show-overall-comparison-checkbox").checked = AppState.preferences.showOverallComparison;
-    document.getElementById("show-group-labels-checkbox").checked = AppState.preferences.showGroupLabels;
-    document.getElementById("show-votes-checkbox").checked = AppState.preferences.showVotes;
-    document.getElementById("highlight-pass-votes-checkbox").checked = AppState.preferences.highlightPassVotes;
-    document.getElementById("keep-colored-on-top-checkbox").checked = AppState.preferences.keepColoredOnTop;
+    document.getElementById("toggle-additive").checked =
+        AppState.preferences.isAdditive;
+    document.getElementById("include-unpainted").checked =
+        AppState.selection.includeUnpainted;
+    document.getElementById("auto-analyze-checkbox").checked = loadState(
+        "autoAnalyze",
+        true,
+    );
+    document.getElementById("include-moderated-checkbox").checked = loadState(
+        "includeModerated",
+        false,
+    );
+    document.getElementById("scale-opacity-checkbox").checked =
+        AppState.preferences.scaleOpacityWithVotes;
+    document.getElementById("flip-x-checkbox").checked =
+        AppState.preferences.flipX;
+    document.getElementById("flip-y-checkbox").checked =
+        AppState.preferences.flipY;
+    document.getElementById("show-group-comparison-checkbox").checked =
+        AppState.preferences.showGroupComparison;
+    document.getElementById("show-overall-comparison-checkbox").checked =
+        AppState.preferences.showOverallComparison;
+    document.getElementById("show-group-labels-checkbox").checked =
+        AppState.preferences.showGroupLabels;
+    document.getElementById("show-votes-checkbox").checked =
+        AppState.preferences.showVotes;
+    document.getElementById("highlight-pass-votes-checkbox").checked =
+        AppState.preferences.highlightPassVotes;
+    document.getElementById("keep-colored-on-top-checkbox").checked =
+        AppState.preferences.keepColoredOnTop;
 
     // Initialize plot selection checkboxes
     document.getElementById("show-pca").checked = AppState.preferences.showPCA;
-    document.getElementById("show-pacmap").checked = AppState.preferences.showPaCMAP;
-    document.getElementById("show-localmap").checked = AppState.preferences.showLocalMAP;
+    document.getElementById("show-pacmap").checked =
+        AppState.preferences.showPaCMAP;
+    document.getElementById("show-localmap").checked =
+        AppState.preferences.showLocalMAP;
 
     // Initialize min vote count input
-    document.getElementById("min-vote-count").value = loadState("minVoteCount", 1);
+    document.getElementById("min-vote-count").value = loadState(
+        "minVoteCount",
+        1,
+    );
 
     // Initialize statement ID input with saved value
     const statementIdInput = document.getElementById("statement-id-input");
@@ -45,7 +66,8 @@ function initializeUI() {
 
     // Initialize sliders
     document.getElementById("opacity-slider").value = AppState.ui.dotOpacity;
-    document.getElementById("opacity-value").textContent = AppState.ui.dotOpacity;
+    document.getElementById("opacity-value").textContent =
+        AppState.ui.dotOpacity;
     document.getElementById("dot-size-slider").value = AppState.ui.dotSize;
     document.getElementById("dot-size-value").textContent = AppState.ui.dotSize;
 
@@ -72,11 +94,13 @@ function setupEventListeners() {
     });
 
     // Share dropdown toggle
-    document.getElementById("share-options-button").addEventListener("click", (e) => {
-        e.stopPropagation(); // Prevent event from bubbling up
-        const dropdown = document.getElementById("share-dropdown");
-        dropdown.classList.toggle("hidden");
-    });
+    document
+        .getElementById("share-options-button")
+        .addEventListener("click", (e) => {
+            e.stopPropagation(); // Prevent event from bubbling up
+            const dropdown = document.getElementById("share-dropdown");
+            dropdown.classList.toggle("hidden");
+        });
 
     // Close dropdown when clicking outside
     document.addEventListener("click", (e) => {
@@ -84,24 +108,30 @@ function setupEventListeners() {
         const button = document.getElementById("share-options-button");
 
         // Only close if dropdown is visible and click is outside dropdown and button
-        if (!dropdown.classList.contains("hidden") &&
+        if (
+            !dropdown.classList.contains("hidden") &&
             !dropdown.contains(e.target) &&
-            e.target !== button) {
+            e.target !== button
+        ) {
             dropdown.classList.add("hidden");
         }
     });
 
     // Share with paint option
-    document.getElementById("share-with-paint").addEventListener("click", () => {
-        shareWithPaint();
-        document.getElementById("share-dropdown").classList.add("hidden");
-    });
+    document
+        .getElementById("share-with-paint")
+        .addEventListener("click", () => {
+            shareWithPaint();
+            document.getElementById("share-dropdown").classList.add("hidden");
+        });
 
     // Share without paint option
-    document.getElementById("share-without-paint").addEventListener("click", () => {
-        shareWithoutPaint();
-        document.getElementById("share-dropdown").classList.add("hidden");
-    });
+    document
+        .getElementById("share-without-paint")
+        .addEventListener("click", () => {
+            shareWithoutPaint();
+            document.getElementById("share-dropdown").classList.add("hidden");
+        });
 
     // Dataset selection
     document.getElementById("dataset").addEventListener("change", (e) => {
@@ -127,58 +157,70 @@ function setupEventListeners() {
     });
 
     // Additive selection mode
-    document.getElementById("toggle-additive").addEventListener("change", (e) => {
-        const isAdditive = e.target.checked;
-        AppState.preferences.isAdditive = isAdditive;
-        saveState("additive", isAdditive);
-    });
+    document
+        .getElementById("toggle-additive")
+        .addEventListener("change", (e) => {
+            const isAdditive = e.target.checked;
+            AppState.preferences.isAdditive = isAdditive;
+            saveState("additive", isAdditive);
+        });
 
     // Include unpainted points
-    document.getElementById("include-unpainted").addEventListener("change", (e) => {
-        const includeUnpainted = e.target.checked;
-        AppState.selection.includeUnpainted = includeUnpainted;
-        saveState("includeUnpainted", includeUnpainted);
-        updateLabelCounts();
-        if (document.getElementById("auto-analyze-checkbox").checked) {
-            applyGroupAnalysis();
-        }
-    });
+    document
+        .getElementById("include-unpainted")
+        .addEventListener("change", (e) => {
+            const includeUnpainted = e.target.checked;
+            AppState.selection.includeUnpainted = includeUnpainted;
+            saveState("includeUnpainted", includeUnpainted);
+            updateLabelCounts();
+            if (document.getElementById("auto-analyze-checkbox").checked) {
+                applyGroupAnalysis();
+            }
+        });
 
     // Flip X axis
-    document.getElementById("flip-x-checkbox").addEventListener("change", (e) => {
-        AppState.preferences.flipX = e.target.checked;
-        saveState("flipX", AppState.preferences.flipX);
+    document
+        .getElementById("flip-x-checkbox")
+        .addEventListener("change", (e) => {
+            AppState.preferences.flipX = e.target.checked;
+            saveState("flipX", AppState.preferences.flipX);
 
-        withLoadingIndicator(() => {
-            renderAllPlots();
+            withLoadingIndicator(() => {
+                renderAllPlots();
+            });
         });
-    });
 
     // Flip Y axis
-    document.getElementById("flip-y-checkbox").addEventListener("change", (e) => {
-        AppState.preferences.flipY = e.target.checked;
-        saveState("flipY", AppState.preferences.flipY);
+    document
+        .getElementById("flip-y-checkbox")
+        .addEventListener("change", (e) => {
+            AppState.preferences.flipY = e.target.checked;
+            saveState("flipY", AppState.preferences.flipY);
 
-        withLoadingIndicator(() => {
-            renderAllPlots();
+            withLoadingIndicator(() => {
+                renderAllPlots();
+            });
         });
-    });
 
     // Auto analyze
-    document.getElementById("auto-analyze-checkbox").addEventListener("change", (e) => {
-        const isEnabled = e.target.checked;
-        saveState("autoAnalyze", isEnabled);
-        if (isEnabled) applyGroupAnalysis();
-    });
+    document
+        .getElementById("auto-analyze-checkbox")
+        .addEventListener("change", (e) => {
+            const isEnabled = e.target.checked;
+            saveState("autoAnalyze", isEnabled);
+            if (isEnabled) applyGroupAnalysis();
+        });
 
     // Include moderated comments
-    document.getElementById("include-moderated-checkbox").addEventListener("change", (e) => {
-        saveState("includeModerated", e.target.checked);
-        // If auto-analyze is enabled, automatically regenerate the table
-        if (document.getElementById("auto-analyze-checkbox").checked) {
-            applyGroupAnalysis();
-        }
-    });
+    document
+        .getElementById("include-moderated-checkbox")
+        .addEventListener("change", (e) => {
+            saveState("includeModerated", e.target.checked);
+            // If auto-analyze is enabled, automatically regenerate the table
+            if (document.getElementById("auto-analyze-checkbox").checked) {
+                applyGroupAnalysis();
+            }
+        });
 
     // Color selection
     document.getElementById("color").addEventListener("input", (e) => {
@@ -190,7 +232,8 @@ function setupEventListeners() {
     // Keyboard shortcuts
     document.addEventListener("keydown", (e) => {
         // Only trigger on number keys 0–9 and when not typing into an input field
-        if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+        if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")
+            return;
 
         const index = parseInt(e.key, 10);
 
@@ -203,7 +246,8 @@ function setupEventListeners() {
 
     // Window resize
     window.addEventListener("resize", () => {
-        if (AppState.data.X1 && AppState.data.X2 && AppState.data.X3) renderAllPlots();
+        if (AppState.data.X1 && AppState.data.X2 && AppState.data.X3)
+            renderAllPlots();
     });
 
     // Opacity slider
@@ -245,122 +289,168 @@ function setupEventListeners() {
     });
 
     // Scale opacity with vote count checkbox
-    document.getElementById("scale-opacity-checkbox").addEventListener("change", async (e) => {
-        AppState.preferences.scaleOpacityWithVotes = e.target.checked;
-        saveState("scaleOpacityWithVotes", AppState.preferences.scaleOpacityWithVotes);
+    document
+        .getElementById("scale-opacity-checkbox")
+        .addEventListener("change", async (e) => {
+            AppState.preferences.scaleOpacityWithVotes = e.target.checked;
+            saveState(
+                "scaleOpacityWithVotes",
+                AppState.preferences.scaleOpacityWithVotes,
+            );
 
-        // Show loading spinner before rerendering
-        showPlotLoader();
+            // Show loading spinner before rerendering
+            showPlotLoader();
 
-        // Use setTimeout to ensure the spinner is shown before the potentially blocking operations
-        setTimeout(async () => {
-            try {
-                // If opacity scaling is enabled, ensure the database is loaded
-                if (AppState.preferences.scaleOpacityWithVotes && !window.dbInstance) {
-                    await loadVotesDB(AppState.preferences.convoSlug);
+            // Use setTimeout to ensure the spinner is shown before the potentially blocking operations
+            setTimeout(async () => {
+                try {
+                    // If opacity scaling is enabled, ensure the database is loaded
+                    if (
+                        AppState.preferences.scaleOpacityWithVotes &&
+                        !window.dbInstance
+                    ) {
+                        await loadVotesDB(AppState.preferences.convoSlug);
+                    }
+
+                    // Rerender all plots
+                    renderAllPlots();
+                } finally {
+                    // Always hide the loader when done
+                    hidePlotLoader();
                 }
-
-                // Rerender all plots
-                renderAllPlots();
-            } finally {
-                // Always hide the loader when done
-                hidePlotLoader();
-            }
-        }, 10);
-    });
+            }, 10);
+        });
 
     // Show group comparison checkbox
-    document.getElementById("show-group-comparison-checkbox").addEventListener("change", (e) => {
-        AppState.preferences.showGroupComparison = e.target.checked;
-        saveState("showGroupComparison", AppState.preferences.showGroupComparison);
+    document
+        .getElementById("show-group-comparison-checkbox")
+        .addEventListener("change", (e) => {
+            AppState.preferences.showGroupComparison = e.target.checked;
+            saveState(
+                "showGroupComparison",
+                AppState.preferences.showGroupComparison,
+            );
 
-        // If auto-analyze is enabled and analysis results are already displayed, rerun the analysis to update the display
-        if (document.getElementById("auto-analyze-checkbox").checked && document.getElementById("rep-comments-output").innerHTML !== "") {
-            applyGroupAnalysis();
-        }
-    });
+            // If auto-analyze is enabled and analysis results are already displayed, rerun the analysis to update the display
+            if (
+                document.getElementById("auto-analyze-checkbox").checked &&
+                document.getElementById("rep-comments-output").innerHTML !== ""
+            ) {
+                applyGroupAnalysis();
+            }
+        });
 
     // Show overall comparison checkbox
-    document.getElementById("show-overall-comparison-checkbox").addEventListener("change", (e) => {
-        AppState.preferences.showOverallComparison = e.target.checked;
-        saveState("showOverallComparison", AppState.preferences.showOverallComparison);
+    document
+        .getElementById("show-overall-comparison-checkbox")
+        .addEventListener("change", (e) => {
+            AppState.preferences.showOverallComparison = e.target.checked;
+            saveState(
+                "showOverallComparison",
+                AppState.preferences.showOverallComparison,
+            );
 
-        // If auto-analyze is enabled and analysis results are already displayed, rerun the analysis to update the display
-        if (document.getElementById("auto-analyze-checkbox").checked && document.getElementById("rep-comments-output").innerHTML !== "") {
-            applyGroupAnalysis();
-        }
-    });
+            // If auto-analyze is enabled and analysis results are already displayed, rerun the analysis to update the display
+            if (
+                document.getElementById("auto-analyze-checkbox").checked &&
+                document.getElementById("rep-comments-output").innerHTML !== ""
+            ) {
+                applyGroupAnalysis();
+            }
+        });
 
     // Show group labels checkbox
-    document.getElementById("show-group-labels-checkbox").addEventListener("change", (e) => {
-        AppState.preferences.showGroupLabels = e.target.checked;
-        saveState("showGroupLabels", AppState.preferences.showGroupLabels);
+    document
+        .getElementById("show-group-labels-checkbox")
+        .addEventListener("change", (e) => {
+            AppState.preferences.showGroupLabels = e.target.checked;
+            saveState("showGroupLabels", AppState.preferences.showGroupLabels);
 
-        withLoadingIndicator(() => {
-            renderAllPlots(); // Rerender plots to show/hide labels
+            withLoadingIndicator(() => {
+                renderAllPlots(); // Rerender plots to show/hide labels
+            });
         });
-    });
 
     // Run analysis button
-    document.getElementById("run-analysis").addEventListener("click", applyGroupAnalysis);
+    document
+        .getElementById("run-analysis")
+        .addEventListener("click", applyGroupAnalysis);
 
     // Show votes by statement ID
-    document.getElementById("show-votes-checkbox").addEventListener("change", (e) => {
-        AppState.preferences.showVotes = e.target.checked;
-        saveState("showVotes", AppState.preferences.showVotes);
-        updateStatementTextDisplay();
+    document
+        .getElementById("show-votes-checkbox")
+        .addEventListener("change", (e) => {
+            AppState.preferences.showVotes = e.target.checked;
+            saveState("showVotes", AppState.preferences.showVotes);
+            updateStatementTextDisplay();
 
-        withLoadingIndicator(() => {
-            toggleVoteColors(e.target.checked);
-        });
-    });
-
-    document.getElementById("statement-id-input").addEventListener("change", (e) => {
-        AppState.preferences.statementId = e.target.value;
-        saveState("statementId", AppState.preferences.statementId);
-        updateStatementTextDisplay();
-
-        if (document.getElementById("show-votes-checkbox").checked) {
             withLoadingIndicator(() => {
-                toggleVoteColors(true);
+                toggleVoteColors(e.target.checked);
             });
-        }
-    });
+        });
+
+    document
+        .getElementById("statement-id-input")
+        .addEventListener("change", (e) => {
+            AppState.preferences.statementId = e.target.value;
+            saveState("statementId", AppState.preferences.statementId);
+            updateStatementTextDisplay();
+
+            if (document.getElementById("show-votes-checkbox").checked) {
+                withLoadingIndicator(() => {
+                    toggleVoteColors(true);
+                });
+            }
+        });
 
     // Highlight pass votes checkbox
-    document.getElementById("highlight-pass-votes-checkbox").addEventListener("change", (e) => {
-        AppState.preferences.highlightPassVotes = e.target.checked;
-        saveState("highlightPassVotes", AppState.preferences.highlightPassVotes);
+    document
+        .getElementById("highlight-pass-votes-checkbox")
+        .addEventListener("change", (e) => {
+            AppState.preferences.highlightPassVotes = e.target.checked;
+            saveState(
+                "highlightPassVotes",
+                AppState.preferences.highlightPassVotes,
+            );
 
-        // If votes are currently being shown, regenerate the vote colors with the new scheme
-        if (AppState.preferences.showVotes) {
-            toggleVoteColors(true); // This will regenerate vote colors and re-render plots
-        }
+            // If votes are currently being shown, regenerate the vote colors with the new scheme
+            if (AppState.preferences.showVotes) {
+                toggleVoteColors(true); // This will regenerate vote colors and re-render plots
+            }
 
-        // If analysis results are displayed, rerun the analysis to update the charts with new colors
-        if (document.getElementById("rep-comments-output").innerHTML !== "") {
-            applyGroupAnalysis();
-        }
-    });
+            // If analysis results are displayed, rerun the analysis to update the charts with new colors
+            if (
+                document.getElementById("rep-comments-output").innerHTML !== ""
+            ) {
+                applyGroupAnalysis();
+            }
+        });
 
     // Min vote count input
-    document.getElementById("min-vote-count").addEventListener("change", (e) => {
-        const minVoteCount = parseInt(e.target.value) || 1;
-        saveState("minVoteCount", minVoteCount);
-        if (document.getElementById("auto-analyze-checkbox").checked) {
-            applyGroupAnalysis();
-        }
-    });
+    document
+        .getElementById("min-vote-count")
+        .addEventListener("change", (e) => {
+            const minVoteCount = parseInt(e.target.value) || 1;
+            saveState("minVoteCount", minVoteCount);
+            if (document.getElementById("auto-analyze-checkbox").checked) {
+                applyGroupAnalysis();
+            }
+        });
 
     // Keep colored points on top checkbox
-    document.getElementById("keep-colored-on-top-checkbox").addEventListener("change", (e) => {
-        AppState.preferences.keepColoredOnTop = e.target.checked;
-        saveState("keepColoredOnTop", AppState.preferences.keepColoredOnTop);
+    document
+        .getElementById("keep-colored-on-top-checkbox")
+        .addEventListener("change", (e) => {
+            AppState.preferences.keepColoredOnTop = e.target.checked;
+            saveState(
+                "keepColoredOnTop",
+                AppState.preferences.keepColoredOnTop,
+            );
 
-        withLoadingIndicator(() => {
-            renderAllPlots(); // Re-render to apply new layering
+            withLoadingIndicator(() => {
+                renderAllPlots(); // Re-render to apply new layering
+            });
         });
-    });
 
     // Plot selection checkboxes
     document.getElementById("show-pca").addEventListener("change", (e) => {
@@ -424,13 +514,14 @@ async function toggleVoteColors(showVotes) {
             try {
                 const votes = await getVotesForStatement(statementId);
                 const currentVoteColors = getCurrentVoteColors();
-                AppState.selection.voteColorByIndex = AppState.data.participants.map(pid => {
-                    const vote = votes.get(String(pid));
-                    if (vote === 1) return currentVoteColors.agree;
-                    if (vote === -1) return currentVoteColors.disagree;
-                    if (vote === 0) return currentVoteColors.pass;
-                    return null;
-                });
+                AppState.selection.voteColorByIndex =
+                    AppState.data.participants.map((pid) => {
+                        const vote = votes.get(String(pid));
+                        if (vote === 1) return currentVoteColors.agree;
+                        if (vote === -1) return currentVoteColors.disagree;
+                        if (vote === 0) return currentVoteColors.pass;
+                        return null;
+                    });
             } catch (error) {
                 console.error("Error getting votes for statement:", error);
                 AppState.selection.voteColorByIndex = [];
@@ -463,7 +554,10 @@ function updateStatementTextDisplay() {
     const statementId = statementIdInput.value;
 
     // Get the statement text from the comment text map
-    if (AppState.data.commentTextMap && AppState.data.commentTextMap[statementId]) {
+    if (
+        AppState.data.commentTextMap &&
+        AppState.data.commentTextMap[statementId]
+    ) {
         const statement = AppState.data.commentTextMap[statementId];
         const isModerated = statement.mod === "-1" || statement.mod === -1;
 
@@ -501,16 +595,18 @@ function updateStatementTextDisplay() {
 function initializeTooltips() {
     // Define tooltip content for each projection type
     const tooltipContent = {
-        "PCA": "Principal Component Analysis (PCA): The oldest technique (1903) that uses linear regression to find relationships in data. Used in Polis, it's good at capturing overall data variance but may miss complex non-linear relationships. PCA works by finding directions of maximum variance in the data.",
-        "PaCMAP": "Pairwise Controlled Manifold Approximation and Projection (PaCMAP): A newer technique (2021) that preserves both local and global structure. It works like a physics simulation with attractive and repulsive forces between data points. Has a simpler loss function than comparable algorithms.",
-        "LocalMAP": "LocalMAP: The newest technique (2024) that builds on PaCMAP. It uses graph structures to better preserve both local and global relationships in the data. Particularly good at maintaining the structure of local neighborhoods while showing overall patterns."
+        PCA: "Principal Component Analysis (PCA): The oldest technique (1903) that uses linear regression to find relationships in data. Used in Polis, it's good at capturing overall data variance but may miss complex non-linear relationships. PCA works by finding directions of maximum variance in the data.",
+        PaCMAP: "Pairwise Controlled Manifold Approximation and Projection (PaCMAP): A newer technique (2021) that preserves both local and global structure. It works like a physics simulation with attractive and repulsive forces between data points. Has a simpler loss function than comparable algorithms.",
+        LocalMAP:
+            "LocalMAP: The newest technique (2024) that builds on PaCMAP. It uses graph structures to better preserve both local and global relationships in the data. Particularly good at maintaining the structure of local neighborhoods while showing overall patterns.",
     };
 
     // Create a tooltip container if it doesn't exist
     if (!document.getElementById("tooltip-container")) {
         const tooltipContainer = document.createElement("div");
         tooltipContainer.id = "tooltip-container";
-        tooltipContainer.className = "fixed z-50 bg-white rounded-lg shadow-lg border border-gray-200 p-4 max-w-sm hidden";
+        tooltipContainer.className =
+            "fixed z-50 bg-white rounded-lg shadow-lg border border-gray-200 p-4 max-w-sm hidden";
         tooltipContainer.style.transition = "opacity 150ms ease-in-out";
         tooltipContainer.style.opacity = "0";
         document.body.appendChild(tooltipContainer);
@@ -540,7 +636,7 @@ function initializeTooltips() {
         let left, top;
 
         // Horizontal positioning - center above/below the icon
-        left = rect.left + (rect.width / 2) - 150; // Center tooltip (assuming ~300px width)
+        left = rect.left + rect.width / 2 - 150; // Center tooltip (assuming ~300px width)
 
         // Make sure tooltip stays within viewport horizontally
         const viewportWidth = window.innerWidth;
@@ -567,7 +663,9 @@ function initializeTooltips() {
         }, 10);
 
         // Add close button functionality
-        document.getElementById("close-tooltip").addEventListener("click", hideTooltip);
+        document
+            .getElementById("close-tooltip")
+            .addEventListener("click", hideTooltip);
 
         // Add click outside to close
         document.addEventListener("click", closeTooltipOnClickOutside);
@@ -589,7 +687,8 @@ function initializeTooltips() {
     function closeTooltipOnClickOutside(e) {
         const tooltip = document.getElementById("tooltip-container");
         const isClickInsideTooltip = tooltip.contains(e.target);
-        const isClickOnInfoIcon = e.target.id === "plot1-info" ||
+        const isClickOnInfoIcon =
+            e.target.id === "plot1-info" ||
             e.target.id === "plot2-info" ||
             e.target.id === "plot3-info";
 
@@ -599,31 +698,44 @@ function initializeTooltips() {
     }
 
     // Add click handlers to all info icons
-    document.getElementById("plot1-info").addEventListener("click", function (event) {
-        event.stopPropagation();
-        showTooltip("PCA", tooltipContent.PCA, event);
-    });
+    document
+        .getElementById("plot1-info")
+        .addEventListener("click", function (event) {
+            event.stopPropagation();
+            showTooltip("PCA", tooltipContent.PCA, event);
+        });
 
-    document.getElementById("plot2-info").addEventListener("click", function (event) {
-        event.stopPropagation();
-        showTooltip("PaCMAP", tooltipContent.PaCMAP, event);
-    });
+    document
+        .getElementById("plot2-info")
+        .addEventListener("click", function (event) {
+            event.stopPropagation();
+            showTooltip("PaCMAP", tooltipContent.PaCMAP, event);
+        });
 
-    document.getElementById("plot3-info").addEventListener("click", function (event) {
-        event.stopPropagation();
-        showTooltip("LocalMAP", tooltipContent.LocalMAP, event);
-    });
+    document
+        .getElementById("plot3-info")
+        .addEventListener("click", function (event) {
+            event.stopPropagation();
+            showTooltip("LocalMAP", tooltipContent.LocalMAP, event);
+        });
 }
 
 function renderPlot(svgId, data, title) {
     const svg = d3.select(svgId);
-    svg.attr("width", AppState.dimensions.width).attr("height", AppState.dimensions.height);
-    const scales = getScales(data, AppState.dimensions.width, AppState.dimensions.height);
+    svg.attr("width", AppState.dimensions.width).attr(
+        "height",
+        AppState.dimensions.height,
+    );
+    const scales = getScales(
+        data,
+        AppState.dimensions.width,
+        AppState.dimensions.height,
+    );
     svg.selectAll("*").remove();
 
     // Add light origin axes at x=0 and y=0 (if within domain)
-    const [xMin, xMax] = d3.extent(data, d => d[0]);
-    const [yMin, yMax] = d3.extent(data, d => d[1]);
+    const [xMin, xMax] = d3.extent(data, (d) => d[0]);
+    const [yMin, yMax] = d3.extent(data, (d) => d[1]);
 
     if (xMin < 0 && xMax > 0) {
         svg.append("line")
@@ -654,19 +766,22 @@ function renderPlot(svgId, data, title) {
         // Sort data so uncolored points come first (rendered behind), colored points come last (rendered on top)
         circleData = circleData.sort((a, b) => {
             const aHasColor = AppState.preferences.showVotes
-                ? (AppState.selection.voteColorByIndex[a.i] && AppState.selection.voteColorByIndex[a.i] !== "rgba(0,0,0,0.5)")
-                : (AppState.selection.colorByIndex[a.i] && AppState.selection.colorByIndex[a.i] !== "rgba(0,0,0,0.5)");
+                ? AppState.selection.voteColorByIndex[a.i] &&
+                  AppState.selection.voteColorByIndex[a.i] !== "rgba(0,0,0,0.5)"
+                : AppState.selection.colorByIndex[a.i] &&
+                  AppState.selection.colorByIndex[a.i] !== "rgba(0,0,0,0.5)";
             const bHasColor = AppState.preferences.showVotes
-                ? (AppState.selection.voteColorByIndex[b.i] && AppState.selection.voteColorByIndex[b.i] !== "rgba(0,0,0,0.5)")
-                : (AppState.selection.colorByIndex[b.i] && AppState.selection.colorByIndex[b.i] !== "rgba(0,0,0,0.5)");
+                ? AppState.selection.voteColorByIndex[b.i] &&
+                  AppState.selection.voteColorByIndex[b.i] !== "rgba(0,0,0,0.5)"
+                : AppState.selection.colorByIndex[b.i] &&
+                  AppState.selection.colorByIndex[b.i] !== "rgba(0,0,0,0.5)";
 
             // Uncolored points (false) come first, colored points (true) come last
             return aHasColor - bHasColor;
         });
     }
 
-    svg
-        .selectAll("circle")
+    svg.selectAll("circle")
         .data(circleData)
         .enter()
         .append("circle")
@@ -676,7 +791,9 @@ function renderPlot(svgId, data, title) {
         .attr("fill-opacity", AppState.ui.dotOpacity) // Start with default opacity
         .attr("fill", ({ i }) => {
             if (AppState.preferences.showVotes) {
-                return AppState.selection.voteColorByIndex[i] || "rgba(0,0,0,0.5)";
+                return (
+                    AppState.selection.voteColorByIndex[i] || "rgba(0,0,0,0.5)"
+                );
             }
             return AppState.selection.colorByIndex[i] || "rgba(0,0,0,0.5)";
         })
@@ -700,8 +817,14 @@ function renderPlot(svgId, data, title) {
         if (AppState.ui.isDragging) return;
         const [x, y] = d3.pointer(event, this);
         // Don't change radius with dotSize for now.
-        const FORCE_RADIUS = 10
-        AppState.ui.hoveredIndices = findIndicesWithinRadius(data, x, y, scales, FORCE_RADIUS);
+        const FORCE_RADIUS = 10;
+        AppState.ui.hoveredIndices = findIndicesWithinRadius(
+            data,
+            x,
+            y,
+            scales,
+            FORCE_RADIUS,
+        );
         applyHoverStyles();
     });
 
@@ -735,12 +858,14 @@ function addGroupLabelOverlays(svg, data, scales) {
         if (color) {
             // Get the label - either custom label or default letter
             const colorIndex = AppState.selection.colorToLabelIndex[color];
-            const label = AppState.selection.customLabels[color] || labelIndexToLetter(colorIndex);
+            const label =
+                AppState.selection.customLabels[color] ||
+                labelIndexToLetter(colorIndex);
 
             if (!colorGroups[color]) {
                 colorGroups[color] = {
                     points: [],
-                    label: label
+                    label: label,
                 };
             }
             colorGroups[color].points.push(data[i]);
@@ -748,7 +873,8 @@ function addGroupLabelOverlays(svg, data, scales) {
     }
 
     // Create a temporary text element to measure text width accurately
-    const textMeasurer = svg.append("text")
+    const textMeasurer = svg
+        .append("text")
         .attr("font-size", "14px")
         .attr("font-weight", "bold")
         .style("opacity", 0); // Make it invisible
@@ -801,7 +927,7 @@ function addGroupLabelOverlays(svg, data, scales) {
 
         // Calculate actual width of the widest line
         let actualWidth = 0;
-        lines.forEach(line => {
+        lines.forEach((line) => {
             const lineWidth = getTextWidth(line);
             actualWidth = Math.max(actualWidth, lineWidth);
         });
@@ -818,7 +944,7 @@ function addGroupLabelOverlays(svg, data, scales) {
             originalY: scales.y(centerY),
             dataX: centerX,
             dataY: centerY,
-            needsLeaderLine: false
+            needsLeaderLine: false,
         });
     });
 
@@ -850,11 +976,12 @@ function addGroupLabelOverlays(svg, data, scales) {
                     const b = labelPositions[j];
 
                     // Rectangular collision detection
-                    if (a.x - a.width / 2 < b.x + b.width / 2 + padding &&
+                    if (
+                        a.x - a.width / 2 < b.x + b.width / 2 + padding &&
                         a.x + a.width / 2 + padding > b.x - b.width / 2 &&
                         a.y - a.height / 2 < b.y + b.height / 2 + padding &&
-                        a.y + a.height / 2 + padding > b.y - b.height / 2) {
-
+                        a.y + a.height / 2 + padding > b.y - b.height / 2
+                    ) {
                         hasCollision = true;
 
                         // Calculate vector between centers
@@ -878,10 +1005,14 @@ function addGroupLabelOverlays(svg, data, scales) {
             // Keep labels within bounds
             for (const label of labelPositions) {
                 // Check if label would go out of bounds
-                if (label.x - label.width / 2 < minX) label.x = minX + label.width / 2;
-                if (label.x + label.width / 2 > maxX) label.x = maxX - label.width / 2;
-                if (label.y - label.height / 2 < minY) label.y = minY + label.height / 2;
-                if (label.y + label.height / 2 > maxY) label.y = maxY - label.height / 2;
+                if (label.x - label.width / 2 < minX)
+                    label.x = minX + label.width / 2;
+                if (label.x + label.width / 2 > maxX)
+                    label.x = maxX - label.width / 2;
+                if (label.y - label.height / 2 < minY)
+                    label.y = minY + label.height / 2;
+                if (label.y + label.height / 2 > maxY)
+                    label.y = maxY - label.height / 2;
 
                 // Check if label has moved significantly from its original position
                 const dx = label.x - label.originalX;
@@ -900,15 +1031,17 @@ function addGroupLabelOverlays(svg, data, scales) {
     resolveCollisions();
 
     // Second pass: render labels with adjusted positions
-    labelPositions.forEach(label => {
+    labelPositions.forEach((label) => {
         // Create a group for the label to ensure it's on top
-        const labelGroup = svg.append("g")
+        const labelGroup = svg
+            .append("g")
             .attr("class", "label-group")
             .attr("pointer-events", "none"); // Make entire group non-interactable
 
         // Add leader line if the label has been moved significantly
         if (label.needsLeaderLine) {
-            labelGroup.append("line")
+            labelGroup
+                .append("line")
                 .attr("x1", label.originalX)
                 .attr("y1", label.originalY)
                 .attr("x2", label.x)
@@ -919,7 +1052,8 @@ function addGroupLabelOverlays(svg, data, scales) {
                 .attr("opacity", 0.7);
 
             // Add a small dot at the original position
-            labelGroup.append("circle")
+            labelGroup
+                .append("circle")
                 .attr("cx", label.originalX)
                 .attr("cy", label.originalY)
                 .attr("r", 3)
@@ -928,9 +1062,10 @@ function addGroupLabelOverlays(svg, data, scales) {
         }
 
         // Add multi-line text with white stroke for better visibility against any background
-        const text = labelGroup.append("text")
+        const text = labelGroup
+            .append("text")
             .attr("x", label.x)
-            .attr("y", label.y - (label.lines.length - 1) * lineHeight / 2)
+            .attr("y", label.y - ((label.lines.length - 1) * lineHeight) / 2)
             .attr("text-anchor", "middle")
             .attr("fill", "black")
             .attr("stroke", "white")
@@ -978,7 +1113,8 @@ async function updateOpacityBasedOnVotes() {
         if (pid) {
             // Use cached value if available, otherwise calculate
             if (AppState.ui.opacityFactorCache[i] === undefined) {
-                AppState.ui.opacityFactorCache[i] = await calculateOpacityScaleFactor(pid);
+                AppState.ui.opacityFactorCache[i] =
+                    await calculateOpacityScaleFactor(pid);
             }
             opacityFactors[i] = AppState.ui.opacityFactorCache[i];
         }
@@ -1009,20 +1145,26 @@ async function updateOpacityBasedOnVotes() {
  * Update plot visibility and layout based on selection
  */
 function updatePlotVisibility() {
-    const plot1Container = document.querySelector('#plot1').parentElement;
-    const plot2Container = document.querySelector('#plot2').parentElement;
-    const plot3Container = document.querySelector('#plot3').parentElement;
+    const plot1Container = document.querySelector("#plot1").parentElement;
+    const plot2Container = document.querySelector("#plot2").parentElement;
+    const plot3Container = document.querySelector("#plot3").parentElement;
 
     // Show/hide plots based on preferences
-    plot1Container.style.display = AppState.preferences.showPCA ? 'flex' : 'none';
-    plot2Container.style.display = AppState.preferences.showPaCMAP ? 'flex' : 'none';
-    plot3Container.style.display = AppState.preferences.showLocalMAP ? 'flex' : 'none';
+    plot1Container.style.display = AppState.preferences.showPCA
+        ? "flex"
+        : "none";
+    plot2Container.style.display = AppState.preferences.showPaCMAP
+        ? "flex"
+        : "none";
+    plot3Container.style.display = AppState.preferences.showLocalMAP
+        ? "flex"
+        : "none";
 
     // Ensure at least one plot is visible
     const visiblePlots = [
         AppState.preferences.showPCA,
         AppState.preferences.showPaCMAP,
-        AppState.preferences.showLocalMAP
+        AppState.preferences.showLocalMAP,
     ].filter(Boolean).length;
 
     if (visiblePlots === 0) {
@@ -1030,7 +1172,7 @@ function updatePlotVisibility() {
         AppState.preferences.showPCA = true;
         document.getElementById("show-pca").checked = true;
         saveState("showPCA", true);
-        plot1Container.style.display = 'flex';
+        plot1Container.style.display = "flex";
     }
 
     // Re-render all plots with new dimensions
@@ -1061,7 +1203,6 @@ function renderAllPlots() {
         updateOpacityBasedOnVotes();
     }
 }
-
 
 function renderMetaInfo(meta) {
     const container = document.getElementById("meta-info");
@@ -1095,7 +1236,7 @@ function renderMetaInfo(meta) {
                 : `<a href="${url}" target="_blank" class="inline-flex items-center">${label}</a>`;
 
             return `
-          <button class="${buttonClass} mr-2 mb-2" ${isDisabled ? 'disabled' : ''}>
+          <button class="${buttonClass} mr-2 mb-2" ${isDisabled ? "disabled" : ""}>
             <span class="mr-1.5">🔗</span>
             ${content}
           </button>
@@ -1119,8 +1260,12 @@ function getScales(X, width, height, padding = 40) {
     const xExtent = d3.extent(X, (d) => d[0]);
     const yExtent = d3.extent(X, (d) => d[1]);
 
-    const xDomain = AppState.preferences.flipX ? [...xExtent].reverse() : xExtent;
-    const yDomain = AppState.preferences.flipY ? [...yExtent].reverse() : yExtent;
+    const xDomain = AppState.preferences.flipX
+        ? [...xExtent].reverse()
+        : xExtent;
+    const yDomain = AppState.preferences.flipY
+        ? [...yExtent].reverse()
+        : yExtent;
 
     return {
         x: d3
@@ -1177,7 +1322,9 @@ function makeLassoDragHandler(svg, data, scales) {
             const sourceEvent = event.sourceEvent;
             const modifierHeld =
                 sourceEvent &&
-                (sourceEvent.shiftKey || sourceEvent.metaKey || sourceEvent.ctrlKey);
+                (sourceEvent.shiftKey ||
+                    sourceEvent.metaKey ||
+                    sourceEvent.ctrlKey);
             const additive = AppState.preferences.isAdditive || modifierHeld;
 
             // Check if any points were selected
@@ -1202,9 +1349,13 @@ function makeLassoDragHandler(svg, data, scales) {
             });
 
             // Only add the color to the palette if points were selected
-            if (pointsSelected && !(selectedColor in AppState.selection.colorToLabelIndex)) {
+            if (
+                pointsSelected &&
+                !(selectedColor in AppState.selection.colorToLabelIndex)
+            ) {
                 Config.colors.tab10.push(selectedColor); // Add to end
-                AppState.selection.colorToLabelIndex[selectedColor] = Config.colors.tab10.length - 1;
+                AppState.selection.colorToLabelIndex[selectedColor] =
+                    Config.colors.tab10.length - 1;
                 renderColorPalette(); // Refresh palette
             }
 
@@ -1213,7 +1364,7 @@ function makeLassoDragHandler(svg, data, scales) {
             updateLabelCounts();
 
             const autoAnalyze = document.getElementById(
-                "auto-analyze-checkbox"
+                "auto-analyze-checkbox",
             )?.checked;
             if (autoAnalyze) {
                 applyGroupAnalysis();
@@ -1265,7 +1416,11 @@ function applyHoverStyles() {
         } else {
             // Set the fill color based on current mode
             if (AppState.preferences.showVotes) {
-                circle.attr("fill", AppState.selection.voteColorByIndex[index] || "rgba(0,0,0,0.5)");
+                circle.attr(
+                    "fill",
+                    AppState.selection.voteColorByIndex[index] ||
+                        "rgba(0,0,0,0.5)",
+                );
             } else {
                 circle.attr("fill", rawColor || "rgba(0,0,0,0.5)");
             }
@@ -1279,7 +1434,10 @@ function applyHoverStyles() {
                 } else {
                     // If no stored value, calculate from cache
                     const factor = AppState.ui.opacityFactorCache[index] || 1;
-                    circle.attr("fill-opacity", AppState.ui.dotOpacity * factor);
+                    circle.attr(
+                        "fill-opacity",
+                        AppState.ui.dotOpacity * factor,
+                    );
                 }
             } else {
                 // Use default opacity if scaling is disabled
@@ -1291,7 +1449,6 @@ function applyHoverStyles() {
     // Always re-raise all label groups to ensure they stay on top
     d3.selectAll(".label-group").raise();
 }
-
 
 /**
  * Adjust color for hover effect
@@ -1345,7 +1502,7 @@ function adjustColorForHover(color, factor = 0.2) {
     const { h, s, l } = toHSL(r, g, b);
     const lightness = Math.max(
         0,
-        Math.min(100, l + (l > 50 ? -1 : 1) * factor * 100)
+        Math.min(100, l + (l > 50 ? -1 : 1) * factor * 100),
     );
     return `hsl(${h}, ${s}%, ${lightness}%)`;
 }
@@ -1387,7 +1544,6 @@ function renderColorPalette() {
     highlightSelectedColor(document.getElementById("color").value);
 }
 
-
 /**
  * Highlight the selected color in the palette
  * @param {string} color - Selected color
@@ -1419,17 +1575,18 @@ function updateLabelCounts() {
 
     container.innerHTML =
         ordered
-            .map(
-                ([color, count]) => {
-                    const labelIndex = AppState.selection.colorToLabelIndex[color];
-                    const letter = labelIndex !== undefined ? labelIndexToLetter(labelIndex) : "";
-                    return `
+            .map(([color, count]) => {
+                const labelIndex = AppState.selection.colorToLabelIndex[color];
+                const letter =
+                    labelIndex !== undefined
+                        ? labelIndexToLetter(labelIndex)
+                        : "";
+                return `
     <span style="margin-right: 12px;">
         <span translate="no" style="display:inline-block; width:18px; height:18px; background:${color}; border:1px solid #aaa; margin-right:5px; vertical-align:middle; border-radius:50%; text-align:center; line-height:17px; font-size:11px; color:white; font-family:sans-serif;">${letter}</span>
         <span style="vertical-align:middle;">${count}</span>
     </span > `;
-                }
-            )
+            })
             .join("") || "(No selections yet)";
 }
 
@@ -1438,7 +1595,12 @@ function updateLabelCounts() {
  * @param {Object} options - Chart options
  * @returns {HTMLElement} - Chart container
  */
-function createCompactBarChart({ voteCounts, nMembers, voteColors = null, boldLargest = true }) {
+function createCompactBarChart({
+    voteCounts,
+    nMembers,
+    voteColors = null,
+    boldLargest = true,
+}) {
     // Use current vote colors if none provided
     if (!voteColors) {
         voteColors = getCurrentVoteColors();
@@ -1564,7 +1726,13 @@ function createCompactBarChart({ voteCounts, nMembers, voteColors = null, boldLa
  * @param {number} options.width - Width of the chart (default: 100)
  * @returns {HTMLElement} - Container element with the bar chart
  */
-function createMoreCompactBarChart({ voteCounts, nMembers, voteColors = null, boldLargest = true, width = 40 }) {
+function createMoreCompactBarChart({
+    voteCounts,
+    nMembers,
+    voteColors = null,
+    boldLargest = true,
+    width = 40,
+}) {
     // Use current vote colors if none provided
     if (!voteColors) {
         voteColors = getCurrentVoteColors();
@@ -1700,8 +1868,8 @@ function calculateOverallStats(statementId, groupSizes) {
 
     // Sum up votes across all groups
     if (AppState.data.groupVotes) {
-        Object.values(AppState.data.groupVotes).forEach(groupMatrix => {
-            Object.values(groupMatrix).forEach(participantVotes => {
+        Object.values(AppState.data.groupVotes).forEach((groupMatrix) => {
+            Object.values(groupMatrix).forEach((participantVotes) => {
                 const vote = participantVotes[statementId];
                 if (vote !== undefined) {
                     totalSeen++;
@@ -1712,13 +1880,16 @@ function calculateOverallStats(statementId, groupSizes) {
         });
     }
 
-    const totalParticipants = Object.values(groupSizes).reduce((sum, size) => sum + size, 0);
+    const totalParticipants = Object.values(groupSizes).reduce(
+        (sum, size) => sum + size,
+        0,
+    );
 
     return {
         A: totalAgrees,
         D: totalDisagrees,
         S: totalSeen,
-        totalParticipants
+        totalParticipants,
     };
 }
 
@@ -1729,7 +1900,11 @@ function calculateOverallStats(statementId, groupSizes) {
  * @param {Object} groupSizes - Group sizes by color
  * @returns {string} - HTML content for consensus tab
  */
-function renderConsensusContent(consensusStatements, allGroupColors, groupSizes) {
+function renderConsensusContent(
+    consensusStatements,
+    allGroupColors,
+    groupSizes,
+) {
     const { agree, disagree } = consensusStatements;
 
     if (agree.length === 0 && disagree.length === 0) {
@@ -1764,11 +1939,12 @@ function renderConsensusContent(consensusStatements, allGroupColors, groupSizes)
 
     // Add group comparison columns if enabled
     if (AppState.preferences.showGroupComparison) {
-        allGroupColors.forEach(color => {
+        allGroupColors.forEach((color) => {
             const groupIndex = AppState.selection.colorToLabelIndex[color];
-            const groupLetter = groupIndex !== undefined
-                ? labelIndexToLetter(groupIndex)
-                : "Ungrouped";
+            const groupLetter =
+                groupIndex !== undefined
+                    ? labelIndexToLetter(groupIndex)
+                    : "Ungrouped";
 
             html += `<th class="border-b-2 border-gray-200 py-2 px-3 text-center font-medium text-gray-600">
                 <div class="flex items-center justify-center gap-1">
@@ -1786,21 +1962,23 @@ function renderConsensusContent(consensusStatements, allGroupColors, groupSizes)
 
     // Combine and sort statements
     const allStatements = [
-        ...agree.map(s => ({ ...s, type: 'agree', color: 'green' })),
-        ...disagree.map(s => ({ ...s, type: 'disagree', color: 'red' }))
+        ...agree.map((s) => ({ ...s, type: "agree", color: "green" })),
+        ...disagree.map((s) => ({ ...s, type: "disagree", color: "red" })),
     ].sort((a, b) => {
         // Sort by type first (agree before disagree), then by success rate
         if (a.type !== b.type) {
-            return a.type === 'agree' ? -1 : 1;
+            return a.type === "agree" ? -1 : 1;
         }
-        return (b.n_success / b.n_trials) - (a.n_success / a.n_trials);
+        return b.n_success / b.n_trials - a.n_success / a.n_trials;
     });
 
     // Create rows for each statement
-    allStatements.forEach(stmt => {
+    allStatements.forEach((stmt) => {
         const match = AppState.data.commentTextMap?.[stmt.tid];
         const isModerated = match?.mod === "-1" || match?.mod === -1;
-        const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
+        const includeModerated = document.getElementById(
+            "include-moderated-checkbox",
+        )?.checked;
 
         let commentText = match?.txt || "<em>Missing</em>";
         if (isModerated && includeModerated) {
@@ -1830,23 +2008,28 @@ function renderConsensusContent(consensusStatements, allGroupColors, groupSizes)
                 voteCounts: overallStats,
                 nMembers: overallStats.totalParticipants,
                 voteColors: getCurrentVoteColors(),
-                width: 60
+                width: 60,
             });
             html += barChart.outerHTML;
             html += `</td>`;
         }
 
         // Add group comparison charts if enabled
-        if (AppState.preferences.showGroupComparison && AppState.data.groupVotes) {
-            allGroupColors.forEach(color => {
+        if (
+            AppState.preferences.showGroupComparison &&
+            AppState.data.groupVotes
+        ) {
+            allGroupColors.forEach((color) => {
                 html += `<td class="py-2 px-3 border-b border-gray-200 text-center">`;
 
                 // Calculate votes for this statement in this group
                 const groupMatrix = AppState.data.groupVotes[color];
-                let groupAgrees = 0, groupDisagrees = 0, groupTotal = 0;
+                let groupAgrees = 0,
+                    groupDisagrees = 0,
+                    groupTotal = 0;
 
                 if (groupMatrix) {
-                    Object.values(groupMatrix).forEach(participantVotes => {
+                    Object.values(groupMatrix).forEach((participantVotes) => {
                         const vote = participantVotes[stmt.tid];
                         if (vote !== undefined) {
                             groupTotal++;
@@ -1862,10 +2045,10 @@ function renderConsensusContent(consensusStatements, allGroupColors, groupSizes)
                         voteCounts: {
                             A: groupAgrees,
                             D: groupDisagrees,
-                            S: groupTotal
+                            S: groupTotal,
                         },
                         nMembers: groupSizes[color],
-                        voteColors: getCurrentVoteColors()
+                        voteColors: getCurrentVoteColors(),
                     });
                     html += barChart.outerHTML;
                 } else {
@@ -1877,16 +2060,19 @@ function renderConsensusContent(consensusStatements, allGroupColors, groupSizes)
         } else {
             // Single chart column
             html += `<td class="py-2 px-3 border-b border-gray-200">`;
-            const totalParticipants = Object.values(groupSizes).reduce((sum, size) => sum + size, 0);
+            const totalParticipants = Object.values(groupSizes).reduce(
+                (sum, size) => sum + size,
+                0,
+            );
             const passes = stmt.n_trials - stmt.n_success;
             const barChart = createCompactBarChart({
                 voteCounts: {
-                    A: stmt.type === 'agree' ? stmt.n_success : 0,
-                    D: stmt.type === 'disagree' ? stmt.n_success : 0,
-                    S: stmt.n_trials
+                    A: stmt.type === "agree" ? stmt.n_success : 0,
+                    D: stmt.type === "disagree" ? stmt.n_success : 0,
+                    S: stmt.n_trials,
                 },
                 nMembers: totalParticipants,
-                voteColors: getCurrentVoteColors()
+                voteColors: getCurrentVoteColors(),
             });
             html += barChart.outerHTML;
             html += `</td>`;
@@ -1907,7 +2093,6 @@ function renderConsensusContent(consensusStatements, allGroupColors, groupSizes)
     html += `</table>`;
     return html;
 }
-
 
 /**
  * Render the representative comments table
@@ -1934,15 +2119,16 @@ function renderRepCommentsTable(repComments) {
 
     // If no groups, show a message and return
     if (allGroupColors.length === 0) {
-        container.innerHTML = "<p class='text-gray-500 italic'>No groups to display.</p>";
+        container.innerHTML =
+            "<p class='text-gray-500 italic'>No groups to display.</p>";
         return;
     }
 
     // Get group sizes for each color
     const groupSizes = {};
-    allGroupColors.forEach(color => {
+    allGroupColors.forEach((color) => {
         groupSizes[color] = getLabelArrayWithOptionalUngrouped().filter(
-            (label) => label === color
+            (label) => label === color,
         ).length;
     });
 
@@ -1962,7 +2148,8 @@ function renderRepCommentsTable(repComments) {
 
     // Create edit button
     const editButton = document.createElement("button");
-    editButton.className = "ml-2 p-1 text-gray-500 hover:text-primary-600 focus:outline-none";
+    editButton.className =
+        "ml-2 p-1 text-gray-500 hover:text-primary-600 focus:outline-none";
     editButton.title = "Edit group labels";
     editButton.innerHTML = `
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1986,26 +2173,32 @@ function renderRepCommentsTable(repComments) {
     // Function to switch tabs
     const switchTab = (tabId) => {
         // Hide all tab contents
-        tabContent.querySelectorAll('[role="tabpanel"]').forEach(panel => {
-            panel.classList.add('hidden');
+        tabContent.querySelectorAll('[role="tabpanel"]').forEach((panel) => {
+            panel.classList.add("hidden");
         });
 
         // Show the selected tab content
         const selectedPanel = document.getElementById(tabId);
         if (selectedPanel) {
-            selectedPanel.classList.remove('hidden');
+            selectedPanel.classList.remove("hidden");
         }
 
         // Update tab styles
-        tabNav.querySelectorAll('[role="tab"]').forEach(tab => {
+        tabNav.querySelectorAll('[role="tab"]').forEach((tab) => {
             if (tab.id === `tab-${tabId}`) {
-                tab.classList.remove('border-transparent', 'hover:border-gray-300');
-                tab.classList.add('border-primary-500', 'text-primary-600');
-                tab.setAttribute('aria-selected', 'true');
+                tab.classList.remove(
+                    "border-transparent",
+                    "hover:border-gray-300",
+                );
+                tab.classList.add("border-primary-500", "text-primary-600");
+                tab.setAttribute("aria-selected", "true");
             } else {
-                tab.classList.remove('border-primary-500', 'text-primary-600');
-                tab.classList.add('border-transparent', 'hover:border-gray-300');
-                tab.setAttribute('aria-selected', 'false');
+                tab.classList.remove("border-primary-500", "text-primary-600");
+                tab.classList.add(
+                    "border-transparent",
+                    "hover:border-gray-300",
+                );
+                tab.setAttribute("aria-selected", "false");
             }
         });
 
@@ -2019,10 +2212,12 @@ function renderRepCommentsTable(repComments) {
 
     // Add consensus tab if we have consensus statements
     let tabIndex = 0;
-    if (AppState.data.consensusStatements &&
-        (AppState.data.consensusStatements.agree.length > 0 || AppState.data.consensusStatements.disagree.length > 0)) {
-
-        const consensusTabId = 'consensus-content';
+    if (
+        AppState.data.consensusStatements &&
+        (AppState.data.consensusStatements.agree.length > 0 ||
+            AppState.data.consensusStatements.disagree.length > 0)
+    ) {
+        const consensusTabId = "consensus-content";
         availableTabIds.push(consensusTabId);
 
         // Create consensus tab button
@@ -2030,11 +2225,15 @@ function renderRepCommentsTable(repComments) {
         consensusTab.id = `tab-${consensusTabId}`;
         consensusTab.setAttribute("role", "tab");
         consensusTab.setAttribute("aria-controls", consensusTabId);
-        consensusTab.setAttribute("aria-selected", activeTabId === consensusTabId ? "true" : "false");
-        consensusTab.className = `flex items-center px-4 py-2 font-medium text-sm border-b-2 focus:outline-none ${activeTabId === consensusTabId
-            ? 'border-primary-500 text-primary-600'
-            : 'border-transparent text-gray-500 hover:border-gray-300'
-            }`;
+        consensusTab.setAttribute(
+            "aria-selected",
+            activeTabId === consensusTabId ? "true" : "false",
+        );
+        consensusTab.className = `flex items-center px-4 py-2 font-medium text-sm border-b-2 focus:outline-none ${
+            activeTabId === consensusTabId
+                ? "border-primary-500 text-primary-600"
+                : "border-transparent text-gray-500 hover:border-gray-300"
+        }`;
 
         // Add consensus icon and text
         consensusTab.innerHTML = `
@@ -2053,10 +2252,15 @@ function renderRepCommentsTable(repComments) {
         consensusPanel.id = consensusTabId;
         consensusPanel.setAttribute("role", "tabpanel");
         consensusPanel.setAttribute("aria-labelledby", `tab-${consensusTabId}`);
-        consensusPanel.className = activeTabId === consensusTabId ? "" : "hidden";
+        consensusPanel.className =
+            activeTabId === consensusTabId ? "" : "hidden";
 
         // Create consensus content
-        consensusPanel.innerHTML = renderConsensusContent(AppState.data.consensusStatements, allGroupColors, groupSizes);
+        consensusPanel.innerHTML = renderConsensusContent(
+            AppState.data.consensusStatements,
+            allGroupColors,
+            groupSizes,
+        );
 
         tabContent.appendChild(consensusPanel);
         contentPanels.push(consensusPanel);
@@ -2074,13 +2278,14 @@ function renderRepCommentsTable(repComments) {
         const UNGROUPED_LABEL = "Ungrouped";
 
         const labelIndex = AppState.selection.colorToLabelIndex[labelColor];
-        const letter = labelIndex !== undefined
-            ? labelIndexToLetter(labelIndex)
-            : UNGROUPED_LABEL;
+        const letter =
+            labelIndex !== undefined
+                ? labelIndexToLetter(labelIndex)
+                : UNGROUPED_LABEL;
 
         const groupSize = groupSizes[labelColor];
-        const tabId = `group-tab-${labelColor.replace('#', '')}`;
-        const contentId = `group-content-${labelColor.replace('#', '')}`;
+        const tabId = `group-tab-${labelColor.replace("#", "")}`;
+        const contentId = `group-content-${labelColor.replace("#", "")}`;
         availableTabIds.push(contentId);
         const index = tabIndex + groupIndex;
 
@@ -2089,11 +2294,15 @@ function renderRepCommentsTable(repComments) {
         tab.id = `tab-${contentId}`;
         tab.setAttribute("role", "tab");
         tab.setAttribute("aria-controls", contentId);
-        tab.setAttribute("aria-selected", activeTabId === contentId ? "true" : "false");
-        tab.className = `flex items-center px-4 py-2 font-medium text-sm border-b-2 focus:outline-none ${activeTabId === contentId
-            ? 'border-primary-500 text-primary-600'
-            : 'border-transparent text-gray-500 hover:border-gray-300'
-            }`;
+        tab.setAttribute(
+            "aria-selected",
+            activeTabId === contentId ? "true" : "false",
+        );
+        tab.className = `flex items-center px-4 py-2 font-medium text-sm border-b-2 focus:outline-none ${
+            activeTabId === contentId
+                ? "border-primary-500 text-primary-600"
+                : "border-transparent text-gray-500 hover:border-gray-300"
+        }`;
 
         // Create colored circle for tab
         const circle = document.createElement("span");
@@ -2141,7 +2350,8 @@ function renderRepCommentsTable(repComments) {
         // Action column (empty header)
         const actionTh = document.createElement("th");
         actionTh.textContent = ""; // Empty header as requested
-        actionTh.className = "border-b-2 border-gray-200 py-2 px-3 text-center font-medium text-gray-600 w-10";
+        actionTh.className =
+            "border-b-2 border-gray-200 py-2 px-3 text-center font-medium text-gray-600 w-10";
         headerRow.appendChild(actionTh);
 
         // Basic columns
@@ -2152,20 +2362,23 @@ function renderRepCommentsTable(repComments) {
         basicHeaders.forEach((h) => {
             const th = document.createElement("th");
             th.textContent = h;
-            th.className = "border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600";
+            th.className =
+                "border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600";
             headerRow.appendChild(th);
         });
 
         // Add group comparison columns if enabled
         if (AppState.preferences.showGroupComparison) {
-            allGroupColors.forEach(color => {
+            allGroupColors.forEach((color) => {
                 const groupIndex = AppState.selection.colorToLabelIndex[color];
-                const groupLetter = groupIndex !== undefined
-                    ? labelIndexToLetter(groupIndex)
-                    : UNGROUPED_LABEL;
+                const groupLetter =
+                    groupIndex !== undefined
+                        ? labelIndexToLetter(groupIndex)
+                        : UNGROUPED_LABEL;
 
                 const th = document.createElement("th");
-                th.className = "border-b-2 border-gray-200 py-2 px-3 text-center font-medium text-gray-600";
+                th.className =
+                    "border-b-2 border-gray-200 py-2 px-3 text-center font-medium text-gray-600";
 
                 // Create a container for the circle and text
                 const container = document.createElement("div");
@@ -2202,14 +2415,16 @@ function renderRepCommentsTable(repComments) {
             // Just add a single chart column if comparison is disabled
             const th = document.createElement("th");
             th.textContent = "";
-            th.className = "border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600";
+            th.className =
+                "border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600";
             headerRow.appendChild(th);
         }
 
         // Statement column
         const thStatement = document.createElement("th");
         thStatement.textContent = "Statement";
-        thStatement.className = "border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600";
+        thStatement.className =
+            "border-b-2 border-gray-200 py-2 px-3 text-left font-medium text-gray-600";
         headerRow.appendChild(thStatement);
 
         table.appendChild(headerRow);
@@ -2221,12 +2436,14 @@ function renderRepCommentsTable(repComments) {
                 c.repful_for === "agree"
                     ? "green"
                     : c.repful_for === "disagree"
-                        ? "red"
-                        : "#333";
+                      ? "red"
+                      : "#333";
 
             const match = AppState.data.commentTextMap?.[c.tid];
             const isModerated = match?.mod === "-1" || match?.mod === -1;
-            const includeModerated = document.getElementById("include-moderated-checkbox")?.checked;
+            const includeModerated = document.getElementById(
+                "include-moderated-checkbox",
+            )?.checked;
 
             // Add "(moderated)" text and apply red styling to moderated statements when included
             let commentText = match?.txt || "<em>Missing</em>";
@@ -2240,7 +2457,8 @@ function renderRepCommentsTable(repComments) {
 
             // Action column with icon
             const tdAction = document.createElement("td");
-            tdAction.className = "py-2 px-3 border-b border-gray-200 text-center";
+            tdAction.className =
+                "py-2 px-3 border-b border-gray-200 text-center";
             tdAction.innerHTML = `
                 <button class="action-icon-btn text-blue-600 hover:text-blue-800 focus:outline-none"
                         data-statement-id="${c.tid}"
@@ -2279,7 +2497,7 @@ function renderRepCommentsTable(repComments) {
                     voteCounts: overallStats,
                     nMembers: overallStats.totalParticipants,
                     voteColors: getCurrentVoteColors(),
-                    width: 60
+                    width: 60,
                 });
                 tdOverall.appendChild(barChart);
                 tr.appendChild(tdOverall);
@@ -2297,11 +2515,11 @@ function renderRepCommentsTable(repComments) {
                     agrees: c.n_agree,
                     disagrees: c.n_disagree,
                     passes: c.n_pass,
-                    total: c.n_trials
+                    total: c.n_trials,
                 };
 
                 // For other groups, try to find the comment in their representative comments first
-                allGroupColors.forEach(color => {
+                allGroupColors.forEach((color) => {
                     if (color === labelColor) return; // Skip current group, already handled
 
                     // Default values
@@ -2309,53 +2527,64 @@ function renderRepCommentsTable(repComments) {
                         agrees: 0,
                         disagrees: 0,
                         passes: 0,
-                        total: 0
+                        total: 0,
                     };
 
                     // First try to find this comment in the other group's representative comments
                     if (repComments[color]) {
-                        const groupComment = repComments[color].find(gc => gc.tid === commentId);
+                        const groupComment = repComments[color].find(
+                            (gc) => gc.tid === commentId,
+                        );
                         if (groupComment) {
                             groupVoteData[color] = {
                                 agrees: groupComment.n_agree,
                                 disagrees: groupComment.n_disagree,
                                 passes: groupComment.n_pass,
-                                total: groupComment.n_trials
+                                total: groupComment.n_trials,
                             };
                             return; // Found in rep comments, no need to calculate from raw data
                         }
                     }
 
                     // If not found in rep comments, calculate from raw vote data
-                    if (AppState.data.groupVotes && AppState.data.groupVotes[color]) {
+                    if (
+                        AppState.data.groupVotes &&
+                        AppState.data.groupVotes[color]
+                    ) {
                         const groupMatrix = AppState.data.groupVotes[color];
-                        let agrees = 0, disagrees = 0, passes = 0, total = 0;
+                        let agrees = 0,
+                            disagrees = 0,
+                            passes = 0,
+                            total = 0;
 
-                        Object.values(groupMatrix).forEach(participantVotes => {
-                            const vote = participantVotes[commentId];
-                            if (vote !== undefined) {
-                                total++;
-                                if (vote === 1) agrees++;
-                                else if (vote === -1) disagrees++;
-                                else passes++;
-                            }
-                        });
+                        Object.values(groupMatrix).forEach(
+                            (participantVotes) => {
+                                const vote = participantVotes[commentId];
+                                if (vote !== undefined) {
+                                    total++;
+                                    if (vote === 1) agrees++;
+                                    else if (vote === -1) disagrees++;
+                                    else passes++;
+                                }
+                            },
+                        );
 
                         if (total > 0) {
                             groupVoteData[color] = {
                                 agrees,
                                 disagrees,
                                 passes,
-                                total
+                                total,
                             };
                         }
                     }
                 });
 
                 // Create a bar chart for each group
-                allGroupColors.forEach(color => {
+                allGroupColors.forEach((color) => {
                     const tdChart = document.createElement("td");
-                    tdChart.className = "py-2 px-3 border-b border-gray-200 text-center";
+                    tdChart.className =
+                        "py-2 px-3 border-b border-gray-200 text-center";
 
                     const voteData = groupVoteData[color];
 
@@ -2364,10 +2593,10 @@ function renderRepCommentsTable(repComments) {
                         voteCounts: {
                             A: voteData.agrees,
                             D: voteData.disagrees,
-                            S: voteData.total
+                            S: voteData.total,
                         },
                         nMembers: groupSizes[color],
-                        voteColors: getCurrentVoteColors()
+                        voteColors: getCurrentVoteColors(),
                     });
 
                     // Highlight current group's column
@@ -2392,7 +2621,7 @@ function renderRepCommentsTable(repComments) {
                         S: c.n_trials,
                     },
                     nMembers: groupSize,
-                    voteColors: getCurrentVoteColors()
+                    voteColors: getCurrentVoteColors(),
                 });
 
                 tdChart.appendChild(barChart);
@@ -2415,7 +2644,11 @@ function renderRepCommentsTable(repComments) {
         contentPanels.push(contentPanel);
 
         // Set the first group tab as active only if no consensus tab exists and no tab is remembered
-        if (groupIndex === 0 && !AppState.data.consensusStatements && !activeTabId) {
+        if (
+            groupIndex === 0 &&
+            !AppState.data.consensusStatements &&
+            !activeTabId
+        ) {
             activeTabId = contentId;
         }
     });
@@ -2423,8 +2656,8 @@ function renderRepCommentsTable(repComments) {
     // Validate that the remembered active tab still exists, otherwise fall back to default
     if (activeTabId && !availableTabIds.includes(activeTabId)) {
         // The remembered tab doesn't exist anymore, fall back to consensus or first group tab
-        if (availableTabIds.includes('consensus-content')) {
-            activeTabId = 'consensus-content';
+        if (availableTabIds.includes("consensus-content")) {
+            activeTabId = "consensus-content";
         } else if (availableTabIds.length > 0) {
             activeTabId = availableTabIds[0];
         } else {
@@ -2449,29 +2682,29 @@ function renderRepCommentsTable(repComments) {
     // We need to do this after all panels are added to the DOM
     setTimeout(() => {
         // Make all panels visible temporarily to measure their heights
-        contentPanels.forEach(panel => {
-            panel.classList.remove('hidden');
-            panel.style.position = 'absolute';
-            panel.style.visibility = 'hidden';
-            panel.style.display = 'block';
+        contentPanels.forEach((panel) => {
+            panel.classList.remove("hidden");
+            panel.style.position = "absolute";
+            panel.style.visibility = "hidden";
+            panel.style.display = "block";
         });
 
         // Find the tallest panel
         let maxHeight = 0;
-        contentPanels.forEach(panel => {
+        contentPanels.forEach((panel) => {
             const height = panel.offsetHeight;
             maxHeight = Math.max(maxHeight, height);
         });
 
         // Reset visibility and apply the consistent height
-        contentPanels.forEach(panel => {
-            panel.style.position = '';
-            panel.style.visibility = '';
-            panel.style.display = '';
+        contentPanels.forEach((panel) => {
+            panel.style.position = "";
+            panel.style.visibility = "";
+            panel.style.display = "";
 
             // Hide all panels except the active one
             if (panel.id !== activeTabId) {
-                panel.classList.add('hidden');
+                panel.classList.add("hidden");
             }
         });
 
@@ -2482,10 +2715,10 @@ function renderRepCommentsTable(repComments) {
     }, 0);
 
     // Add event delegation for action icon buttons
-    container.addEventListener('click', function(event) {
-        if (event.target.closest('.action-icon-btn')) {
-            const button = event.target.closest('.action-icon-btn');
-            const statementId = button.getAttribute('data-statement-id');
+    container.addEventListener("click", function (event) {
+        if (event.target.closest(".action-icon-btn")) {
+            const button = event.target.closest(".action-icon-btn");
+            const statementId = button.getAttribute("data-statement-id");
             handleActionIconClick(statementId);
         }
     });
@@ -2497,18 +2730,17 @@ function renderRepCommentsTable(repComments) {
  */
 function handleActionIconClick(statementId) {
     // Enable the show votes checkbox
-    const showVotesCheckbox = document.getElementById('show-votes-checkbox');
+    const showVotesCheckbox = document.getElementById("show-votes-checkbox");
     if (showVotesCheckbox && !showVotesCheckbox.checked) {
         showVotesCheckbox.checked = true;
     }
 
     // Set the statement ID
-    const statementIdInput = document.getElementById('statement-id-input');
+    const statementIdInput = document.getElementById("statement-id-input");
     if (statementIdInput) {
         statementIdInput.value = statementId;
         AppState.preferences.statementId = statementId;
         saveState("statementId", statementId);
-
     }
 
     // Update the statement text display
@@ -2593,7 +2825,9 @@ function shareWithoutPaint() {
  */
 function updateShareButtonText() {
     const shareButton = document.getElementById("share-button");
-    shareButton.textContent = shareWithPaintMode ? "Share with paint" : "Share without paint";
+    shareButton.textContent = shareWithPaintMode
+        ? "Share with paint"
+        : "Share without paint";
 }
 
 /**
@@ -2610,7 +2844,8 @@ function showShareNotification(message) {
     // Create a new notification
     const notification = document.createElement("div");
     notification.id = "share-notification";
-    notification.className = "fixed bottom-4 right-4 bg-primary-600 text-white px-4 py-2 rounded-md shadow-lg z-50";
+    notification.className =
+        "fixed bottom-4 right-4 bg-primary-600 text-white px-4 py-2 rounded-md shadow-lg z-50";
     notification.textContent = message;
 
     // Add to the document
@@ -2618,7 +2853,11 @@ function showShareNotification(message) {
 
     // Remove after 3 seconds
     setTimeout(() => {
-        notification.classList.add("opacity-0", "transition-opacity", "duration-500");
+        notification.classList.add(
+            "opacity-0",
+            "transition-opacity",
+            "duration-500",
+        );
         setTimeout(() => notification.remove(), 500);
     }, 3000);
 }
@@ -2637,12 +2876,14 @@ function openLabelEditor(groupColors) {
 
     // Create dialog backdrop
     const backdrop = document.createElement("div");
-    backdrop.className = "fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center";
+    backdrop.className =
+        "fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center";
     backdrop.id = "label-editor-backdrop";
 
     // Create dialog
     const dialog = document.createElement("div");
-    dialog.className = "bg-white rounded-lg shadow-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto";
+    dialog.className =
+        "bg-white rounded-lg shadow-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto";
     dialog.id = "label-editor-dialog";
 
     // Create dialog header
@@ -2677,7 +2918,7 @@ function openLabelEditor(groupColors) {
     });
 
     // Add input fields for each group
-    groupColors.forEach(color => {
+    groupColors.forEach((color) => {
         const labelIndex = AppState.selection.colorToLabelIndex[color];
         if (labelIndex === undefined) return;
 
@@ -2703,11 +2944,12 @@ function openLabelEditor(groupColors) {
         // Input field
         const input = document.createElement("input");
         input.type = "text";
-        input.className = "flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500";
+        input.className =
+            "flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500";
         input.placeholder = `Label for Group ${letter}`;
         input.value = currentLabel;
         input.dataset.color = color;
-        input.id = `group-label-${color.replace('#', '')}`;
+        input.id = `group-label-${color.replace("#", "")}`;
         formGroup.appendChild(input);
 
         // Clear button
@@ -2735,7 +2977,8 @@ function openLabelEditor(groupColors) {
 
     const cancelButton = document.createElement("button");
     cancelButton.type = "button";
-    cancelButton.className = "px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50";
+    cancelButton.className =
+        "px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50";
     cancelButton.textContent = "Cancel";
     cancelButton.addEventListener("click", () => {
         backdrop.remove();
@@ -2744,7 +2987,8 @@ function openLabelEditor(groupColors) {
 
     const saveButton = document.createElement("button");
     saveButton.type = "submit";
-    saveButton.className = "px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700";
+    saveButton.className =
+        "px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700";
     saveButton.textContent = "Save";
     buttons.appendChild(saveButton);
 
@@ -2757,8 +3001,10 @@ function openLabelEditor(groupColors) {
     function saveLabels() {
         const newLabels = {};
 
-        groupColors.forEach(color => {
-            const input = document.getElementById(`group-label-${color.replace('#', '')}`);
+        groupColors.forEach((color) => {
+            const input = document.getElementById(
+                `group-label-${color.replace("#", "")}`,
+            );
             if (input && input.value.trim()) {
                 newLabels[color] = input.value.trim();
             }
@@ -2782,7 +3028,7 @@ function openLabelEditor(groupColors) {
 }
 
 // For testing purposes, export objects and functions
-if (typeof module !== 'undefined' && module.exports) {
+if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         AppState,
         loadState,

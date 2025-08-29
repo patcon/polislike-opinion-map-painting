@@ -1,6 +1,6 @@
 /**
  * Test wrapper for data.js functions
- * 
+ *
  * This module wraps the loadAndRenderData function from data.js
  * and injects our mocks for testing.
  */
@@ -15,14 +15,14 @@ const mockAppState = {
         commentTextMap: {},
         X1: null,
         X2: null,
-        X3: null
+        X3: null,
     },
     selection: {
         colorByIndex: [],
         selectedIndices: {
-            clear: jest.fn()
-        }
-    }
+            clear: jest.fn(),
+        },
+    },
 };
 
 // Mock UI functions
@@ -34,7 +34,7 @@ const mockRenderColorPalette = jest.fn();
 const mockUpdateLabelCounts = jest.fn();
 
 // Get the original function
-const originalLoadAndRenderData = require('../data').loadAndRenderData;
+const originalLoadAndRenderData = require("../data").loadAndRenderData;
 
 // Create a wrapped version that uses our mocks
 function loadAndRenderData(slug) {
@@ -46,7 +46,7 @@ function loadAndRenderData(slug) {
         renderMetaInfo: global.renderMetaInfo,
         renderAllPlots: global.renderAllPlots,
         renderColorPalette: global.renderColorPalette,
-        updateLabelCounts: global.updateLabelCounts
+        updateLabelCounts: global.updateLabelCounts,
     };
 
     // Set our mocks as globals
@@ -82,5 +82,5 @@ module.exports = {
     mockRenderMetaInfo,
     mockRenderAllPlots,
     mockRenderColorPalette,
-    mockUpdateLabelCounts
+    mockUpdateLabelCounts,
 };

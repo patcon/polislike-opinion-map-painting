@@ -1,262 +1,288 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8" />
-    <title>Auto-Scaled Lasso Select with Localmap</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            margin: 0;
-        }
-
-        svg {
-            width: 100vw;
-            height: 100vh;
-            display: block;
-            background-color: #f0f0f0;
-            touch-action: none;
-        }
-
-        circle {
-            fill: steelblue;
-            opacity: 0.7;
-        }
-
-        circle.selected {
-            fill: orange;
-            stroke-width: 1;
-        }
-
-        path.lasso {
-            fill: rgba(0, 0, 0, 0.1);
-            stroke: #666;
-            stroke-width: 1.5;
-            stroke-dasharray: 4 2;
-            stroke-dashoffset: 0;
-            animation: march 1s linear infinite;
-            pointer-events: none;
-        }
-
-        @keyframes march {
-            to {
-                stroke-dashoffset: -6;
-            }
-        }
-
-        .origin-axis {
-            stroke-dasharray: 4 2;
-            opacity: 0.6;
-        }
-    </style>
-</head>
-
-<body>
-    <div class="p-4 bg-white shadow-md z-10 absolute top-0 left-0 w-full">
-        <label for="dataset" class="mr-2 font-medium text-gray-700 text-3xl lg:text-sm">Dataset:</label>
-        <select id="dataset" class="w-full sm:w-auto px-3 py-2 border rounded text-3xl lg:text-sm">
-            <option value="" disabled selected>Select a dataset</option>
-        </select>
-    </div>
-    <svg></svg>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script>
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        const margin = 20;
-        const BASE_RADIUS = 5 * (window.devicePixelRatio || 1);
-        const BASE_LINE_WIDTH = 1 * (window.devicePixelRatio || 1);
-
-        const svg = d3.select("svg")
-            .attr("width", width)
-            .attr("height", height);
-
-        const container = svg.append("g");
-
-        let xScale, yScale;
-        let lassoPath = null;
-        let coords = [];
-        let circles;
-
-        function lassoStart(event) {
-            const isMultiTouch =
-                event.sourceEvent.type.startsWith("touch") &&
-                event.sourceEvent.touches &&
-                event.sourceEvent.touches.length > 1;
-
-            if (isMultiTouch) return;
-            coords = [];
-            if (lassoPath) lassoPath.remove();
-            lassoPath = svg.append("path").attr("class", "lasso");
-        }
-
-        function lassoDrag(event) {
-            coords.push([event.x, event.y]);
-            if (lassoPath) lassoPath.attr("d", d3.line()(coords));
-        }
-
-        function lassoEnd() {
-            if (!coords.length) return;
-
-            const transform = d3.zoomTransform(container.node());
-
-            circles.classed("selected", d => {
-                const sx = transform.applyX(xScale(d.x));
-                const sy = transform.applyY(yScale(d.y));
-                return pointInPolygon([sx, sy], coords);
-            });
-
-            if (lassoPath) {
-                lassoPath.remove();
-                lassoPath = null;
-            }
-            coords = [];
-        }
-
-        // Prevent native scroll from interrupting lasso on mobile
-        svg.node().addEventListener("touchstart", function (e) {
-            if (e.touches.length === 1) e.preventDefault();
-        }, { passive: false });
-
-        const datasetSelect = document.getElementById("dataset");
-
-        // Load datasets list
-        d3.json("data/datasets.json").then(datasetList => {
-            const firstSlug = datasetList[0]?.slug;
-            if (firstSlug) {
-                datasetSelect.value = firstSlug;
-                loadDataset(firstSlug);
+    <head>
+        <meta charset="UTF-8" />
+        <title>Auto-Scaled Lasso Select with Localmap</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            body {
+                margin: 0;
             }
 
-            datasetList.forEach(({ slug, label }) => {
-                const option = document.createElement("option");
-                option.value = slug;
-                option.textContent = label;
-                datasetSelect.appendChild(option);
-            });
+            svg {
+                width: 100vw;
+                height: 100vh;
+                display: block;
+                background-color: #f0f0f0;
+                touch-action: none;
+            }
 
-            datasetSelect.addEventListener("change", (e) => {
-                const selectedSlug = e.target.value;
-                loadDataset(selectedSlug); // Your plot loader
-            });
-        });
+            circle {
+                fill: steelblue;
+                opacity: 0.7;
+            }
 
-        const zoom = d3.zoom()
-            .scaleExtent([1, 15])
-            .filter((event) => {
-                // Allow wheel zoom (trackpad or mouse wheel)
-                if (event.type === "wheel") return true;
+            circle.selected {
+                fill: orange;
+                stroke-width: 1;
+            }
 
-                // Allow 2-finger touch zoom
-                if (event.type === "touchstart") {
-                    return event.touches && event.touches.length >= 2;
+            path.lasso {
+                fill: rgba(0, 0, 0, 0.1);
+                stroke: #666;
+                stroke-width: 1.5;
+                stroke-dasharray: 4 2;
+                stroke-dashoffset: 0;
+                animation: march 1s linear infinite;
+                pointer-events: none;
+            }
+
+            @keyframes march {
+                to {
+                    stroke-dashoffset: -6;
+                }
+            }
+
+            .origin-axis {
+                stroke-dasharray: 4 2;
+                opacity: 0.6;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="p-4 bg-white shadow-md z-10 absolute top-0 left-0 w-full">
+            <label
+                for="dataset"
+                class="mr-2 font-medium text-gray-700 text-3xl lg:text-sm"
+                >Dataset:</label
+            >
+            <select
+                id="dataset"
+                class="w-full sm:w-auto px-3 py-2 border rounded text-3xl lg:text-sm"
+            >
+                <option value="" disabled selected>Select a dataset</option>
+            </select>
+        </div>
+        <svg></svg>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <script>
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const margin = 20;
+            const BASE_RADIUS = 5 * (window.devicePixelRatio || 1);
+            const BASE_LINE_WIDTH = 1 * (window.devicePixelRatio || 1);
+
+            const svg = d3
+                .select("svg")
+                .attr("width", width)
+                .attr("height", height);
+
+            const container = svg.append("g");
+
+            let xScale, yScale;
+            let lassoPath = null;
+            let coords = [];
+            let circles;
+
+            function lassoStart(event) {
+                const isMultiTouch =
+                    event.sourceEvent.type.startsWith("touch") &&
+                    event.sourceEvent.touches &&
+                    event.sourceEvent.touches.length > 1;
+
+                if (isMultiTouch) return;
+                coords = [];
+                if (lassoPath) lassoPath.remove();
+                lassoPath = svg.append("path").attr("class", "lasso");
+            }
+
+            function lassoDrag(event) {
+                coords.push([event.x, event.y]);
+                if (lassoPath) lassoPath.attr("d", d3.line()(coords));
+            }
+
+            function lassoEnd() {
+                if (!coords.length) return;
+
+                const transform = d3.zoomTransform(container.node());
+
+                circles.classed("selected", (d) => {
+                    const sx = transform.applyX(xScale(d.x));
+                    const sy = transform.applyY(yScale(d.y));
+                    return pointInPolygon([sx, sy], coords);
+                });
+
+                if (lassoPath) {
+                    lassoPath.remove();
+                    lassoPath = null;
+                }
+                coords = [];
+            }
+
+            // Prevent native scroll from interrupting lasso on mobile
+            svg.node().addEventListener(
+                "touchstart",
+                function (e) {
+                    if (e.touches.length === 1) e.preventDefault();
+                },
+                { passive: false },
+            );
+
+            const datasetSelect = document.getElementById("dataset");
+
+            // Load datasets list
+            d3.json("data/datasets.json").then((datasetList) => {
+                const firstSlug = datasetList[0]?.slug;
+                if (firstSlug) {
+                    datasetSelect.value = firstSlug;
+                    loadDataset(firstSlug);
                 }
 
-                // Disallow drag-to-zoom on single-touch or mouse
-                return false;
-            })
-            .on("zoom", (event) => {
-                const { k } = event.transform;
-                container.attr("transform", event.transform);
-                container.selectAll("circle").attr("r", BASE_RADIUS / k);
-                container.selectAll("line").attr("stroke-width", BASE_LINE_WIDTH / k);
+                datasetList.forEach(({ slug, label }) => {
+                    const option = document.createElement("option");
+                    option.value = slug;
+                    option.textContent = label;
+                    datasetSelect.appendChild(option);
+                });
+
+                datasetSelect.addEventListener("change", (e) => {
+                    const selectedSlug = e.target.value;
+                    loadDataset(selectedSlug); // Your plot loader
+                });
             });
 
-        svg.call(zoom);
+            const zoom = d3
+                .zoom()
+                .scaleExtent([1, 15])
+                .filter((event) => {
+                    // Allow wheel zoom (trackpad or mouse wheel)
+                    if (event.type === "wheel") return true;
 
-        function loadDataset(slug) {
-            const path = `data/datasets/${slug}/localmap.json`;
+                    // Allow 2-finger touch zoom
+                    if (event.type === "touchstart") {
+                        return event.touches && event.touches.length >= 2;
+                    }
 
-            d3.json(path).then(raw => {
-                // Clear previous plot
-                container.selectAll("*").remove();
+                    // Disallow drag-to-zoom on single-touch or mouse
+                    return false;
+                })
+                .on("zoom", (event) => {
+                    const { k } = event.transform;
+                    container.attr("transform", event.transform);
+                    container.selectAll("circle").attr("r", BASE_RADIUS / k);
+                    container
+                        .selectAll("line")
+                        .attr("stroke-width", BASE_LINE_WIDTH / k);
+                });
 
-                const data = raw.map(([i, [x, y]]) => ({ i, x, y }));
+            svg.call(zoom);
 
-                const xExtent = d3.extent(data, d => d.x);
-                const yExtent = d3.extent(data, d => d.y);
+            function loadDataset(slug) {
+                const path = `data/datasets/${slug}/localmap.json`;
 
-                const dataWidth = xExtent[1] - xExtent[0];
-                const dataHeight = yExtent[1] - yExtent[0];
-                const dataAspect = dataWidth / dataHeight;
+                d3.json(path).then((raw) => {
+                    // Clear previous plot
+                    container.selectAll("*").remove();
 
-                const topOffset = 64;
-                const usableHeight = height - topOffset;
+                    const data = raw.map(([i, [x, y]]) => ({ i, x, y }));
 
-                const screenWidth = width - 2 * margin;
-                const screenHeight = usableHeight - 2 * margin;
-                const screenAspect = screenWidth / screenHeight;
+                    const xExtent = d3.extent(data, (d) => d.x);
+                    const yExtent = d3.extent(data, (d) => d.y);
 
-                // Determine fit mode and adjust range
-                let xRange, yRange;
+                    const dataWidth = xExtent[1] - xExtent[0];
+                    const dataHeight = yExtent[1] - yExtent[0];
+                    const dataAspect = dataWidth / dataHeight;
 
-                if (dataAspect > screenAspect) {
-                    // Fit width, center vertically
-                    const scaledHeight = screenWidth / dataAspect;
-                    const yOffset = (screenHeight - scaledHeight) / 2;
-                    xRange = [margin, width - margin];
-                    yRange = [usableHeight - margin - yOffset + topOffset, margin + yOffset + topOffset];
-                } else {
-                    // Fit height, center horizontally
-                    const scaledWidth = screenHeight * dataAspect;
-                    const xOffset = (screenWidth - scaledWidth) / 2;
-                    xRange = [margin + xOffset, width - margin - xOffset];
-                    yRange = [usableHeight - margin + topOffset, margin + topOffset];
-                }
+                    const topOffset = 64;
+                    const usableHeight = height - topOffset;
 
-                // Now define the scales
-                xScale = d3.scaleLinear().domain(xExtent).range(xRange);
-                yScale = d3.scaleLinear().domain(yExtent).range(yRange);
+                    const screenWidth = width - 2 * margin;
+                    const screenHeight = usableHeight - 2 * margin;
+                    const screenAspect = screenWidth / screenHeight;
 
-                // Add origin axes lines
-                const xOriginLine = container.append("line")
-                    .attr("class", "origin-axis")
-                    .attr("stroke", "gray")
-                    .attr("stroke-width", BASE_LINE_WIDTH)
-                    .attr("x1", 0)
-                    .attr("x2", width)
-                    .attr("y1", yScale(0))
-                    .attr("y2", yScale(0));
+                    // Determine fit mode and adjust range
+                    let xRange, yRange;
 
-                const yOriginLine = container.append("line")
-                    .attr("class", "origin-axis")
-                    .attr("stroke", "gray")
-                    .attr("stroke-width", BASE_LINE_WIDTH)
-                    .attr("x1", xScale(0))
-                    .attr("x2", xScale(0))
-                    .attr("y1", 0)
-                    .attr("y2", height);
+                    if (dataAspect > screenAspect) {
+                        // Fit width, center vertically
+                        const scaledHeight = screenWidth / dataAspect;
+                        const yOffset = (screenHeight - scaledHeight) / 2;
+                        xRange = [margin, width - margin];
+                        yRange = [
+                            usableHeight - margin - yOffset + topOffset,
+                            margin + yOffset + topOffset,
+                        ];
+                    } else {
+                        // Fit height, center horizontally
+                        const scaledWidth = screenHeight * dataAspect;
+                        const xOffset = (screenWidth - scaledWidth) / 2;
+                        xRange = [margin + xOffset, width - margin - xOffset];
+                        yRange = [
+                            usableHeight - margin + topOffset,
+                            margin + topOffset,
+                        ];
+                    }
 
-                circles = container.selectAll("circle")
-                    .data(data)
-                    .enter()
-                    .append("circle")
-                    .attr("cx", d => xScale(d.x))
-                    .attr("cy", d => yScale(d.y))
-                    .attr("r", BASE_RADIUS);
+                    // Now define the scales
+                    xScale = d3.scaleLinear().domain(xExtent).range(xRange);
+                    yScale = d3.scaleLinear().domain(yExtent).range(yRange);
 
-                // ✅ Reset zoom to identity (unzoomed) state
-                svg.call(zoom.transform, d3.zoomIdentity);
+                    // Add origin axes lines
+                    const xOriginLine = container
+                        .append("line")
+                        .attr("class", "origin-axis")
+                        .attr("stroke", "gray")
+                        .attr("stroke-width", BASE_LINE_WIDTH)
+                        .attr("x1", 0)
+                        .attr("x2", width)
+                        .attr("y1", yScale(0))
+                        .attr("y2", yScale(0));
 
-                svg.call(d3.drag()
-                    .on("start", lassoStart)
-                    .on("drag", lassoDrag)
-                    .on("end", lassoEnd));
-            });
-        }
+                    const yOriginLine = container
+                        .append("line")
+                        .attr("class", "origin-axis")
+                        .attr("stroke", "gray")
+                        .attr("stroke-width", BASE_LINE_WIDTH)
+                        .attr("x1", xScale(0))
+                        .attr("x2", xScale(0))
+                        .attr("y1", 0)
+                        .attr("y2", height);
 
-        function pointInPolygon([x, y], vs) {
-            let inside = false;
-            for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-                const [xi, yi] = vs[i], [xj, yj] = vs[j];
-                const intersect =
-                    yi > y !== yj > y &&
-                    x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
-                if (intersect) inside = !inside;
+                    circles = container
+                        .selectAll("circle")
+                        .data(data)
+                        .enter()
+                        .append("circle")
+                        .attr("cx", (d) => xScale(d.x))
+                        .attr("cy", (d) => yScale(d.y))
+                        .attr("r", BASE_RADIUS);
+
+                    // ✅ Reset zoom to identity (unzoomed) state
+                    svg.call(zoom.transform, d3.zoomIdentity);
+
+                    svg.call(
+                        d3
+                            .drag()
+                            .on("start", lassoStart)
+                            .on("drag", lassoDrag)
+                            .on("end", lassoEnd),
+                    );
+                });
             }
-            return inside;
-        }
-    </script>
-</body>
 
+            function pointInPolygon([x, y], vs) {
+                let inside = false;
+                for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+                    const [xi, yi] = vs[i],
+                        [xj, yj] = vs[j];
+                    const intersect =
+                        yi > y !== yj > y &&
+                        x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+                    if (intersect) inside = !inside;
+                }
+                return inside;
+            }
+        </script>
+    </body>
 </html>

@@ -3,7 +3,7 @@
  */
 
 // Import the original data.js module
-const originalDataModule = require('../data');
+const originalDataModule = require("../data");
 
 // Create a wrapper function that uses our mocks
 function loadAndRenderDataWithMocks(slug, mocks) {
@@ -23,5 +23,5 @@ function loadAndRenderDataWithMocks(slug, mocks) {
 }
 
 module.exports = {
-    loadAndRenderDataWithMocks
+    loadAndRenderDataWithMocks,
 };
