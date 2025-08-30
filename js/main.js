@@ -192,17 +192,6 @@ function repnessMetric(data) {
 }
 
 /**
- * Sort comments by agreement before disagreement
- * @param {Array} comments - Comments to sort
- * @returns {Array} - Sorted comments
- */
-function agreesBeforeDisagrees(comments) {
-    const agrees = comments.filter((c) => c.repful_for === "agree");
-    const disagrees = comments.filter((c) => c.repful_for === "disagree");
-    return [...agrees, ...disagrees];
-}
-
-/**
  * Select representative comments
  * @param {Array} commentStatsWithTid - Comment statistics
  * @param {number|null} pickMax - Maximum comments per group (default: null for no limit)
@@ -215,6 +204,8 @@ function selectRepComments(commentStatsWithTid, pickMax = null) {
     )?.checked;
     const minVoteCount =
         parseInt(document.getElementById("min-vote-count")?.value) || 1;
+    const maxStatementsCount =
+        parseInt(document.getElementById("max-statements-count")?.value) || 10;
 
     if (commentStatsWithTid.length === 0) return {};
 
@@ -288,11 +279,9 @@ function selectRepComments(commentStatsWithTid, pickMax = null) {
 
             selectedComments = [...selectedComments, ...sortedSufficient];
 
-            if (pickMax !== null && pickMax !== undefined) {
-                selectedComments = selectedComments.slice(0, pickMax);
-            }
+            const maxCount = pickMax !== null && pickMax !== undefined ? pickMax : Math.floor(maxStatementsCount);
 
-            finalResult[gid] = agreesBeforeDisagrees(selectedComments);
+            finalResult[gid] = selectedComments.slice(0, maxCount);
         },
     );
 
@@ -321,12 +310,12 @@ function calculateRepresentativeComments(groupVotes, commentTexts) {
     const allComments = commentTexts
         ? commentTexts.map((c) => c.id)
         : Array.from(
-              new Set(
-                  Object.values(groupVotes)
-                      .flatMap((group) => Object.values(group))
-                      .flatMap((votes) => Object.keys(votes).map(Number)),
-              ),
-          ).sort((a, b) => a - b); // unique sorted comment_ids
+            new Set(
+                Object.values(groupVotes)
+                    .flatMap((group) => Object.values(group))
+                    .flatMap((votes) => Object.keys(votes).map(Number)),
+            ),
+        ).sort((a, b) => a - b); // unique sorted comment_ids
     const allGroups = Object.keys(groupVotes);
     const commentStatsWithTid = [];
 
@@ -417,6 +406,9 @@ function selectConsensusStatements(
     // Get the minimum vote count threshold from the UI
     const minVoteCount =
         parseInt(document.getElementById("min-vote-count")?.value) || 1;
+    // Get the maximum statements count from the UI
+    const maxStatementsCount =
+        parseInt(document.getElementById("max-statements-count")?.value) || 10;
     // Get all unique comment IDs across all groups
     const allCommentIds = new Set();
     Object.values(groupVotes).forEach((groupMatrix) => {
@@ -488,18 +480,18 @@ function selectConsensusStatements(
         .filter((s) => s.pa > probThreshold && isSignificant(s.pat, confidence))
         .sort((a, b) => b.agreeMetric - a.agreeMetric);
 
-    if (pickMax !== null && pickMax !== undefined) {
-        agreeCandidates = agreeCandidates.slice(0, pickMax);
-    }
+    // Apply maxStatements limit for agree candidates
+    const maxAgree = pickMax !== null && pickMax !== undefined ? pickMax : Math.floor(maxStatementsCount / 2);
+    agreeCandidates = agreeCandidates.slice(0, maxAgree);
 
     // Filter and rank disagree candidates
     let disagreeCandidates = statements
         .filter((s) => s.pd > probThreshold && isSignificant(s.pdt, confidence))
         .sort((a, b) => b.disagreeMetric - a.disagreeMetric);
 
-    if (pickMax !== null && pickMax !== undefined) {
-        disagreeCandidates = disagreeCandidates.slice(0, pickMax);
-    }
+    // Apply maxStatements limit for disagree candidates
+    const maxDisagree = pickMax !== null && pickMax !== undefined ? pickMax : Math.floor(maxStatementsCount / 2);
+    disagreeCandidates = disagreeCandidates.slice(0, maxDisagree);
 
     // Format results similar to Python output
     const formatStatement = (stmt, isAgree) => ({

@@ -60,6 +60,12 @@ function initializeUI() {
         1,
     );
 
+    // Initialize max statements count input
+    document.getElementById("max-statements-count").value = loadState(
+        "maxStatementsCount",
+        10,
+    );
+
     // Initialize statement ID input with saved value
     const statementIdInput = document.getElementById("statement-id-input");
     statementIdInput.value = AppState.preferences.statementId;
@@ -437,6 +443,17 @@ function setupEventListeners() {
             }
         });
 
+    // Max statements count input
+    document
+        .getElementById("max-statements-count")
+        .addEventListener("change", (e) => {
+            const maxStatementsCount = parseInt(e.target.value) || 10;
+            saveState("maxStatementsCount", maxStatementsCount);
+            if (document.getElementById("auto-analyze-checkbox").checked) {
+                applyGroupAnalysis();
+            }
+        });
+
     // Keep colored points on top checkbox
     document
         .getElementById("keep-colored-on-top-checkbox")
@@ -767,14 +784,14 @@ function renderPlot(svgId, data, title) {
         circleData = circleData.sort((a, b) => {
             const aHasColor = AppState.preferences.showVotes
                 ? AppState.selection.voteColorByIndex[a.i] &&
-                  AppState.selection.voteColorByIndex[a.i] !== "rgba(0,0,0,0.5)"
+                AppState.selection.voteColorByIndex[a.i] !== "rgba(0,0,0,0.5)"
                 : AppState.selection.colorByIndex[a.i] &&
-                  AppState.selection.colorByIndex[a.i] !== "rgba(0,0,0,0.5)";
+                AppState.selection.colorByIndex[a.i] !== "rgba(0,0,0,0.5)";
             const bHasColor = AppState.preferences.showVotes
                 ? AppState.selection.voteColorByIndex[b.i] &&
-                  AppState.selection.voteColorByIndex[b.i] !== "rgba(0,0,0,0.5)"
+                AppState.selection.voteColorByIndex[b.i] !== "rgba(0,0,0,0.5)"
                 : AppState.selection.colorByIndex[b.i] &&
-                  AppState.selection.colorByIndex[b.i] !== "rgba(0,0,0,0.5)";
+                AppState.selection.colorByIndex[b.i] !== "rgba(0,0,0,0.5)";
 
             // Uncolored points (false) come first, colored points (true) come last
             return aHasColor - bHasColor;
@@ -1419,7 +1436,7 @@ function applyHoverStyles() {
                 circle.attr(
                     "fill",
                     AppState.selection.voteColorByIndex[index] ||
-                        "rgba(0,0,0,0.5)",
+                    "rgba(0,0,0,0.5)",
                 );
             } else {
                 circle.attr("fill", rawColor || "rgba(0,0,0,0.5)");
@@ -2229,11 +2246,10 @@ function renderRepCommentsTable(repComments) {
             "aria-selected",
             activeTabId === consensusTabId ? "true" : "false",
         );
-        consensusTab.className = `flex items-center px-4 py-2 font-medium text-sm border-b-2 focus:outline-none ${
-            activeTabId === consensusTabId
-                ? "border-primary-500 text-primary-600"
-                : "border-transparent text-gray-500 hover:border-gray-300"
-        }`;
+        consensusTab.className = `flex items-center px-4 py-2 font-medium text-sm border-b-2 focus:outline-none ${activeTabId === consensusTabId
+            ? "border-primary-500 text-primary-600"
+            : "border-transparent text-gray-500 hover:border-gray-300"
+            }`;
 
         // Add consensus icon and text
         consensusTab.innerHTML = `
@@ -2298,11 +2314,10 @@ function renderRepCommentsTable(repComments) {
             "aria-selected",
             activeTabId === contentId ? "true" : "false",
         );
-        tab.className = `flex items-center px-4 py-2 font-medium text-sm border-b-2 focus:outline-none ${
-            activeTabId === contentId
-                ? "border-primary-500 text-primary-600"
-                : "border-transparent text-gray-500 hover:border-gray-300"
-        }`;
+        tab.className = `flex items-center px-4 py-2 font-medium text-sm border-b-2 focus:outline-none ${activeTabId === contentId
+            ? "border-primary-500 text-primary-600"
+            : "border-transparent text-gray-500 hover:border-gray-300"
+            }`;
 
         // Create colored circle for tab
         const circle = document.createElement("span");
@@ -2436,8 +2451,8 @@ function renderRepCommentsTable(repComments) {
                 c.repful_for === "agree"
                     ? "green"
                     : c.repful_for === "disagree"
-                      ? "red"
-                      : "#333";
+                        ? "red"
+                        : "#333";
 
             const match = AppState.data.commentTextMap?.[c.tid];
             const isModerated = match?.mod === "-1" || match?.mod === -1;

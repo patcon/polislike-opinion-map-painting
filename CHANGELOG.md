@@ -19,7 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disable and reset vote color mode when changing datasets.
 - Enable statement ID input even when "show votes" checkbox unchecked.
 - Add datasets for Worchester City Plan, Louisville Civic Assembly, and Ministry of Canadian Heritage.
-- Remove limits on number of statements shown on consensus and group-representative tabs.
+- Added a max statements input that defaults to 10.
+- Removed sorting of statements where disagere is first. Now sorts by representativeness.
 
 ### Fixed
 - Updated the BG2050 dataset to work with vote color mode.
