@@ -1,9 +1,7 @@
-describe("Config object", () => {
-    // We need to import the Config object from main.js
-    // This requires modifying main.js to export Config
+import { vi } from "vitest";
 
+describe("Config object", () => {
     test("Config has expected properties", () => {
-        // This is just a placeholder - you'll need to modify main.js to export Config
         const Config = require("../config").Config;
 
         expect(Config).toBeDefined();
@@ -14,14 +12,10 @@ describe("Config object", () => {
 });
 
 describe("Utility functions", () => {
-    // Test utility functions like getQueryParam, loadState, etc.
-
     test("getQueryParam returns null for non-existent parameter", () => {
-        // Mock URL
         delete window.location;
         window.location = { search: "?dataset=test" };
 
-        // Import the function (after modifying main.js to export it)
         const getQueryParam = require("../config").getQueryParam;
 
         expect(getQueryParam("nonexistent")).toBeNull();
@@ -32,15 +26,13 @@ describe("Utility functions", () => {
         let originalSessionStorage;
 
         beforeEach(() => {
-            // Save original sessionStorage
             originalSessionStorage = window.sessionStorage;
 
-            // Mock sessionStorage
             const mockSessionStorage = {
-                getItem: jest.fn(),
-                setItem: jest.fn(),
-                clear: jest.fn(),
-                removeItem: jest.fn(),
+                getItem: vi.fn(),
+                setItem: vi.fn(),
+                clear: vi.fn(),
+                removeItem: vi.fn(),
             };
 
             delete window.sessionStorage;
@@ -51,7 +43,6 @@ describe("Utility functions", () => {
         });
 
         afterEach(() => {
-            // Restore original sessionStorage
             delete window.sessionStorage;
             Object.defineProperty(window, "sessionStorage", {
                 value: originalSessionStorage,
@@ -135,16 +126,14 @@ describe("Utility functions", () => {
 
         test("converts large indices correctly", () => {
             const labelIndexToLetter = require("../config").labelIndexToLetter;
-            // This should wrap around the alphabet
-            expect(labelIndexToLetter(26)).toBe("["); // ASCII after 'Z'
-            expect(labelIndexToLetter(27)).toBe("\\"); // ASCII after '['
+            expect(labelIndexToLetter(26)).toBe("[");
+            expect(labelIndexToLetter(27)).toBe("\\");
         });
     });
 });
 
 describe("DOM manipulation", () => {
     beforeEach(() => {
-        // Set up the DOM
         document.body.innerHTML = `
         <div id="plot-wrapper" style="width: 900px;"></div>
         <svg id="plot1"></svg>
@@ -154,25 +143,21 @@ describe("DOM manipulation", () => {
     });
 
     test("updateDimensions sets correct dimensions", () => {
-        // Mock clientWidth
         const plotWrapper = document.getElementById("plot-wrapper");
         Object.defineProperty(plotWrapper, "clientWidth", {
             configurable: true,
             value: 900,
         });
 
-        // Get AppState and call its updateDimensions method
         const AppState = require("../config").AppState;
         AppState.updateDimensions();
 
-        // Check if AppState dimensions were updated correctly
-        expect(AppState.dimensions.width).toBe(280); // (900 / 3) - 20
+        expect(AppState.dimensions.width).toBe(280);
         expect(AppState.dimensions.height).toBe(280);
     });
 
     describe("Plot loader functions", () => {
         beforeEach(() => {
-            // Set up the DOM with plot-loader element
             document.body.innerHTML = `
                 <div id="plot-loader" style="display: none;"></div>
             `;
@@ -181,10 +166,8 @@ describe("DOM manipulation", () => {
         test("showPlotLoader sets display to flex", () => {
             const showPlotLoader = require("../config").showPlotLoader;
 
-            // Call the function
             showPlotLoader();
 
-            // Check if the display style was updated correctly
             const loaderElement = document.getElementById("plot-loader");
             expect(loaderElement.style.display).toBe("flex");
         });
@@ -192,14 +175,11 @@ describe("DOM manipulation", () => {
         test("hidePlotLoader sets display to none", () => {
             const hidePlotLoader = require("../config").hidePlotLoader;
 
-            // Set initial display to something other than none
             const loaderElement = document.getElementById("plot-loader");
             loaderElement.style.display = "flex";
 
-            // Call the function
             hidePlotLoader();
 
-            // Check if the display style was updated correctly
             expect(loaderElement.style.display).toBe("none");
         });
 
@@ -209,14 +189,11 @@ describe("DOM manipulation", () => {
 
             const loaderElement = document.getElementById("plot-loader");
 
-            // Initially hidden
             expect(loaderElement.style.display).toBe("none");
 
-            // Show loader
             showPlotLoader();
             expect(loaderElement.style.display).toBe("flex");
 
-            // Hide loader
             hidePlotLoader();
             expect(loaderElement.style.display).toBe("none");
         });
@@ -228,22 +205,19 @@ describe("AppState.init()", () => {
     let originalLocation;
 
     beforeEach(() => {
-        // Save original objects
         originalSessionStorage = window.sessionStorage;
         originalLocation = window.location;
 
-        // Mock sessionStorage
         const mockSessionStorage = {
-            getItem: jest.fn(),
-            setItem: jest.fn(),
-            clear: jest.fn(),
-            removeItem: jest.fn(),
+            getItem: vi.fn(),
+            setItem: vi.fn(),
+            clear: vi.fn(),
+            removeItem: vi.fn(),
         };
 
-        // Set up mock returns for loadState calls
         mockSessionStorage.getItem.mockImplementation((key) => {
             const mockData = {
-                dataset: '"saved-dataset"', // Note: sessionStorage stores strings, and loadState uses JSON.parse
+                dataset: '"saved-dataset"',
                 additive: "true",
                 flipX: "true",
                 flipY: "true",
@@ -259,13 +233,11 @@ describe("AppState.init()", () => {
             configurable: true,
         });
 
-        // Mock URL query parameters
         delete window.location;
         window.location = { search: "?dataset=url-dataset" };
     });
 
     afterEach(() => {
-        // Restore original objects
         delete window.sessionStorage;
         Object.defineProperty(window, "sessionStorage", {
             value: originalSessionStorage,
@@ -278,13 +250,10 @@ describe("AppState.init()", () => {
     test("initializes color mapping correctly", () => {
         const { AppState, Config } = require("../config");
 
-        // Reset AppState to ensure clean test
         AppState.selection.colorToLabelIndex = {};
 
-        // Call the init method
         AppState.init();
 
-        // Verify color mapping was initialized
         Config.colors.tab10.forEach((color, i) => {
             expect(AppState.selection.colorToLabelIndex[color]).toBe(i);
         });
@@ -293,67 +262,52 @@ describe("AppState.init()", () => {
     test("loads preferences from URL query parameters first", () => {
         const { AppState } = require("../config");
 
-        // Call the init method
         AppState.init();
 
-        // URL parameter should take precedence over session storage
         expect(AppState.preferences.convoSlug).toBe("url-dataset");
     });
 
     test("loads dataset from sessionStorage when URL parameter is not present", () => {
-        // Mock window.location to have no query parameters
         window.location.search = "";
 
-        // Now require the module (after setting up all mocks)
         const { AppState } = require("../config");
 
-        // Call the init method
         AppState.init();
 
-        // Verify that the value from sessionStorage was used
         expect(AppState.preferences.convoSlug).toBe("saved-dataset");
     });
 
     test("uses default values when neither URL nor session storage has values", () => {
-        // Update mock URL to remove dataset parameter
         window.location.search = "";
 
-        // Make sessionStorage return null for dataset
         window.sessionStorage.getItem.mockImplementation((key) => {
             if (key === "dataset") return null;
-            return JSON.stringify(true); // Return something for other keys
+            return JSON.stringify(true);
         });
 
         const { AppState } = require("../config");
 
-        // Call the init method
         AppState.init();
 
-        // Should use the default value
         expect(AppState.preferences.convoSlug).toBe("bg2050");
     });
 
     test("initializes UI properties correctly", () => {
         const { AppState, Config } = require("../config");
 
-        // Call the init method
         AppState.init();
 
-        // Verify UI properties were set to Config defaults
         expect(AppState.ui.dotOpacity).toBe(Config.dotOpacity);
         expect(AppState.ui.dotSize).toBe(Config.dotSize);
     });
 
     test("loads all preferences from session storage correctly", () => {
-        // Update mock URL to remove dataset parameter
         window.location.search = "";
 
         const { AppState } = require("../config");
 
-        // Call the init method
         AppState.init();
 
-        // Verify all preferences were loaded from session storage
         expect(AppState.preferences.isAdditive).toBe(true);
         expect(AppState.preferences.flipX).toBe(true);
         expect(AppState.preferences.flipY).toBe(true);
@@ -364,15 +318,12 @@ describe("AppState.init()", () => {
 
 describe("AppState.resetDataState()", () => {
     beforeEach(() => {
-        // Set up the DOM
         document.body.innerHTML = `
       <div id="rep-comments-output">Initial content</div>
     `;
 
-        // Import AppState
         const { AppState } = require("../config");
 
-        // Set up initial state with mock data
         AppState.data.dbInstance = { mock: "database" };
         AppState.data.commentTexts = [{ id: 1, text: "Test comment" }];
         AppState.data.repComments = { group1: [{ id: 1 }] };
@@ -382,10 +333,8 @@ describe("AppState.resetDataState()", () => {
     test("resets data state properties to null", () => {
         const { AppState } = require("../config");
 
-        // Call the method being tested
         AppState.resetDataState();
 
-        // Verify data properties are reset to null
         expect(AppState.data.dbInstance).toBeNull();
         expect(AppState.data.commentTexts).toBeNull();
         expect(AppState.data.repComments).toBeNull();
@@ -394,24 +343,19 @@ describe("AppState.resetDataState()", () => {
     test("clears the opacity factor cache", () => {
         const { AppState } = require("../config");
 
-        // Call the method being tested
         AppState.resetDataState();
 
-        // Verify the opacity cache is empty
         expect(AppState.ui.opacityFactorCache).toEqual({});
     });
 
     test("clears the rep-comments-output element", () => {
         const { AppState } = require("../config");
 
-        // Verify the element has content before reset
         const outputElement = document.getElementById("rep-comments-output");
         expect(outputElement.innerHTML).toBe("Initial content");
 
-        // Call the method being tested
         AppState.resetDataState();
 
-        // Verify the element is now empty
         expect(outputElement.innerHTML).toBe("");
     });
 });

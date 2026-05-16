@@ -1,9 +1,11 @@
+import { vi } from "vitest";
+
 // Import the test module
 const { loadAndRenderDataWithMocks } = require("./data-test-module");
 
 // Create mock objects
 const mockAppState = {
-    resetDataState: jest.fn(),
+    resetDataState: vi.fn(),
     data: {
         participants: [],
         meta: null,
@@ -16,7 +18,7 @@ const mockAppState = {
     selection: {
         colorByIndex: [],
         selectedIndices: {
-            clear: jest.fn(),
+            clear: vi.fn(),
         },
     },
     preferences: {
@@ -26,14 +28,14 @@ const mockAppState = {
 };
 
 // Mock UI functions
-const mockShowPlotLoader = jest.fn();
-const mockHidePlotLoader = jest.fn();
-const mockRenderMetaInfo = jest.fn();
-const mockRenderAllPlots = jest.fn();
-const mockRenderColorPalette = jest.fn();
-const mockUpdateLabelCounts = jest.fn();
-const mockUpdateStatementTextDisplay = jest.fn();
-const mockToggleVoteColors = jest.fn();
+const mockShowPlotLoader = vi.fn();
+const mockHidePlotLoader = vi.fn();
+const mockRenderMetaInfo = vi.fn();
+const mockRenderAllPlots = vi.fn();
+const mockRenderColorPalette = vi.fn();
+const mockUpdateLabelCounts = vi.fn();
+const mockUpdateStatementTextDisplay = vi.fn();
+const mockToggleVoteColors = vi.fn();
 
 // Create a collection of all mocks
 const mocks = {
@@ -56,7 +58,7 @@ function loadAndRenderData(slug) {
 describe("loadAndRenderData", () => {
     // Reset all mocks before each test
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
 
         // Reset mockAppState data properties
         mockAppState.data.participants = [];
@@ -121,16 +123,13 @@ describe("loadAndRenderData", () => {
     test("loads and processes data correctly", async () => {
         await loadAndRenderData("test-dataset");
 
-        // Check that participants were extracted correctly
         expect(mockAppState.data.participants).toEqual(["p1", "p2"]);
 
-        // Check that meta data was stored
         expect(mockAppState.data.meta).toEqual({
             title: "Test Dataset",
             description: "Test Description",
         });
 
-        // Check that projection data was stored correctly
         expect(mockAppState.data.X1).toEqual([
             [0.1, 0.2],
             [0.3, 0.4],
@@ -144,8 +143,7 @@ describe("loadAndRenderData", () => {
             [1.1, 1.2],
         ]);
 
-        // Check that selection state was reset
-        expect(mockAppState.selection.colorByIndex.length).toBe(2); // Same as number of participants
+        expect(mockAppState.selection.colorByIndex.length).toBe(2);
         expect(
             mockAppState.selection.colorByIndex.every((c) => c === null),
         ).toBe(true);
@@ -157,10 +155,8 @@ describe("loadAndRenderData", () => {
     test("processes statements with different field names", async () => {
         await loadAndRenderData("test-dataset");
 
-        // Wait for the statements promise to resolve
         await new Promise(process.nextTick);
 
-        // Check that statements were normalized correctly
         expect(mockAppState.data.commentTexts).toEqual([
             {
                 tid: "s1",
@@ -180,7 +176,6 @@ describe("loadAndRenderData", () => {
             },
         ]);
 
-        // Check that the comment text map was created correctly
         expect(mockAppState.data.commentTextMap).toEqual({
             s1: {
                 tid: "s1",
@@ -202,10 +197,6 @@ describe("loadAndRenderData", () => {
     });
 
     test("handles missing text in statements", async () => {
-        // Save the original mock implementation
-        const originalMock = global.d3.json.getMockImplementation();
-
-        // Mock statements with missing text
         global.d3.json.mockImplementation((url) => {
             if (url.includes("statements.json")) {
                 return Promise.resolve([
@@ -213,7 +204,6 @@ describe("loadAndRenderData", () => {
                         tid: "s1",
                         pid: "p1",
                         mod: 0,
-                        // No txt or text field
                     },
                 ]);
             } else if (url.includes("pca.json")) {
@@ -242,17 +232,14 @@ describe("loadAndRenderData", () => {
 
         await loadAndRenderData("test-dataset");
 
-        // Wait for the statements promise to resolve
         await new Promise(process.nextTick);
 
-        // Check that missing text is replaced with "<missing>"
         expect(mockAppState.data.commentTexts[0].txt).toBe("<missing>");
     });
 
     test("calls UI functions in the correct order", async () => {
         await loadAndRenderData("test-dataset");
 
-        // Check that UI functions were called in the correct order
         expect(mockShowPlotLoader).toHaveBeenCalledTimes(1);
         expect(mockRenderMetaInfo).toHaveBeenCalledTimes(1);
         expect(mockRenderAllPlots).toHaveBeenCalledTimes(1);
@@ -260,7 +247,6 @@ describe("loadAndRenderData", () => {
         expect(mockUpdateLabelCounts).toHaveBeenCalledTimes(1);
         expect(mockHidePlotLoader).toHaveBeenCalledTimes(1);
 
-        // Check the order of calls
         const showLoaderCallOrder =
             mockShowPlotLoader.mock.invocationCallOrder[0];
         const renderMetaCallOrder =
@@ -281,7 +267,6 @@ describe("loadAndRenderData", () => {
     });
 
     test("handles missing meta.json gracefully", async () => {
-        // Mock d3.json to simulate meta.json not found
         global.d3.json.mockImplementation((url) => {
             if (url.includes("meta.json")) {
                 return Promise.reject(new Error("Not found"));
@@ -315,10 +300,8 @@ describe("loadAndRenderData", () => {
 
         await loadAndRenderData("test-dataset");
 
-        // Check that meta is null when meta.json is missing
         expect(mockAppState.data.meta).toBeNull();
 
-        // Check that the function still completes and calls UI functions
         expect(mockRenderAllPlots).toHaveBeenCalledTimes(1);
         expect(mockHidePlotLoader).toHaveBeenCalledTimes(1);
     });
@@ -327,7 +310,6 @@ describe("loadAndRenderData", () => {
         const promise = loadAndRenderData("test-dataset");
         expect(promise).toBeInstanceOf(Promise);
 
-        // The promise should resolve without errors
         await expect(promise).resolves.toBeUndefined();
     });
 });
