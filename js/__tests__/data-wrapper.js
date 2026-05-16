@@ -7,7 +7,7 @@
 
 // Create mock objects
 const mockAppState = {
-    resetDataState: jest.fn(),
+    resetDataState: vi.fn(),
     data: {
         participants: [],
         meta: null,
@@ -20,18 +20,18 @@ const mockAppState = {
     selection: {
         colorByIndex: [],
         selectedIndices: {
-            clear: jest.fn(),
+            clear: vi.fn(),
         },
     },
 };
 
 // Mock UI functions
-const mockShowPlotLoader = jest.fn();
-const mockHidePlotLoader = jest.fn();
-const mockRenderMetaInfo = jest.fn();
-const mockRenderAllPlots = jest.fn();
-const mockRenderColorPalette = jest.fn();
-const mockUpdateLabelCounts = jest.fn();
+const mockShowPlotLoader = vi.fn();
+const mockHidePlotLoader = vi.fn();
+const mockRenderMetaInfo = vi.fn();
+const mockRenderAllPlots = vi.fn();
+const mockRenderColorPalette = vi.fn();
+const mockUpdateLabelCounts = vi.fn();
 
 // Get the original function
 const originalLoadAndRenderData = require("../data").loadAndRenderData;

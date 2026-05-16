@@ -1,9 +1,14 @@
 node_modules
+package-lock.json
 
+.DS_Store
 .dumps/
+
+# Vite build output
+dist/
 
 # Cache file for red-dwarf data loader
 test_cache.sqlite
 
-# Jest coverage reports
+# Test coverage reports
 coverage/

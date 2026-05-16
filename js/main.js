@@ -5,77 +5,19 @@
  * in conversation data.
  */
 
-/**
- * Helper function to check if z-score is significant at 90% confidence
- * @param {number} zVal - Z-score
- * @returns {boolean} - True if significant
- */
-function zSig90(zVal) {
-    return zVal > Config.stats.significanceThreshold;
-}
+import {
+    calculateRepresentativeComments,
+    selectConsensusStatements,
+} from "reddwarf-ts";
+
+// config.js runs before this module and sets these on window
+const Config = window.Config;
+const AppState = window.AppState;
 
 /**
- * Two-proportion z-test
- * @param {number} succIn - Successes in group
- * @param {number} succOut - Successes outside group
- * @param {number} popIn - Population in group
- * @param {number} popOut - Population outside group
- * @returns {number} - Z-score
- */
-function twoPropTest(succIn, succOut, popIn, popOut) {
-    const adjustedSuccIn = succIn + 1;
-    const adjustedSuccOut = succOut + 1;
-    const adjustedPopIn = popIn + 1;
-    const adjustedPopOut = popOut + 1;
-
-    const pi1 = adjustedSuccIn / adjustedPopIn;
-    const pi2 = adjustedSuccOut / adjustedPopOut;
-    const piHat =
-        (adjustedSuccIn + adjustedSuccOut) / (adjustedPopIn + adjustedPopOut);
-
-    if (piHat === 1) return 0;
-
-    return (
-        (pi1 - pi2) /
-        Math.sqrt(
-            piHat * (1 - piHat) * (1 / adjustedPopIn + 1 / adjustedPopOut),
-        )
-    );
-}
-
-/**
- * Add comparative statistics to comment stats
- * @param {Object} inStats - Stats for in-group
- * @param {Object} restStats - Stats for out-group
- * @returns {Object} - Combined stats
- */
-function addComparativeStats(inStats, restStats) {
-    // Sum up values across other groups
-    const sumOtherNa = restStats.reduce((sum, g) => sum + g.na, 0);
-    const sumOtherNd = restStats.reduce((sum, g) => sum + g.nd, 0);
-    const sumOtherNs = restStats.reduce((sum, g) => sum + g.ns, 0);
-
-    // Calculate relative agreement and disagreement
-    const ra = inStats.pa / ((1 + sumOtherNa) / (2 + sumOtherNs));
-    const rd = inStats.pd / ((1 + sumOtherNd) / (2 + sumOtherNs));
-
-    // Calculate z-scores for the differences between proportions
-    const rat = twoPropTest(inStats.na, sumOtherNa, inStats.ns, sumOtherNs);
-    const rdt = twoPropTest(inStats.nd, sumOtherNd, inStats.ns, sumOtherNs);
-
-    return {
-        ...inStats,
-        ra,
-        rd,
-        rat,
-        rdt,
-    };
-}
-
-/**
- * Get group vote matrices
- * @param {Object} db - Database instance
- * @param {Array} labelArray - Array of labels
+ * Get group vote matrices from sql.js database
+ * @param {Object} db - sql.js Database instance
+ * @param {Array} labelArray - Array of group labels per participant
  * @returns {Promise<Object>} - Group vote matrices
  */
 async function getGroupVoteMatrices(db, labelArray) {
@@ -92,7 +34,6 @@ async function getGroupVoteMatrices(db, labelArray) {
 
     const groupVotes = {};
     for (const [label, indices] of Object.entries(groups)) {
-        // Properly quote participant IDs as they are strings
         const quotedIndices = indices.map((pid) => `'${pid}'`);
         const result = db.exec(`
       SELECT participant_id, comment_id, vote
@@ -114,402 +55,6 @@ async function getGroupVoteMatrices(db, labelArray) {
 }
 
 /**
- * Check if a comment passes the significance test
- * @param {Object} commentStats - Comment statistics
- * @returns {boolean} - True if passes test
- */
-function passesByTest(commentStats) {
-    return (
-        (zSig90(commentStats.rat) && zSig90(commentStats.pat)) ||
-        (zSig90(commentStats.rdt) && zSig90(commentStats.pdt))
-    );
-}
-
-/**
- * Check if a comment beats the best by z-score
- * @param {Object} commentStats - Comment statistics
- * @param {number} currentBestZ - Current best z-score
- * @returns {boolean} - True if beats best
- */
-function beatsBestByTest(commentStats, currentBestZ) {
-    return (
-        currentBestZ === null ||
-        Math.max(commentStats.rat, commentStats.rdt) > currentBestZ
-    );
-}
-
-/**
- * Check if a comment beats the best by agreement
- * @param {Object} commentStats - Comment statistics
- * @param {Object} currentBest - Current best stats
- * @returns {boolean} - True if beats best
- */
-function beatsBestAgr(commentStats, currentBest) {
-    const { na, nd, ra, rat, pa, pat } = commentStats;
-    if (na === 0 && nd === 0) return false;
-    if (currentBest && currentBest.ra > 1.0) {
-        return (
-            ra * rat * pa * pat >
-            currentBest.ra * currentBest.rat * currentBest.pa * currentBest.pat
-        );
-    }
-    if (currentBest) {
-        return pa * pat > currentBest.pa * currentBest.pat;
-    }
-    return zSig90(pat) || (ra > 1.0 && pa > 0.5);
-}
-
-/**
- * Finalize comment statistics
- * @param {string} tid - Comment ID
- * @param {Object} stats - Comment statistics
- * @returns {Object} - Finalized stats
- */
-function finalizeCommentStats(tid, stats) {
-    const { na, nd, ns, pa, pd, pat, pdt, ra, rd, rat, rdt } = stats;
-    const isAgreeMoreRep =
-        (rat > rdt && na >= Config.stats.minVotes) ||
-        nd < Config.stats.minVotes;
-    const repful_for = isAgreeMoreRep ? "agree" : "disagree";
-
-    return {
-        tid,
-        n_agree: na,
-        n_disagree: nd,
-        n_pass: ns - na - nd,
-        n_success: isAgreeMoreRep ? na : nd,
-        n_trials: ns,
-        p_success: isAgreeMoreRep ? pa : pd,
-        p_test: isAgreeMoreRep ? pat : pdt,
-        repness: isAgreeMoreRep ? ra : rd,
-        repness_test: isAgreeMoreRep ? rat : rdt,
-        repful_for,
-    };
-}
-
-function repnessMetric(data) {
-    return data.repness * data.repness_test * data.p_success * data.p_test;
-}
-
-/**
- * Select representative comments
- * @param {Array} commentStatsWithTid - Comment statistics
- * @param {number|null} pickMax - Maximum comments per group (default: null for no limit)
- * @returns {Array} - Representative comments
- */
-function selectRepComments(commentStatsWithTid, pickMax = null) {
-    const result = {};
-    const includeModerated = document.getElementById(
-        "include-moderated-checkbox",
-    )?.checked;
-    const minVoteCount =
-        parseInt(document.getElementById("min-vote-count")?.value) || 1;
-    const maxStatementsCount =
-        parseInt(document.getElementById("max-statements-count")?.value) || 10;
-
-    if (commentStatsWithTid.length === 0) return {};
-
-    const groupIds = Object.keys(commentStatsWithTid[0][1]);
-
-    groupIds.forEach((gid) => {
-        result[gid] = { best: null, best_agree: null, sufficient: [] };
-    });
-
-    commentStatsWithTid.forEach(([tid, groupsData]) => {
-        const comment = AppState.data.commentTextMap?.[tid];
-        // TODO: Get this working for strict moderation (-1 or 0)
-        // This doesn't work in upstream Polis either, so has feature parity rn.
-        const isModerated = comment?.mod === "-1" || comment?.mod === -1;
-        if (isModerated && !includeModerated) return;
-
-        Object.entries(groupsData).forEach(([gid, commentStats]) => {
-            const groupResult = result[gid];
-
-            // Apply minimum vote count filter - only exclude statements for the current group
-            // if their total vote count (ns) is below the threshold
-            if (commentStats.ns < minVoteCount) {
-                return; // Skip this statement for this group
-            }
-
-            if (passesByTest(commentStats)) {
-                groupResult.sufficient.push(
-                    finalizeCommentStats(tid, commentStats),
-                );
-            }
-
-            if (
-                beatsBestByTest(
-                    commentStats,
-                    groupResult.best?.repness_test || null,
-                )
-            ) {
-                groupResult.best = finalizeCommentStats(tid, commentStats);
-            }
-
-            if (beatsBestAgr(commentStats, groupResult.best_agree)) {
-                groupResult.best_agree = { ...commentStats, tid };
-            }
-        });
-    });
-
-    const finalResult = {};
-
-    Object.entries(result).forEach(
-        ([gid, { best, best_agree, sufficient }]) => {
-            let bestAgreeComment = null;
-            if (best_agree) {
-                bestAgreeComment = finalizeCommentStats(
-                    best_agree.tid,
-                    best_agree,
-                );
-                bestAgreeComment.best_agree = true;
-            }
-
-            let selectedComments = [];
-            if (bestAgreeComment) {
-                selectedComments.push(bestAgreeComment);
-                sufficient = sufficient.filter(
-                    (c) => c.tid !== bestAgreeComment.tid,
-                );
-            }
-
-            const sortedSufficient = sufficient.sort(
-                (a, b) => repnessMetric(b) - repnessMetric(a),
-            );
-
-            selectedComments = [...selectedComments, ...sortedSufficient];
-
-            const maxCount = pickMax !== null && pickMax !== undefined ? pickMax : Math.floor(maxStatementsCount);
-
-            finalResult[gid] = selectedComments.slice(0, maxCount);
-        },
-    );
-
-    return finalResult;
-}
-
-/**
- * Proportion test
- * @param {number} succ - Successes
- * @param {number} n - Total
- * @returns {number} - Z-score
- */
-function propTest(succ, n) {
-    const adjustedSucc = succ + 1;
-    const adjustedN = n + 1;
-    return 2 * Math.sqrt(adjustedN) * (adjustedSucc / adjustedN - 0.5);
-}
-
-/**
- * Calculate representative comments
- * @param {Object} groupVotes - Group votes
- * @param {Array} commentTexts - Comment texts
- * @returns {Object} - Representative comments by group
- */
-function calculateRepresentativeComments(groupVotes, commentTexts) {
-    const allComments = commentTexts
-        ? commentTexts.map((c) => c.id)
-        : Array.from(
-            new Set(
-                Object.values(groupVotes)
-                    .flatMap((group) => Object.values(group))
-                    .flatMap((votes) => Object.keys(votes).map(Number)),
-            ),
-        ).sort((a, b) => a - b); // unique sorted comment_ids
-    const allGroups = Object.keys(groupVotes);
-    const commentStatsWithTid = [];
-
-    allComments.forEach((commentId, commentIndex) => {
-        const commentStats = {};
-
-        for (const [groupId, groupMatrix] of Object.entries(groupVotes)) {
-            let agrees = 0,
-                disagrees = 0,
-                passes = 0,
-                seen = 0;
-
-            for (const voteRow of Object.values(groupMatrix)) {
-                const vote = voteRow[commentId];
-                if (vote != null) {
-                    seen++;
-                    if (vote === 1) agrees++;
-                    else if (vote === -1) disagrees++;
-                    else passes++;
-                }
-            }
-
-            const pa = (agrees + 1) / (seen + 2);
-            const pd = (disagrees + 1) / (seen + 2);
-            const pat = propTest(agrees, seen);
-            const pdt = propTest(disagrees, seen);
-
-            commentStats[groupId] = {
-                na: agrees,
-                nd: disagrees,
-                ns: seen,
-                pa,
-                pd,
-                pat,
-                pdt,
-            };
-        }
-
-        commentStatsWithTid.push([commentId, commentStats]);
-    });
-
-    // Add comparative stats
-    const withComparatives = commentStatsWithTid.map(([tid, stats]) => {
-        const processed = {};
-        for (const [gid, stat] of Object.entries(stats)) {
-            const rest = Object.entries(stats)
-                .filter(([otherGid]) => otherGid !== gid)
-                .map(([, s]) => s);
-            processed[gid] = addComparativeStats(stat, rest);
-        }
-        return [tid, processed];
-    });
-
-    const repCommentMap = selectRepComments(withComparatives, commentTexts);
-
-    return repCommentMap;
-}
-
-/**
- * Check if a p-value is significant at the given confidence level
- * @param {number} pValue - The p-value to test
- * @param {number} confidence - Confidence level (default 0.9 for 90%)
- * @returns {boolean} - True if significant
- */
-function isSignificant(pValue, confidence = 0.9) {
-    // Convert confidence to z-score threshold
-    // For 90% confidence, z-threshold is approximately 1.645
-    const zThreshold = confidence === 0.9 ? 1.645 : 1.96; // 95% confidence
-    return Math.abs(pValue) > zThreshold;
-}
-
-/**
- * Select consensus statements from vote data across all groups
- * @param {Object} groupVotes - Vote matrices by group
- * @param {Array} modOutStatementIds - Statement IDs to exclude (default: [])
- * @param {number} pickMax - Maximum statements per direction (default: 5)
- * @param {number} probThreshold - Probability threshold (default: 0.5)
- * @param {number} confidence - Confidence level (default: 0.9)
- * @returns {Object} - Object with agree and disagree consensus statements
- */
-function selectConsensusStatements(
-    groupVotes,
-    modOutStatementIds = [],
-    pickMax = null,
-    probThreshold = 0.5,
-    confidence = 0.9,
-) {
-    // Get the minimum vote count threshold from the UI
-    const minVoteCount =
-        parseInt(document.getElementById("min-vote-count")?.value) || 1;
-    // Get the maximum statements count from the UI
-    const maxStatementsCount =
-        parseInt(document.getElementById("max-statements-count")?.value) || 10;
-    // Get all unique comment IDs across all groups
-    const allCommentIds = new Set();
-    Object.values(groupVotes).forEach((groupMatrix) => {
-        Object.values(groupMatrix).forEach((participantVotes) => {
-            Object.keys(participantVotes).forEach((commentId) => {
-                allCommentIds.add(parseInt(commentId));
-            });
-        });
-    });
-
-    // Convert to sorted array and filter out moderated statements
-    const commentIds = Array.from(allCommentIds)
-        .filter((id) => !modOutStatementIds.includes(id))
-        .sort((a, b) => a - b);
-
-    const statements = [];
-
-    // Calculate statistics for each comment across all participants (mock group approach)
-    commentIds.forEach((commentId) => {
-        let totalAgrees = 0;
-        let totalDisagrees = 0;
-        let totalSeen = 0;
-
-        // Aggregate votes across all groups
-        Object.values(groupVotes).forEach((groupMatrix) => {
-            Object.values(groupMatrix).forEach((participantVotes) => {
-                const vote = participantVotes[commentId];
-                if (vote !== undefined) {
-                    totalSeen++;
-                    if (vote === 1) totalAgrees++;
-                    else if (vote === -1) totalDisagrees++;
-                }
-            });
-        });
-
-        if (totalSeen === 0) return; // Skip if no votes
-
-        // Apply minimum vote count filter - skip statements that don't meet the threshold
-        if (totalSeen < minVoteCount) return;
-
-        // Calculate proportions (with Laplace smoothing)
-        const pa = (totalAgrees + 1) / (totalSeen + 2);
-        const pd = (totalDisagrees + 1) / (totalSeen + 2);
-
-        // Calculate z-scores using proportion test
-        const pat = propTest(totalAgrees, totalSeen);
-        const pdt = propTest(totalDisagrees, totalSeen);
-
-        // Calculate metrics (similar to Python's am and dm)
-        const agreeMetric = pa * pat;
-        const disagreeMetric = pd * pdt;
-
-        statements.push({
-            tid: commentId,
-            na: totalAgrees,
-            nd: totalDisagrees,
-            ns: totalSeen,
-            pa,
-            pd,
-            pat,
-            pdt,
-            agreeMetric,
-            disagreeMetric,
-        });
-    });
-
-    // Filter and rank agree candidates
-    let agreeCandidates = statements
-        .filter((s) => s.pa > probThreshold && isSignificant(s.pat, confidence))
-        .sort((a, b) => b.agreeMetric - a.agreeMetric);
-
-    // Apply maxStatements limit for agree candidates
-    const maxAgree = pickMax !== null && pickMax !== undefined ? pickMax : Math.floor(maxStatementsCount / 2);
-    agreeCandidates = agreeCandidates.slice(0, maxAgree);
-
-    // Filter and rank disagree candidates
-    let disagreeCandidates = statements
-        .filter((s) => s.pd > probThreshold && isSignificant(s.pdt, confidence))
-        .sort((a, b) => b.disagreeMetric - a.disagreeMetric);
-
-    // Apply maxStatements limit for disagree candidates
-    const maxDisagree = pickMax !== null && pickMax !== undefined ? pickMax : Math.floor(maxStatementsCount / 2);
-    disagreeCandidates = disagreeCandidates.slice(0, maxDisagree);
-
-    // Format results similar to Python output
-    const formatStatement = (stmt, isAgree) => ({
-        tid: stmt.tid,
-        n_success: isAgree ? stmt.na : stmt.nd,
-        n_trials: stmt.ns,
-        p_success: isAgree ? stmt.pa : stmt.pd,
-        p_test: isAgree ? stmt.pat : stmt.pdt,
-        cons_for: isAgree ? "agree" : "disagree",
-    });
-
-    return {
-        agree: agreeCandidates.map((s) => formatStatement(s, true)),
-        disagree: disagreeCandidates.map((s) => formatStatement(s, false)),
-    };
-}
-
-/**
  * Get label array with optional ungrouped points
  * @returns {Array} - Label array
  */
@@ -523,9 +68,9 @@ function getLabelArrayWithOptionalUngrouped() {
         if (label) {
             labels.push(label);
         } else if (includeUnpainted) {
-            labels.push("black"); // Treat unpainted points as a group
+            labels.push("black");
         } else {
-            labels.push(null); // Exclude from analysis
+            labels.push(null);
         }
     }
 
@@ -534,29 +79,38 @@ function getLabelArrayWithOptionalUngrouped() {
 
 /**
  * Analyze painted clusters
- * @param {Object} db - Database instance
+ * @param {Object} db - sql.js Database instance
  * @param {Array} labelArray - Label array
  * @param {Array} commentTexts - Comment texts
- * @returns {Promise<Object>} - Representative comments
+ * @returns {Promise<Object>} - Representative comments by group
  */
 async function analyzePaintedClusters(db, labelArray, commentTexts) {
+    const includeModerated = document.getElementById(
+        "include-moderated-checkbox",
+    )?.checked;
+    const minVoteCount =
+        parseInt(document.getElementById("min-vote-count")?.value) || 1;
+    const maxStatementsCount =
+        parseInt(document.getElementById("max-statements-count")?.value) || 10;
+
     const groupVotes = await getGroupVoteMatrices(db, labelArray);
+
     const repComments = calculateRepresentativeComments(
         groupVotes,
         commentTexts,
+        {
+            includeModerated,
+            minVoteCount,
+            maxStatementsCount,
+            commentTextMap: AppState.data.commentTextMap,
+        },
     );
 
-    // Store the raw group votes data for use in the comparison view
     AppState.data.groupVotes = groupVotes;
 
-    // Calculate consensus statements if we have at least 2 groups
     const uniqueGroups = Object.keys(groupVotes);
     let consensusStatements = null;
     if (uniqueGroups.length >= 2) {
-        // Get moderated statement IDs to exclude
-        const includeModerated = document.getElementById(
-            "include-moderated-checkbox",
-        )?.checked;
         const modOutStatementIds = [];
         if (!includeModerated && AppState.data.commentTexts) {
             AppState.data.commentTexts.forEach((comment) => {
@@ -571,11 +125,13 @@ async function analyzePaintedClusters(db, labelArray, commentTexts) {
         consensusStatements = selectConsensusStatements(
             groupVotes,
             modOutStatementIds,
+            null,
+            0.5,
+            { minVoteCount, maxStatementsCount },
         );
         console.log("Consensus Statements:", consensusStatements);
     }
 
-    // Store consensus statements for UI rendering
     AppState.data.consensusStatements = consensusStatements;
 
     console.log("Representative Comments:", repComments);
@@ -588,9 +144,8 @@ async function analyzePaintedClusters(db, labelArray, commentTexts) {
 async function applyGroupAnalysis() {
     const output = document.getElementById("rep-comments-output");
 
-    const labelArray = getLabelArrayWithOptionalUngrouped(); // same as "unpainted"
+    const labelArray = getLabelArrayWithOptionalUngrouped();
 
-    // Count distinct labels, excluding nulls
     const uniqueLabels = new Set(labelArray.filter((x) => x !== null));
     if (uniqueLabels.size < 2) {
         output.innerHTML = `<p style="color: #c00; font-weight: bold;">Need at least two groups to analyze.</p>`;
@@ -598,9 +153,8 @@ async function applyGroupAnalysis() {
     }
 
     // 👉 SHOW loader before starting analysis, because freezes plots.
-    showPlotLoader();
+    window.showPlotLoader();
 
-    // Create a loading overlay instead of replacing content
     const loadingOverlay = document.createElement("div");
     loadingOverlay.className = "absolute inset-0 bg-white bg-opacity-80 z-10";
     loadingOverlay.id = "analysis-loader";
@@ -611,32 +165,28 @@ async function applyGroupAnalysis() {
     </div>
   `;
 
-    // Make sure the output container has relative positioning for the absolute overlay
     if (window.getComputedStyle(output).position === "static") {
         output.style.position = "relative";
     }
 
-    // Add the overlay to the output container
     output.appendChild(loadingOverlay);
 
     // 🔥 FORCE a DOM paint before continuing with long task
     await preworkRenderPipelinePauseHelper();
 
-    const db = await loadVotesDB(AppState.preferences.convoSlug);
+    const db = await window.loadVotesDB(AppState.preferences.convoSlug);
     let commentTexts;
     const rep = await analyzePaintedClusters(db, labelArray, commentTexts);
 
-    // Remove the loading overlay
     const loader = document.getElementById("analysis-loader");
     if (loader) {
         loader.remove();
     }
 
-    // Now render the new content
-    renderRepCommentsTable(rep);
+    window.renderRepCommentsTable(rep);
 
     // 👉 HIDE loader after analysis and render complete
-    hidePlotLoader();
+    window.hidePlotLoader();
 }
 
 // ============================================================================
@@ -647,26 +197,19 @@ async function applyGroupAnalysis() {
  * Initialize the application
  */
 function initializeApp() {
-    // Initialize application state
     AppState.init();
 
-    // Initialize UI with stored preferences
-    initializeUI();
+    window.initializeUI();
 
-    // Set up event listeners
-    setupEventListeners();
+    window.setupEventListeners();
 
-    // Initialize plot visibility
-    updatePlotVisibility();
+    window.updatePlotVisibility();
 
-    // First load the dataset list to ensure dropdown is populated
-    loadDatasetList().then(() => {
-        // Check for shared state in URL hash
+    window.loadDatasetList().then(() => {
         const hash = location.hash.slice(1);
         if (hash) {
-            const shared = decodeShareState(hash);
+            const shared = window.decodeShareState(hash);
             if (shared) {
-                // Explicitly handle custom labels if they exist in the shared state
                 if (
                     shared.customLabels &&
                     Object.keys(shared.customLabels).length > 0
@@ -676,22 +219,20 @@ function initializeApp() {
                         shared.customLabels,
                     );
                     AppState.selection.customLabels = shared.customLabels;
-                    saveState("customLabels", shared.customLabels);
+                    window.saveState("customLabels", shared.customLabels);
                 }
 
-                applySharedState(shared);
-                return; // ✅ Don't run normal startup; already handled
+                window.applySharedState(shared);
+                return;
             }
         }
 
-        // Only run if no shared state
-        loadAndRenderData(AppState.preferences.convoSlug);
+        window.loadAndRenderData(AppState.preferences.convoSlug);
     });
 }
 
 /**
  * Forces the browser to render pending DOM updates before continuing.
- * Use this after DOM changes (like showing a spinner) but before heavy work.
  *
  * @returns {Promise<void>} Resolves on the next tick, after paint.
  */
@@ -702,11 +243,6 @@ function preworkRenderPipelinePauseHelper() {
 // Initialize the application when the DOM is loaded
 window.addEventListener("DOMContentLoaded", initializeApp);
 
-// For testing purposes, export objects and functions
-if (typeof module !== "undefined" && module.exports) {
-    module.exports = {
-        twoPropTest,
-        zSig90,
-        // Add other functions you want to test
-    };
-}
+// Expose to window for ui.js (loaded as a classic script that references these as globals)
+window.applyGroupAnalysis = applyGroupAnalysis;
+window.getLabelArrayWithOptionalUngrouped = getLabelArrayWithOptionalUngrouped;

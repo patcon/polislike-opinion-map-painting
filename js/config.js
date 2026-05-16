@@ -287,6 +287,12 @@ function hidePlotLoader() {
     document.getElementById("plot-loader").style.display = "none";
 }
 
+// Expose to window so ES module scripts (main.js) can access these by name
+if (typeof window !== "undefined") {
+    window.Config = Config;
+    window.AppState = AppState;
+}
+
 // For testing purposes, export objects and functions
 /* istanbul ignore next */
 if (typeof module !== "undefined" && module.exports) {
