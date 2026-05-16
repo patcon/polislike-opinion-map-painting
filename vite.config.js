@@ -3,6 +3,7 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 
 export default defineConfig({
     root: ".",
+    base: "/polislike-opinion-map-painting/",
     plugins: [
         viteStaticCopy({
             targets: [
